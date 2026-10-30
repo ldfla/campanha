@@ -10,6 +10,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(la.meleva.fundraiser.campaign.CampaignOperationBlockedException.class)
+    public ResponseEntity<ApiProblem> handleCampaignBlocked(
+            la.meleva.fundraiser.campaign.CampaignOperationBlockedException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        var problem = ApiProblem.of(ErrorCode.CAMPAIGN_OPERATION_BLOCKED, ex.getMessage(), correlationId);
+        return ResponseEntity.status(403).body(problem);
+    }
+
     @ExceptionHandler(ErrorCode.BusinessException.class)
     public ResponseEntity<ApiProblem> handleBusiness(ErrorCode.BusinessException ex) {
         var code = ex.errorCode();
