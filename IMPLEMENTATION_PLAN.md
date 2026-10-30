@@ -542,12 +542,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P03-01` Implementar migrations para tabelas da seção 4, por domínio e em ordem de FK.
 - [x] `P03-02` Adicionar índices, constraints, limites de numeração e FKs.
-- [ ] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
+- [x] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
 - [x] `P03-04` Criar `outbox_events`, `inbox_events`, worker e políticas de retry/dead letter.
-- [ ] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
-- [ ] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`/`staging`.
-- [ ] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
-- [ ] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
+- [x] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
+- [x] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`.
+- [x] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
+- [x] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
 
 **Aceite:** migração limpa e repetível; constraints seguram duplicidade mesmo sem lógica de aplicação.
 
