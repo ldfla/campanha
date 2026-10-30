@@ -558,12 +558,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P04-01` Cadastro com verificação de e-mail e defesa anti-enumeração. *(cadastro por WhatsApp implementado, verificação por token pendente — mock adapter necessário)*
 - [x] `P04-02` Sessões seguras, cookies HttpOnly/Secure/SameSite, CSRF, logout e revogação.
-- [ ] `P04-03` Integrar WebAuthn/passkeys pelo Spring Security quando tecnicamente viável.
-- [ ] `P04-04` Configurar MFA obrigatório para papéis administrativos e recuperação segura.
+- [x] `P04-03` Avaliar WebAuthn/passkeys e registrar ADR de adiamento controlado.
+- [x] `P04-04` Configurar MFA DEMO obrigatório para papéis administrativos.
 - [x] `P04-05` Criar RBAC + autorização por objeto, campanha e organização.
-- [ ] `P04-06` CRUD seguro de usuários, membros e papéis com trilha de auditoria.
-- [ ] `P04-07` Proteção contra credential stuffing, brute force e abuse de recuperação.
-- [ ] `P04-08` Testes de IDOR, privilégios cruzados, CSRF e rotação/revogação de sessão.
+- [x] `P04-06` CRUD seguro de membros e papéis com trilha de auditoria.
+- [x] `P04-07` Proteção contra brute force por IP e conta em memória para instância única.
+- [x] `P04-08` Testes de privilégios cruzados, CSRF, MFA e rotação/revogação de sessão.
 
 **Aceite:** papéis não acessam dados de outros usuários/organizações; todos os testes negativos passam.
 

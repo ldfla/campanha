@@ -38,6 +38,9 @@ public class User {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
+    @Column(name = "phone_verified_at")
+    private Instant phoneVerifiedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private UserStatus status;
@@ -93,6 +96,13 @@ public class User {
     }
 
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+
+    public Instant getPhoneVerifiedAt() { return phoneVerifiedAt; }
+
+    public void markPhoneVerified() {
+        this.phoneVerifiedAt = Instant.now();
+        this.updatedAt = this.phoneVerifiedAt;
+    }
 
     public UserStatus getStatus() { return status; }
 
