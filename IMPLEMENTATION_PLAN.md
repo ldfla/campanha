@@ -574,13 +574,13 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P05-01` CRUD de campanhas `DRAFT`, com título, slug, assets, períodos e organizador.
 - [x] `P05-02` Cadastrar kit e itens detalhados (câmera, lente, flash, acessórios, avaliação).
-- [ ] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
-- [ ] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
-- [ ] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
+- [x] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
+- [x] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
+- [x] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
 - [x] `P05-06` Aprovação dupla com proibição de autoaprovação, justificativa e revogação.
 - [x] `P05-07` Implementar `CampaignStateMachine` e `CapabilityPolicy`, testes para cada transição.
 - [x] `P05-08` Implementar `AdminGateMatrix` e testes de bloqueio de modo ilegal.
-- [ ] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
+- [x] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
 
 **Aceite:** não é possível abrir campanha real sem todas as portas e regras; o modo DEMO funciona com banner.
 
