@@ -24,7 +24,11 @@ public class ParticipationRequest {
         this.createdAt = Instant.now(); this.updatedAt = createdAt;
     }
     public Long getId() { return id; }
+    public String getPublicId() { return publicId; }
     public Long getCampaignId() { return campaignId; }
     public Long getUserId() { return userId; }
     public String getIdempotencyKey() { return idempotencyKey; }
+    public int getRequestedCount() { return requestedCount; }
+    public ParticipationStatus getStatus() { return status; }
+    public void markAssigned() { this.status = ParticipationStatus.ASSIGNED; this.updatedAt = Instant.now(); }
 }

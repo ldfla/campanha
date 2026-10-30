@@ -5,4 +5,7 @@ import java.util.List;
 
 public interface ParticipationEntryRepository extends JpaRepository<ParticipationEntry, Long> {
     List<ParticipationEntry> findByCampaignIdAndUserId(Long campaignId, Long userId);
+    List<ParticipationEntry> findByRequestId(Long requestId);
+    List<ParticipationEntry> findByCampaignIdAndStatus(Long campaignId, ParticipationStatus status);
+    long countByCampaignIdAndUserId(Long campaignId, Long userId);
 }

@@ -64,6 +64,9 @@ public class Campaign {
     @Column(name = "number_max", nullable = false)
     private int numberMax;
 
+    @Column(name = "max_entries_per_user", nullable = false)
+    private int maxEntriesPerUser;
+
     @Column(name = "current_regulation_id")
     private Long currentRegulationId;
 
@@ -89,6 +92,7 @@ public class Campaign {
         this.seriesCount = 1;
         this.numberMin = 0;
         this.numberMax = 99999;
+        this.maxEntriesPerUser = 100;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -107,6 +111,7 @@ public class Campaign {
     public int getSeriesCount() { return seriesCount; }
     public int getNumberMin() { return numberMin; }
     public int getNumberMax() { return numberMax; }
+    public int getMaxEntriesPerUser() { return maxEntriesPerUser; }
     public Long getCurrentRegulationId() { return currentRegulationId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

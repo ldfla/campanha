@@ -38,4 +38,6 @@ public class CampaignNumber {
     public NumberStatus getStatus() { return status; }
     public Long getEntryId() { return entryId; }
     public void assignTo(Long entryId) { this.entryId = entryId; this.status = NumberStatus.ASSIGNED; this.updatedAt = Instant.now(); }
+    public void freeze() { if (status == NumberStatus.ASSIGNED) { this.status = NumberStatus.FROZEN; this.updatedAt = Instant.now(); } }
+    public void invalidate() { if (status == NumberStatus.FROZEN) { this.status = NumberStatus.INVALIDATED; this.updatedAt = Instant.now(); } }
 }
