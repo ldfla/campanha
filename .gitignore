@@ -1,0 +1,42 @@
+# === IDE ===
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Java/Maven ===
+backend/target/
+*.class
+*.jar
+*.war
+
+# === Node ===
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+
+# === Docker ===
+docker-compose.override.yml
+
+# === Logs ===
+*.log
+logs/
+
+# === Secrets ===
+*.pem
+*.key
+*.p12
+*.jks
