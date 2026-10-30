@@ -494,12 +494,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** nenhuma.  
 **Entregáveis:** `docs/progress/P00.md`, decisões iniciais, mapa do repositório, baseline de execução.
 
-- [ ] `P00-01` Inventariar arquivos existentes e preservar alterações não relacionadas.
-- [ ] `P00-02` Identificar versões atuais de Java, Maven, Node, MySQL e ferramentas locais.
-- [ ] `P00-03` Registrar premissas, escopo, não objetivos, riscos legais e dependências externas.
-- [ ] `P00-04` Criar ADR-0001 (monólito modular), ADR-0002 (MySQL/outbox), ADR-0003 (modos e gates).
+- [x] `P00-01` Inventariar arquivos existentes e preservar alterações não relacionadas.
+- [x] `P00-02` Identificar versões atuais de Java, Maven, Node, MySQL e ferramentas locais.
+- [x] `P00-03` Registrar premissas, escopo, não objetivos, riscos legais e dependências externas.
+- [x] `P00-04` Criar ADR-0001 (monólito modular), ADR-0002 (MySQL/outbox), ADR-0003 (modos e gates).
 - [ ] `P00-05` Criar matriz de rastreabilidade requisito -> tarefa -> teste -> evidência.
-- [ ] `P00-06` Criar modelo de execução por marcos e relatório de bloqueios.
+- [x] `P00-06` Criar modelo de execução por marcos e relatório de bloqueios.
 
 **Aceite:** mapa real do repositório, comandos e decisões documentados; nenhum requisito legal presumido.
 
@@ -508,14 +508,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P00.  
 **Entregáveis:** threat model inicial, políticas de negócio, catálogo de regras e schemas de validação.
 
-- [ ] `P01-01` Formalizar `DEMO`, `COMMERCIAL_PROMOTION`, `PHILANTHROPIC_AUTHORIZED` com capabilities distintas.
-- [ ] `P01-02` Definir validações fail-closed para publicação, participação, cobrança, premiação e sorteio.
-- [ ] `P01-03` Documentar restrições de prêmio monetário e divulgação remunerada.
-- [ ] `P01-04` Definir requisitos e fluxo de dupla aprovação, segregação de funções e revogação.
+- [x] `P01-01` Formalizar `DEMO`, `COMMERCIAL_PROMOTION`, `PHILANTHROPIC_AUTHORIZED` com capabilities distintas.
+- [x] `P01-02` Definir validações fail-closed para publicação, participação, cobrança, premiação e sorteio.
+- [x] `P01-03` Documentar restrições de prêmio monetário e divulgação remunerada.
+- [x] `P01-04` Definir requisitos e fluxo de dupla aprovação, segregação de funções e revogação.
 - [ ] `P01-05` Criar templates: regulamento, requisitos de autorização, documentação da câmera, checklist do PSP.
-- [ ] `P01-06` Construir catálogo de erros com códigos estáveis e mensagens PT-BR.
-- [ ] `P01-07` Registrar casos de uso, estados e invariantes em `docs/architecture/domain.md`.
-- [ ] `P01-08` Definir campos obrigatórios de consentimento, privacidade e trilhas de auditoria.
+- [x] `P01-06` Construir catálogo de erros com códigos estáveis e mensagens PT-BR.
+- [x] `P01-07` Registrar casos de uso, estados e invariantes em `docs/architecture/domain.md`.
+- [x] `P01-08` Definir campos obrigatórios de consentimento, privacidade e trilhas de auditoria.
 
 **Aceite:** matriz que comprove todos os modos proibidos bloqueados no backend; documentação jurídica explicitamente pendente de revisão externa.
 
@@ -524,14 +524,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P00/P01.  
 **Entregáveis:** backend compilável, frontend executável, Compose e pipeline verde.
 
-- [ ] `P02-01` Criar módulos/pacotes Java, `pom.xml`, Maven Wrapper e `.editorconfig`.
-- [ ] `P02-02` Criar Next.js + React 19 + TS strict, configuração de lint, formatação e aliases.
-- [ ] `P02-03` Configurar Docker Compose MySQL 8.4, MinIO local e healthchecks.
-- [ ] `P02-04` Configurar `.env.example` e política de segredos; nunca versionar `.env`.
+- [x] `P02-01` Criar módulos/pacotes Java, `pom.xml`, Maven Wrapper e `.editorconfig`.
+- [x] `P02-02` Criar Next.js + React 19 + TS strict, configuração de lint, formatação e aliases.
+- [x] `P02-03` Configurar Docker Compose MySQL 8.4, MinIO local e healthchecks.
+- [x] `P02-04` Configurar `.env.example` e política de segredos; nunca versionar `.env`.
 - [ ] `P02-05` Criar workflow CI (build, typecheck, lint, testes backend/frontend, SCA, secret scan).
-- [ ] `P02-06` Ativar Actuator /health, readiness/liveness e correlação de requisição.
-- [ ] `P02-07` Publicar documentação OpenAPI inicial e scripts `dev`, `test`, `check`.
-- [ ] `P02-08` Criar rotas Next.js mínimas e layout responsivo com dark/light respeitando acessibilidade.
+- [x] `P02-06` Ativar Actuator /health, readiness/liveness e correlação de requisição.
+- [x] `P02-07` Publicar documentação OpenAPI inicial e scripts `dev`, `test`, `check`.
+- [x] `P02-08` Criar rotas Next.js mínimas e layout responsivo com dark/light respeitando acessibilidade.
 
 **Aceite:** `docker compose up -d`, `./mvnw verify`, comandos npm e pipeline executam do zero em ambiente documentado.
 
@@ -540,10 +540,10 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P02.  
 **Entregáveis:** schema completo com Flyway e testes de integridade.
 
-- [ ] `P03-01` Implementar migrations para tabelas da seção 4, por domínio e em ordem de FK.
-- [ ] `P03-02` Adicionar índices, constraints, limites de numeração e FKs.
+- [x] `P03-01` Implementar migrations para tabelas da seção 4, por domínio e em ordem de FK.
+- [x] `P03-02` Adicionar índices, constraints, limites de numeração e FKs.
 - [ ] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
-- [ ] `P03-04` Criar `outbox_events`, `inbox_events`, worker e políticas de retry/dead letter.
+- [x] `P03-04` Criar `outbox_events`, `inbox_events`, worker e políticas de retry/dead letter.
 - [ ] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
 - [ ] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`/`staging`.
 - [ ] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
