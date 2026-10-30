@@ -23,7 +23,7 @@ const prizes = [
 
 export function Prizes() {
   return (
-    <section className="bg-[var(--color-charcoal)] px-6 md:px-16 lg:px-24 py-24 md:py-32">
+    <section className="bg-[var(--color-charcoal)] px-6 md:px-16 lg:px-24 xl:px-32 py-24 md:py-32">
       <div className="max-w-4xl">
         <h2 className="font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,3rem)] font-semibold text-[var(--color-cream)] mb-16">
           O que você pode levar pra casa

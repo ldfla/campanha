@@ -27,7 +27,7 @@ export function SocialProof() {
   }, []);
 
   return (
-    <section className="px-6 md:px-16 lg:px-24 py-16 bg-[var(--color-cream)]">
+    <section className="px-6 md:px-16 lg:px-24 xl:px-32 py-16 border-t border-[var(--color-charcoal)]/8 bg-[var(--color-cream)]">
       <p className="max-w-3xl font-[family-name:var(--font-heading)] text-[clamp(1.25rem,3vw,2rem)] leading-snug text-[var(--color-charcoal)]">
         Já são{" "}
         <span className="tabular-nums font-semibold">
