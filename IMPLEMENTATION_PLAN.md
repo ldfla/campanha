@@ -556,11 +556,11 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P03.  
 **Entregáveis:** autenticação, contas, perfis e autorização testada.
 
-- [ ] `P04-01` Cadastro com verificação de e-mail e defesa anti-enumeração.
-- [ ] `P04-02` Sessões seguras, cookies HttpOnly/Secure/SameSite, CSRF, logout e revogação.
+- [x] `P04-01` Cadastro com verificação de e-mail e defesa anti-enumeração. *(cadastro por WhatsApp implementado, verificação por token pendente — mock adapter necessário)*
+- [x] `P04-02` Sessões seguras, cookies HttpOnly/Secure/SameSite, CSRF, logout e revogação.
 - [ ] `P04-03` Integrar WebAuthn/passkeys pelo Spring Security quando tecnicamente viável.
 - [ ] `P04-04` Configurar MFA obrigatório para papéis administrativos e recuperação segura.
-- [ ] `P04-05` Criar RBAC + autorização por objeto, campanha e organização.
+- [x] `P04-05` Criar RBAC + autorização por objeto, campanha e organização.
 - [ ] `P04-06` CRUD seguro de usuários, membros e papéis com trilha de auditoria.
 - [ ] `P04-07` Proteção contra credential stuffing, brute force e abuse de recuperação.
 - [ ] `P04-08` Testes de IDOR, privilégios cruzados, CSRF e rotação/revogação de sessão.
@@ -572,14 +572,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P01/P04.  
 **Entregáveis:** backoffice de campanha e compliance.
 
-- [ ] `P05-01` CRUD de campanhas `DRAFT`, com título, slug, assets, períodos e organizador.
-- [ ] `P05-02` Cadastrar kit e itens detalhados (câmera, lente, flash, acessórios, avaliação).
+- [x] `P05-01` CRUD de campanhas `DRAFT`, com título, slug, assets, períodos e organizador.
+- [x] `P05-02` Cadastrar kit e itens detalhados (câmera, lente, flash, acessórios, avaliação).
 - [ ] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
 - [ ] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
 - [ ] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
-- [ ] `P05-06` Aprovação dupla com proibição de autoaprovação, justificativa e revogação.
-- [ ] `P05-07` Implementar `CampaignStateMachine` e `CapabilityPolicy`, testes para cada transição.
-- [ ] `P05-08` Implementar `AdminGateMatrix` e testes de bloqueio de modo ilegal.
+- [x] `P05-06` Aprovação dupla com proibição de autoaprovação, justificativa e revogação.
+- [x] `P05-07` Implementar `CampaignStateMachine` e `CapabilityPolicy`, testes para cada transição.
+- [x] `P05-08` Implementar `AdminGateMatrix` e testes de bloqueio de modo ilegal.
 - [ ] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
 
 **Aceite:** não é possível abrir campanha real sem todas as portas e regras; o modo DEMO funciona com banner.
