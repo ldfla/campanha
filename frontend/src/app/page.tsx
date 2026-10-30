@@ -1,69 +1,81 @@
-import Image from "next/image";
+import { CTAButton } from "@/components/cta-button";
+import { SocialProof } from "@/components/social-proof";
+import { HowItWorks } from "@/components/how-it-works";
+import { Prizes } from "@/components/prizes";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <>
+      {/* ── Hero ── */}
+      <section className="relative min-h-[100dvh] flex flex-col justify-center px-6 md:px-16 lg:px-24 py-20 bg-[var(--color-cream)]">
+        <div className="max-w-3xl">
+          <h1
+            className="animate-mask-reveal font-[family-name:var(--font-heading)] text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] font-semibold text-[var(--color-charcoal)] tracking-tight"
+          >
+            Eu tenho um sonho.
+            <br />
+            E um número da sorte pode ser o primeiro tijolo.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="mt-8 max-w-lg text-lg md:text-xl leading-relaxed text-[var(--color-charcoal)] opacity-80">
+            Compre seu número na Ação entre Amigos. Concorra a prêmios de
+            verdade&nbsp;&mdash; e ajude a empresa a nascer.
+          </p>
+
+          <div className="mt-10 animate-cta-glow">
+            <CTAButton />
+          </div>
+
+          <p className="mt-4 text-sm text-[var(--color-charcoal)] opacity-50">
+            Leva 1 minuto. Prêmios a qualquer momento.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* ── Prova social ── */}
+      <SocialProof />
+
+      {/* ── Como funciona ── */}
+      <HowItWorks />
+
+      {/* ── Prêmios ── */}
+      <Prizes />
+
+      {/* ── Fechamento emocional ── */}
+      <section className="bg-[var(--color-terracotta)] px-6 md:px-16 lg:px-24 py-24 md:py-32">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,3rem)] leading-tight font-medium text-[var(--color-cream)]">
+            Não é doação. Não é investimento.
+            <br />
+            É aposta no meu sonho&nbsp;&mdash; e no seu prêmio.
+          </p>
+
+          <div className="mt-12 flex flex-col items-center gap-4">
+            <CTAButton />
+            <p className="text-sm text-[var(--color-cream)] opacity-60">
+              Sem cadastro complicado. Seus prêmios, divulgados abertos.
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* ── Rodapé ── */}
+      <footer className="bg-[var(--color-charcoal)] px-6 md:px-16 lg:px-24 py-12">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-[var(--color-cream)] opacity-60">
+          <span className="font-[family-name:var(--font-heading)] text-base opacity-100 text-[var(--color-cream)]">
+            Ação entre Amigos
+          </span>
+
+          <nav className="flex gap-6">
+            <a href="#regulamento" className="hover:opacity-100 transition-opacity">
+              Regulamento
+            </a>
+            <a href="#contato" className="hover:opacity-100 transition-opacity">
+              Fale comigo
+            </a>
+          </nav>
+        </div>
+      </footer>
+    </>
   );
 }
