@@ -31,7 +31,11 @@ public record Money(long amountCents) {
 
     public Money subtract(Money other) {
         Objects.requireNonNull(other);
-        return new Money(Math.subtractExact(amountCents, other.amountCents));
+        long result = Math.subtractExact(amountCents, other.amountCents);
+        if (result < 0) {
+            throw new ArithmeticException("Subtração resultaria em valor negativo");
+        }
+        return new Money(result);
     }
 
     public Money multiply(int factor) {

@@ -50,6 +50,7 @@ public enum ErrorCode {
 
     // Identidade
     AUTH_INVALID_CREDENTIALS("Credenciais inválidas", 401),
+    AUTH_DUPLICATE_CREDENTIAL("Número de telefone já cadastrado", 409),
     AUTH_ACCOUNT_LOCKED("Conta bloqueada por excesso de tentativas", 429),
     AUTH_SESSION_EXPIRED("Sessão expirada", 401),
     AUTH_MFA_REQUIRED("Autenticação multifator obrigatória", 403),
@@ -73,6 +74,10 @@ public enum ErrorCode {
         this.httpStatus = httpStatus;
     }
 
+    public String title() {
+        return message;
+    }
+
     public String message() {
         return message;
     }
@@ -83,5 +88,22 @@ public enum ErrorCode {
 
     public String code() {
         return name();
+    }
+
+    public BusinessException toException() {
+        return new BusinessException(this);
+    }
+
+    public static class BusinessException extends RuntimeException {
+        private final ErrorCode errorCode;
+
+        public BusinessException(ErrorCode errorCode) {
+            super(errorCode.message());
+            this.errorCode = errorCode;
+        }
+
+        public ErrorCode errorCode() {
+            return errorCode;
+        }
     }
 }

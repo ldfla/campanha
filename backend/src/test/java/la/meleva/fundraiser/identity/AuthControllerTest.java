@@ -1,0 +1,148 @@
+package la.meleva.fundraiser.identity;
+
+import jakarta.servlet.http.Cookie;
+import la.meleva.fundraiser.TestcontainersConfiguration;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.Arrays;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@Import(TestcontainersConfiguration.class)
+class AuthControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    private Cookie[] performRegister(String phone) throws Exception {
+        MvcResult result = mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"firstName": "Test", "surname": "User", "phoneNumber": "%s"}
+                        """.formatted(phone)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return result.getResponse().getCookies();
+    }
+
+    private Cookie sessionCookie(Cookie[] cookies) {
+        return Arrays.stream(cookies)
+                .filter(c -> "SESSION".equals(c.getName()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("SESSION cookie not found"));
+    }
+
+    @Test
+    void registerCreatesUserAndReturnsCreated() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"firstName": "João", "surname": "Silva", "phoneNumber": "+5511999990001"}
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.firstName").value("João"))
+                .andExpect(jsonPath("$.surname").value("Silva"))
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.roles[0]").value("PARTICIPANT"));
+    }
+
+    @Test
+    void registerRejectsDuplicatePhone() throws Exception {
+        performRegister("+5511999990002");
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"firstName": "Maria", "surname": "Outra", "phoneNumber": "+5511999990002"}
+                        """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AUTH_DUPLICATE_CREDENTIAL"));
+    }
+
+    @Test
+    void registerRejectsInvalidInput() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"firstName": "", "surname": "", "phoneNumber": "abc"}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void loginReturnsOkForExistingUser() throws Exception {
+        performRegister("+5511999990003");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"phoneNumber": "+5511999990003"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Test"));
+    }
+
+    @Test
+    void loginRejectsUnknownPhone() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"phoneNumber": "+5511999999999"}
+                        """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void meRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meReturnsCurrentUserWhenAuthenticated() throws Exception {
+        Cookie[] cookies = performRegister("+5511999990004");
+        Cookie session = sessionCookie(cookies);
+
+        mockMvc.perform(get("/auth/me").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Test"))
+                .andExpect(jsonPath("$.surname").value("User"));
+    }
+
+    @Test
+    void logoutInvalidatesSession() throws Exception {
+        Cookie[] cookies = performRegister("+5511999990005");
+        Cookie session = sessionCookie(cookies);
+
+        mockMvc.perform(post("/auth/logout").cookie(session))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/auth/me").cookie(session))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void antiEnumerationLoginDoesNotRevealExistence() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"phoneNumber": "+5511000000001"}
+                        """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
+    }
+}
