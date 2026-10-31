@@ -7,6 +7,7 @@
   --color-charcoal: #2B1D16;
   --color-terracotta-dark: #944025;
   --color-cream-warm: #EDE4D8;
+  --color-red-urgent: #E53E3E;
 
   --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-body: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
@@ -38,31 +39,24 @@ body {
   color: var(--color-cream);
 }
 
-@keyframes mask-reveal {
-  from {
-    clip-path: inset(100% 0 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
-@keyframes cta-glow {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-mask-reveal {
-  animation: mask-reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+@keyframes progress-fill {
+  from { width: 0; }
 }
 
-.animate-cta-glow {
-  opacity: 0;
-  animation: cta-glow 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+.animate-slide-in {
+  animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
 }
