@@ -15,6 +15,7 @@ import {
   COMBOS,
   PRICE_UNIT_CENTS,
   isSoldOut,
+  isSuspended,
   isDemoMode,
   formatBRL,
 } from "@/lib/campaign-config";
@@ -25,7 +26,9 @@ export default function ParticiparPage() {
   const { user, register } = useAuth();
   const [selectedCombo, setSelectedCombo] = useState<string>("torcida");
   const soldOut = isSoldOut();
+  const suspended = isSuspended();
   const demoMode = isDemoMode();
+  const blocked = soldOut || suspended;
   const [customQty, setCustomQty] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -48,7 +51,7 @@ export default function ParticiparPage() {
   }
 
   async function handleNext() {
-    if (step === "choose" && qty > 0 && !soldOut) {
+    if (step === "choose" && qty > 0 && !blocked) {
       setStep("register");
     } else if (step === "register" && name.trim() && surname.trim() && whatsapp.trim()) {
       setSubmitting(true);
@@ -122,6 +125,13 @@ export default function ParticiparPage() {
             })}
           </div>
 
+          {suspended && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+              <p className="text-sm font-semibold text-amber-800">Campanha temporariamente suspensa</p>
+              <p className="mt-1 text-xs text-amber-700/70">As participações estão pausadas. Acompanhe nossas redes para saber quando retornamos.</p>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
@@ -146,14 +156,14 @@ export default function ParticiparPage() {
                     <button
                       key={c.id}
                       onClick={() => selectCombo(c.id)}
-                      disabled={soldOut}
+                      disabled={blocked}
                       className={`relative w-full text-left rounded-2xl p-5 transition-all ${
                         isSelected
                           ? c.popular
                             ? "bg-gradient-to-br from-[var(--color-iris)]/[0.08] to-[var(--color-jade)]/[0.06] border-2 border-[var(--color-iris)]/30 shadow-[0_4px_20px_rgba(124,92,252,0.12)]"
                             : "bg-white border-2 border-[var(--color-iris)]/25 shadow-md"
                           : "bg-white border border-black/[0.06] hover:border-black/[0.12] hover:shadow-sm"
-                      } ${soldOut ? "opacity-60 cursor-not-allowed" : ""}`}
+                      } ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       {c.badge && (
                         <span className={`absolute -top-2.5 left-5 text-[10px] font-bold px-3 py-1 rounded-full ${
@@ -199,7 +209,7 @@ export default function ParticiparPage() {
               </div>
 
               {/* Custom qty */}
-              {!soldOut && (
+              {!blocked && (
                 <div className="mb-6">
                   <button
                     onClick={() => setCustomQty(customQty === null ? 1 : null)}
@@ -236,9 +246,9 @@ export default function ParticiparPage() {
                 </p>
               </div>
 
-              {soldOut ? (
+              {blocked ? (
                 <span className="block w-full py-4 rounded-xl font-bold text-lg text-center bg-[var(--color-ink-soft)]/40 text-white/60 cursor-not-allowed">
-                  Esgotado
+                  {soldOut ? "Esgotado" : "Participações pausadas"}
                 </span>
               ) : (
                 <button

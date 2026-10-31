@@ -1,6 +1,6 @@
 export const CAMPAIGN_MODE = "DEMO" as const;
 
-export const CAMPAIGN_STATUS: "ACTIVE" | "SOLD_OUT" = "ACTIVE";
+export const CAMPAIGN_STATUS: "ACTIVE" | "SOLD_OUT" | "SUSPENDED" = "ACTIVE";
 
 export const PRICE_UNIT_CENTS = 65;
 
@@ -95,6 +95,10 @@ export function formatBRL(cents: number): string {
 
 export function isSoldOut(): boolean {
   return CAMPAIGN_STATUS === "SOLD_OUT";
+}
+
+export function isSuspended(): boolean {
+  return CAMPAIGN_STATUS === "SUSPENDED";
 }
 
 export function isDemoMode(): boolean {
