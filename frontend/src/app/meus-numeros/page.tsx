@@ -248,9 +248,12 @@ export default function MeusNumerosPage() {
               </div>
 
               {demoMode && (
-                <p className="mt-6 text-center text-xs text-[var(--color-midnight)]/25">
-                  Modo demonstração · Dados do servidor
-                </p>
+                <div className="mt-6 rounded-xl border border-[var(--color-iris)]/20 bg-[var(--color-iris)]/[0.06] px-4 py-3 text-center">
+                  <p className="text-xs font-semibold text-[var(--color-iris)]">Modo demonstração</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-ink-soft)]">
+                    Os números exibidos são simulados. Este painel não constitui comprovante de participação real nem direito a premiação.
+                  </p>
+                </div>
               )}
             </div>
           )}
