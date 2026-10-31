@@ -81,6 +81,27 @@ class AwardDeliveryServiceIntegrationTest {
         }
     }
 
+    @Test void deliversWithEvidenceThenDisputesAndSummarizesWithoutPii() {
+        var f=fixture("award-delivery",true);
+        var delivery=service.createSimulation(f.manager().getId(),f.campaign().getPublicId(),f.outcomeId());
+        service.validateBeneficiary(f.manager().getId(),f.campaign().getPublicId(),delivery.getId());
+        service.schedule(f.manager().getId(),f.campaign().getPublicId(),delivery.getId());
+        var delivered=service.deliver(f.manager().getId(),f.campaign().getPublicId(),delivery.getId(),"s3://evidencias/"+"entrega.pdf");
+        assertThat(delivered.getStatus()).isEqualTo(AwardDeliveryStatus.DELIVERED);
+        assertThat(delivered.getDeliveryEvidenceUri()).isEqualTo("s3://evidencias/entrega.pdf");
+        assertThat(delivered.getDeliveryEvidenceSha256()).hasSize(64);
+        assertThat(delivered.getDeliveredAt()).isNotNull();
+        assertThatThrownBy(()->service.deliver(f.manager().getId(),f.campaign().getPublicId(),delivery.getId(),"s3://evidencias/outra.pdf"))
+                .isInstanceOf(BusinessException.class);
+        var disputed=service.dispute(f.manager().getId(),f.campaign().getPublicId(),delivery.getId(),"beneficiario contestou o recebimento");
+        assertThat(disputed.getStatus()).isEqualTo(AwardDeliveryStatus.DISPUTED);
+        assertThat(disputed.getDisputeReason()).contains("contestou");
+        var summary=service.summary(f.manager().getId(),f.campaign().getPublicId());
+        assertThat(summary.byStatus()).anySatisfy(row->{assertThat(row.status()).isEqualTo("DISPUTED");assertThat(row.count()).isEqualTo(1);});
+        assertThat(summary.notice()).contains("sem dados pessoais");
+        assertThat(summary.toString()).doesNotContain(f.beneficiary().getPhoneNumber());
+    }
+
     private Fixture fixture(String slug,boolean verified){
         var org=organizations.save(new Organization("Organização "+slug,"ASSOCIATION"));
         var manager=users.save(new User("Gestor","Teste",phone()));

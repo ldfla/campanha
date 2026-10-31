@@ -33,6 +33,7 @@ public class AwardDeliveryService {
         if(outcomeId==null) throw ErrorCode.VALIDATION_ERROR.toException();
         Campaign campaign=authorizedCampaign(actorId,campaignId);
         if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        AwardTransferPolicy.requireNonCash(prizeTypeFor(campaign.getId(),outcomeId));
         Long beneficiary=eligibleBeneficiary(campaign.getId(),outcomeId);
         var existing=deliveries.findByOutcomeId(outcomeId); if(existing.isPresent()) {
             if(!existing.get().getBeneficiaryUserId().equals(beneficiary)) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();
@@ -56,6 +57,38 @@ public class AwardDeliveryService {
         delivery.transitionTo(AwardDeliveryStatus.SCHEDULED); audit(actorId,delivery,"AWARD_SIMULATION_SCHEDULED"); return delivery;
     }
 
+    @Transactional
+    public AwardDelivery deliver(Long actorId,String campaignId,Long deliveryId,String evidenceUri){
+        var delivery=authorizedDelivery(actorId,campaignId,deliveryId);
+        requireVerifiedContact(delivery.getBeneficiaryUserId());
+        if(evidenceUri==null || evidenceUri.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
+        delivery.deliver(evidenceUri.strip(),sha256(evidenceUri.strip()),java.time.Instant.now());
+        audit(actorId,delivery,"AWARD_SIMULATION_DELIVERED"); return delivery;
+    }
+
+    @Transactional
+    public AwardDelivery dispute(Long actorId,String campaignId,Long deliveryId,String reason){
+        var delivery=authorizedDelivery(actorId,campaignId,deliveryId);
+        if(reason==null || reason.isBlank() || reason.strip().length()>500) throw ErrorCode.VALIDATION_ERROR.toException();
+        delivery.dispute(java.time.Instant.now(),reason);
+        audit(actorId,delivery,"AWARD_SIMULATION_DISPUTED"); return delivery;
+    }
+
+    @Transactional(readOnly=true)
+    public DeliverySummary summary(Long actorId,String campaignId){
+        if(actorId==null || campaignId==null || campaignId.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
+        var campaign=campaigns.findByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        Integer active=jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id=? AND status='ACTIVE'",Integer.class,actorId);
+        Integer authorized=jdbc.queryForObject("SELECT COUNT(*) FROM memberships WHERE user_id=? AND organization_id=? AND status='ACTIVE' AND role IN ('CAMPAIGN_MANAGER','SYSTEM_ADMIN')",Integer.class,actorId,campaign.getOrganizationId());
+        if(active==null || active!=1 || authorized==null || authorized!=1) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        var rows=jdbc.query("SELECT d.status, COUNT(*) FROM award_deliveries d "
+                        + "JOIN draw_outcomes o ON o.id=d.outcome_id JOIN draws dr ON dr.id=o.draw_id "
+                        + "WHERE dr.campaign_id=? GROUP BY d.status ORDER BY d.status",
+                (rs,row)->new StatusCount(rs.getString(1),rs.getLong(2)),campaign.getId());
+        return new DeliverySummary(campaignId,rows,"Resumo sem dados pessoais; entrega exclusivamente simulada.");
+    }
+
     private AwardDelivery authorizedDelivery(Long actorId,String campaignId,Long deliveryId){
         if(deliveryId==null) throw ErrorCode.VALIDATION_ERROR.toException();
         var campaign=authorizedCampaign(actorId,campaignId);
@@ -73,8 +106,13 @@ public class AwardDeliveryService {
         return campaign;
     }
 
-    private Long eligibleBeneficiary(Long campaignId,Long outcomeId){
-        // Contrato interno de fixture DEMO; não constitui regra de apuração real nem substitui a P12.
+    private String prizeTypeFor(Long campaignId,Long outcomeId){
+        var types=jdbc.queryForList("SELECT p.type FROM draw_outcomes o JOIN draws d ON d.id=o.draw_id JOIN campaign_prizes p ON p.id=o.prize_id AND p.campaign_id=d.campaign_id WHERE o.id=? AND d.campaign_id=?",String.class,outcomeId,campaignId);
+        if(types.size()!=1) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();
+        return types.getFirst();
+    }
+
+    private Long eligibleBeneficiary(Long campaignId,Long outcomeId){        // Contrato interno de fixture DEMO; não constitui regra de apuração real nem substitui a P12.
         var beneficiaries=jdbc.queryForList("SELECT e.user_id FROM draw_outcomes o JOIN draws d ON d.id=o.draw_id JOIN federal_results f ON f.id=d.federal_result_id JOIN participation_entries e ON e.id=o.entry_id AND e.campaign_id=d.campaign_id JOIN entry_number_assignments a ON a.entry_id=e.id JOIN campaign_numbers n ON n.id=a.campaign_number_id AND n.entry_id=e.id AND n.campaign_id=d.campaign_id AND n.number_value=o.winning_number JOIN campaign_prizes p ON p.id=o.prize_id AND p.campaign_id=d.campaign_id WHERE o.id=? AND d.campaign_id=? AND o.decision_code='DEMO_MATCH' AND d.status='PUBLISHED' AND f.verified_by_two=TRUE AND e.status='FROZEN' AND e.source='DEMO_SIMULATION' AND n.status='FROZEN' AND p.status='ACTIVE' AND p.type<>'CASH' FOR SHARE",Long.class,outcomeId,campaignId);
         if(beneficiaries.size()!=1) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();
         return beneficiaries.getFirst();
@@ -90,5 +128,16 @@ public class AwardDeliveryService {
     private void audit(Long actorId,AwardDelivery delivery,String action){
         try {var hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((action+":"+delivery.getId()+":"+delivery.getStatus()).getBytes(StandardCharsets.UTF_8)));audits.save(new AuditEvent(actorId,action,"award_delivery",delivery.getId(),hash));}
         catch(NoSuchAlgorithmException ex){throw new IllegalStateException("award.audit.hash.unavailable",ex);}
+    }
+
+    private static String sha256(String value){
+        try {return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}
+        catch(NoSuchAlgorithmException ex){throw new IllegalStateException("award.hash.unavailable",ex);}
+    }
+
+    public record StatusCount(String status,long count) { }
+
+    public record DeliverySummary(String campaignId,java.util.List<StatusCount> byStatus,String notice) {
+        public DeliverySummary { byStatus = java.util.List.copyOf(byStatus); }
     }
 }
