@@ -10,7 +10,7 @@ public class Payment {
  protected Payment() {} public Payment(Long orderId,String provider,long amountCents){if(amountCents<0)throw new IllegalArgumentException("Valor do pagamento não pode ser negativo");this.orderId=orderId;this.provider=provider;this.amountCents=amountCents;this.currency="BRL";this.status=PaymentStatus.PENDING;this.createdAt=Instant.now();this.updatedAt=createdAt;}
  public Long getId(){return id;} public Long getOrderId(){return orderId;} public PaymentStatus getStatus(){return status;} public String getProvider(){return provider;} public String getProviderChargeId(){return providerChargeId;} public String getTxid(){return txid;} public long getAmountCents(){return amountCents;}
  public void bindCharge(String chargeId,String txid){this.providerChargeId=chargeId;this.txid=txid;this.updatedAt=Instant.now();}
- public void confirm(){this.status=PaymentStatus.CONFIRMED;this.confirmedAt=Instant.now();this.updatedAt=confirmedAt;}
+ public void confirm(){if(this.status==PaymentStatus.CONFIRMED)return;this.status=PaymentStatus.CONFIRMED;this.confirmedAt=Instant.now();this.updatedAt=confirmedAt;}
  public void expire(){this.status=PaymentStatus.EXPIRED;this.updatedAt=Instant.now();}
  public void fail(){this.status=PaymentStatus.FAILED;this.updatedAt=Instant.now();}
  public void refund(){this.status=PaymentStatus.REFUNDED;this.updatedAt=Instant.now();}

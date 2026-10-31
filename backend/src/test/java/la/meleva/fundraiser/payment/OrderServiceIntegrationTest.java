@@ -60,6 +60,18 @@ class OrderServiceIntegrationTest {
         assertThat(payments.findById(receipt.paymentId()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.CONFIRMED);
         assertThat(ledger.findByCampaignId(fixture.campaign().getId())).hasSize(1);
     }
+    @Test void repeatedConfirmationDoesNotMoveOriginalConfirmationTime() {
+        var fixture=fixture(CampaignMode.DEMO,"payment-confirmed-time");
+        var receipt=orders.createOrder(fixture.campaign().getId(),fixture.user().getId(),250,"confirmation-time-key");
+        provider.setState(receipt.chargeId(),PaymentProvider.ChargeState.PAID);
+        orders.reconcile(receipt.paymentId());
+        jdbc.update("UPDATE payments SET confirmed_at = TIMESTAMPADD(DAY, -1, UTC_TIMESTAMP()) WHERE id = ?", receipt.paymentId());
+        var original=jdbc.queryForObject("SELECT confirmed_at FROM payments WHERE id=?", java.sql.Timestamp.class, receipt.paymentId());
+        orders.reconcile(receipt.paymentId());
+        var after=jdbc.queryForObject("SELECT confirmed_at FROM payments WHERE id=?", java.sql.Timestamp.class, receipt.paymentId());
+        assertThat(after).isEqualTo(original);
+        assertThat(ledger.findByCampaignId(fixture.campaign().getId())).hasSize(1);
+    }
     private Fixture fixture(CampaignMode mode,String slug){var org=organizations.save(new Organization("Org "+slug,"ASSOCIATION"));var user=users.save(new User("Pessoa","Teste","+5511"+Math.abs(slug.hashCode())));return new Fixture(campaigns.save(new Campaign(org.getId(),slug,slug,mode)),user);}
     record Fixture(Campaign campaign,User user){}
 }
