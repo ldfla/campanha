@@ -622,14 +622,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P04/P07.  
 **Entregáveis:** referral link individual e indicadores.
 
-- [ ] `P08-01` Criar link por campanha/divulgador, com códigos aleatórios não enumeráveis.
-- [ ] `P08-02` Definir atribuição primeira/última referência e janela de validade no regulamento (default explícito DEMO).
-- [ ] `P08-03` Registrar clique mínimo, consentimentos aplicáveis e atribuição após participação válida.
-- [ ] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
-- [ ] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
+- [x] `P08-01` Criar link por campanha/divulgador, com códigos aleatórios não enumeráveis.
+- [x] `P08-02` Definir atribuição primeira/última referência e janela de validade no regulamento (default explícito DEMO).
+- [x] `P08-03` Registrar clique mínimo, consentimentos aplicáveis e atribuição após participação válida.
+- [x] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
+- [x] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
 - [ ] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile.
 - [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios.
-- [ ] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
+- [x] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
 
 **Aceite:** só atividades válidas entram no ranking; testes de autindicação passam.
 
