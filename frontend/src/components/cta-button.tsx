@@ -1,8 +1,9 @@
-export function CTAButton({ size = "lg" }: { size?: "lg" | "md" }) {
-  const cls =
-    size === "lg"
-      ? "px-14 py-6 text-xl md:text-2xl gap-4 rounded-[20px]"
-      : "px-10 py-5 text-lg md:text-xl gap-3 rounded-2xl";
+export function CTAButton({ size = "lg" }: { size?: "lg" | "md" | "sm" }) {
+  const cls = {
+    lg: "px-14 py-6 text-xl md:text-2xl gap-4 rounded-[20px]",
+    md: "px-10 py-5 text-lg md:text-xl gap-3 rounded-2xl",
+    sm: "px-8 py-4 text-base md:text-lg gap-3 rounded-xl",
+  }[size];
 
   return (
     <a
