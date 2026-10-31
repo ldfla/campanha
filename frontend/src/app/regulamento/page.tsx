@@ -19,14 +19,19 @@ A participação é inteiramente voluntária. Os valores arrecadados destinam-se
   },
   {
     title: "2. Dos prêmios",
-    content: `São oferecidos 5 (cinco) prêmios principais e 10 (dez) prêmios-surpresa, totalizando R$ 18.500,00 (dezoito mil e quinhentos reais) em premiações:
+    content: `São oferecidos 5 (cinco) prêmios principais, 110 (cento e dez) prêmios-surpresa e bonificações de ranking, totalizando R$ 25.300,00 (vinte e cinco mil e trezentos reais) em premiações:
 
+Prêmios principais:
 • 1º Prêmio — Kit Fotográfico Canon: Camera Canon D70, Lente Canon Profissional 24-70 1:4 e Flash 430EX (estimado em R$ 10.000,00)
 • 2º Prêmio — MacBook Air M1 13" 8GB (estimado em R$ 4.000,00)
 • 3º Prêmio — Kit Fotográfico Canon T1i Rebel (estimado em R$ 2.000,00)
 • 4º Prêmio — R$ 1.000,00 (mil reais) via Pix
 • 5º Prêmio — R$ 500,00 (quinhentos reais) via Pix
-• 10 Prêmios-Surpresa — R$ 100,00 cada, para números sorteados aleatoriamente (total R$ 1.000,00)
+
+Prêmios-surpresa:
+• 10 prêmios de R$ 100,00 cada (total R$ 1.000,00)
+• 100 prêmios de R$ 10,00 cada (total R$ 1.000,00)
+Números sorteados aleatoriamente e selados com hash criptográfico antes do início da campanha.
 
 Os prêmios em espécie (equipamentos) serão entregues conforme disponibilidade e nas condições informadas pelo organizador. Os valores estimados são referências de mercado e podem sofrer variação.`,
   },
@@ -54,7 +59,7 @@ Em caso de cancelamento ou adiamento da extração da Loteria Federal na data pr
   },
   {
     title: "6. Dos prêmios-surpresa",
-    content: `Os 10 números dos prêmios-surpresa são gerados aleatoriamente pelo sistema na inicialização da campanha e registrados em snapshot auditável com hash criptográfico (SHA-256). Os números são revelados somente após o encerramento da ação, garantindo que não houve manipulação posterior.
+    content: `Os 110 números dos prêmios-surpresa são distribuídos em dois tiers: 10 números de R$ 100,00 e 100 números de R$ 10,00. Todos são gerados aleatoriamente pelo sistema na inicialização da campanha e registrados em snapshot auditável com hash criptográfico (SHA-256). Os números são revelados somente após o encerramento da ação, garantindo que não houve manipulação posterior.
 
 A prova criptográfica (commitment) é publicada antes do início das participações, permitindo verificação independente da integridade dos números.`,
   },
@@ -66,16 +71,16 @@ O ganhador tem até 30 (trinta) dias corridos após a notificação para se mani
   },
   {
     title: "8. Das bonificações por engajamento",
-    content: `São oferecidas bonificações para participantes que contribuírem com a divulgação:
+    content: `São oferecidas bonificações para participantes que contribuírem com a divulgação e engajamento:
 
-Divulgadores (por link mais ativo em redes sociais):
-• 1º lugar: R$ 2.000,00 | 2º lugar: R$ 1.000,00 | 3º lugar: R$ 500,00
+Maiores apoiadores (quem mais comprou números):
+• 1º lugar: R$ 1.500,00 | 2º lugar: R$ 900,00 | 3º lugar: R$ 500,00
 
-Participantes que mais adquirirem números:
-• 1º lugar: R$ 2.000,00 | 2º lugar: R$ 1.000,00 | 3º lugar: R$ 750,00
+Maiores divulgadores (mais indicações convertidas pelo link):
+• 1º lugar: R$ 1.500,00 | 2º lugar: R$ 900,00 | 3º lugar: R$ 500,00
 
-Participantes que trouxerem mais amigos com participações concluídas:
-• 1º lugar: R$ 1.000,00 | 2º lugar: R$ 750,00 | 3º lugar: R$ 500,00
+Total em bonificações de ranking: R$ 5.800,00.
+Critério de desempate: data da primeira cota apoiada.
 
 Os rankings são atualizados em tempo real e identificados pelas iniciais do nome e últimos 4 dígitos do telefone, preservando a privacidade dos participantes.`,
   },

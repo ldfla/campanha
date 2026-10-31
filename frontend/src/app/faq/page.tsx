@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const faqs = [
   {
     question: "O que é esta Ação entre Amigos?",
-    answer: `É uma iniciativa colaborativa organizada por ${ORGANIZER.name} para arrecadação de recursos entre amigos e conhecidos. Ao participar, você adquire números que concorrem a prêmios no valor total de R$ 18.500,00. O sorteio é baseado no resultado da Loteria Federal de 20 de dezembro de 2026, utilizado apenas como fonte de aleatoriedade pública — não há qualquer vínculo com loterias regulamentadas. Sua participação é inteiramente voluntária.`,
+    answer: `É uma iniciativa colaborativa organizada por ${ORGANIZER.name} para arrecadação de recursos entre amigos e conhecidos. Ao participar, você adquire números que concorrem a prêmios no valor total de R$ 25.300,00 — incluindo 5 prêmios principais, 110 prêmios-surpresa e bonificações de ranking. O sorteio é baseado no resultado da Loteria Federal de 20 de dezembro de 2026, utilizado apenas como fonte de aleatoriedade pública — não há qualquer vínculo com loterias regulamentadas. Sua participação é inteiramente voluntária.`,
   },
   {
     question: "Como funciona o pagamento?",

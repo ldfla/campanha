@@ -1,4 +1,4 @@
-import { COMBOS, PRICE_UNIT_CENTS, isSoldOut, formatBRL } from "@/lib/campaign-config";
+import { COMBOS, PRICE_UNIT_CENTS, isSoldOut, isSuspended, formatBRL } from "@/lib/campaign-config";
 
 const VISUAL = [
   {
@@ -25,6 +25,7 @@ const VISUAL = [
 
 export function ComboCards() {
   const soldOut = isSoldOut();
+  const blocked = soldOut || isSuspended();
 
   return (
     <section className="section bg-[var(--color-snow)] py-16 md:py-24">
@@ -42,9 +43,9 @@ export function ComboCards() {
             return (
               <a
                 key={combo.id}
-                href={soldOut ? undefined : `/participar?combo=${combo.id}`}
+                href={blocked ? undefined : `/participar?combo=${combo.id}`}
                 className={`group flex flex-col items-center rounded-2xl border-2 bg-white px-5 py-6 text-center transition-shadow ${
-                  soldOut
+                  blocked
                     ? "cursor-not-allowed opacity-60"
                     : "hover:shadow-lg"
                 } ${
@@ -56,7 +57,7 @@ export function ComboCards() {
                   borderColor: vis.accent,
                   backgroundImage: `linear-gradient(180deg, ${vis.tint} 0%, #ffffff 46%)`,
                 }}
-                aria-disabled={soldOut || undefined}
+                aria-disabled={blocked || undefined}
               >
                 <span
                   className="flex h-11 w-11 items-center justify-center rounded-full text-xs font-bold text-[var(--color-forest)] shadow-sm"
@@ -100,19 +101,19 @@ export function ComboCards() {
 
                 <span
                   className={`mt-5 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-bold transition-colors ${
-                    soldOut
+                    blocked
                       ? "bg-[var(--color-ink-soft)]/30 text-white/60"
                       : "bg-[var(--color-orange)] text-white group-hover:bg-[#e85c28]"
                   }`}
                 >
-                  {soldOut ? "Esgotado" : "Quero este"}
+                  {soldOut ? "Esgotado" : blocked ? "Pausado" : "Quero este"}
                 </span>
               </a>
             );
           })}
         </div>
 
-        {!soldOut && (
+        {!blocked && (
           <p className="mt-8 text-center">
             <a
               href="/participar"
