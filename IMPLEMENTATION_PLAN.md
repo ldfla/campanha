@@ -720,14 +720,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P09/P13.  
 **Entregáveis:** dashboard financeiro e prestação de contas.
 
-- [ ] `P14-01` Modelar custos reais por categoria e cenários editáveis de viabilidade.
-- [ ] `P14-02` Incluir referência de R$ 14.500 em itens propostos, diferenciando preços e prêmios aprovados.
-- [ ] `P14-03` Simulador com custo unitário, capacidade, taxas variáveis e fixas, tributos parametrizados, ponto de equilíbrio.
-- [ ] `P14-04` Rotular simulação como hipotética e não confundir faturamento com autorização.
-- [ ] `P14-05` Criar relatórios financeiros por período/campanha/organização.
-- [ ] `P14-06` Confrontar ordens, cobranças, recebimentos, estornos e ledger.
-- [ ] `P14-07` Exportar CSV (UTF-8 seguro para spreadsheet formula injection) e PDF apenas se necessário, com acesso auditado.
-- [ ] `P14-08` Documentar tributos como parâmetros a validar, não afirmar regime fiscal automático.
+- [x] `P14-01` Modelar custos reais por categoria e cenários editáveis de viabilidade. **PARCIAL**: custos por categoria e cenário parametrizável; cenários não são persistidos/editáveis.
+- [x] `P14-02` Incluir referência de R$ 25.300 em itens propostos, diferenciando preços e prêmios aprovados. Valor hipotético de referência (prêmios + surpresa + rankings), nunca apresentado como aprovado.
+- [x] `P14-03` Simulador com custo unitário, capacidade, taxas variáveis e fixas, tributos parametrizados, ponto de equilíbrio.
+- [x] `P14-04` Rotular simulação como hipotética e não confundir faturamento com autorização.
+- [x] `P14-05` Criar relatórios financeiros por período/campanha/organização. `GET /financial/organizations/{id}/reports` agrega as campanhas DEMO da organização.
+- [x] `P14-06` Confrontar ordens, cobranças, recebimentos, estornos e ledger.
+- [x] `P14-07` Exportar CSV (UTF-8 seguro para spreadsheet formula injection) e PDF apenas se necessário, com acesso auditado.
+- [x] `P14-08` Documentar tributos como parâmetros a validar, não afirmar regime fiscal automático.
 
 **Aceite:** dashboard fecha com eventos conciliados e não mistura valores simulados com caixa real.
 

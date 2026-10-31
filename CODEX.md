@@ -276,14 +276,14 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch existente:** `feature/p14-financial-dashboard`
 
-- [ ] `P14-01` Modelo de custos por categoria.
-- [ ] `P14-02` Referência: R$ 25.300 em prêmios/comissões conforme seção 5.
-- [ ] `P14-03` Simulador parametrizável: custos, receita, taxas, tributos, ponto de equilíbrio.
-- [ ] `P14-04` Rotular como simulação hipotética.
-- [ ] `P14-05` Relatórios por período/campanha/organização.
-- [ ] `P14-06` Confrontar ordens × cobranças × recebimentos × estornos × ledger.
-- [ ] `P14-07` Exportar CSV (seguro contra formula injection) com acesso auditado.
-- [ ] `P14-08` Tributos como parâmetros, não regime fiscal automático.
+- [x] `P14-01` Modelo de custos por categoria.
+- [x] `P14-02` Referência: R$ 25.300 em prêmios/comissões conforme seção 5.
+- [x] `P14-03` Simulador parametrizável: custos, receita, taxas, tributos, ponto de equilíbrio.
+- [x] `P14-04` Rotular como simulação hipotética.
+- [x] `P14-05` Relatórios por período/campanha/organização.
+- [x] `P14-06` Confrontar ordens × cobranças × recebimentos × estornos × ledger.
+- [x] `P14-07` Exportar CSV (seguro contra formula injection) com acesso auditado.
+- [x] `P14-08` Tributos como parâmetros, não regime fiscal automático.
 
 ### Bloco F — Completar P15 (PR #16 em draft)
 
