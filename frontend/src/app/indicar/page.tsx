@@ -9,7 +9,13 @@ import {
   type ReferralMetrics,
   ApiError,
 } from "@/lib/api-client";
-import { isDemoMode, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
+import {
+  isDemoMode,
+  formatBRL,
+  PRICE_UNIT_CENTS,
+  TOTAL_PRIZES_CENTS,
+  RANKING_REWARDS,
+} from "@/lib/campaign-config";
 
 const DEMO_CAMPAIGN_ID = "demo";
 
@@ -68,7 +74,7 @@ export default function IndicarPage() {
   }
 
   const shareText = referralLink
-    ? `Participe da Ação entre Amigos e concorra a R$ 18.500 em prêmios!\n\nUse meu link: ${referralLink.url}\n\nSó ${formatBRL(PRICE_UNIT_CENTS)} por número. Sorteio pela Loteria Federal!`
+    ? `Participe da Ação entre Amigos e concorra a ${formatBRL(TOTAL_PRIZES_CENTS)} em prêmios!\n\nUse meu link: ${referralLink.url}\n\nSó ${formatBRL(PRICE_UNIT_CENTS)} por número. Sorteio pela Loteria Federal!`
     : "";
 
   return (
@@ -217,14 +223,10 @@ export default function IndicarPage() {
                   Prêmios por indicação
                 </h3>
                 <div className="space-y-2.5">
-                  {[
-                    { pos: "1º", prize: "R$ 1.000" },
-                    { pos: "2º", prize: "R$ 750" },
-                    { pos: "3º", prize: "R$ 500" },
-                  ].map((p) => (
-                    <div key={p.pos} className="flex items-center justify-between text-sm">
-                      <span className="text-white/45">{p.pos} lugar em vendas concluídas</span>
-                      <span className="font-bold text-[var(--color-gold)]">{p.prize}</span>
+                  {RANKING_REWARDS.find((r) => r.scope === "INFLUENCERS")?.positions.map((p) => (
+                    <div key={p.rank} className="flex items-center justify-between text-sm">
+                      <span className="text-white/45">{p.label}</span>
+                      <span className="font-bold text-[var(--color-gold)]">{formatBRL(p.valueCents)}</span>
                     </div>
                   ))}
                 </div>
@@ -234,9 +236,12 @@ export default function IndicarPage() {
               </div>
 
               {demoMode && (
-                <p className="mt-6 text-center text-xs text-[var(--color-midnight)]/25">
-                  Modo demonstração · Dados do servidor
-                </p>
+                <div className="mt-6 rounded-xl border border-[var(--color-iris)]/20 bg-[var(--color-iris)]/[0.06] px-4 py-3 text-center">
+                  <p className="text-xs font-semibold text-[var(--color-iris)]">Modo demonstração</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-ink-soft)]">
+                    Links e métricas são simulados. Este painel não constitui oferta de comissão real nem direito a bonificação.
+                  </p>
+                </div>
               )}
             </div>
           )}

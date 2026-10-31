@@ -203,6 +203,9 @@ export default function Home() {
             <a href="/rankings" className="transition-colors hover:text-white/80">
               Rankings
             </a>
+            <a href="/numeros" className="transition-colors hover:text-white/80">
+              Números
+            </a>
             <a href="/meus-numeros" className="transition-colors hover:text-white/80">
               Meus números
             </a>

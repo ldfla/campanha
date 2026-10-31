@@ -125,6 +125,16 @@ export default function ParticiparPage() {
             })}
           </div>
 
+          {demoMode && (
+            <div className="mb-6 rounded-xl border border-[var(--color-iris)]/20 bg-[var(--color-iris)]/[0.06] px-5 py-4">
+              <p className="text-sm font-semibold text-[var(--color-iris)]">Modo demonstração</p>
+              <p className="mt-1 text-xs text-[var(--color-ink-soft)]">
+                Este fluxo é uma simulação. Nenhum pagamento real será cobrado
+                e nenhum número será atribuído para fins de premiação.
+              </p>
+            </div>
+          )}
+
           {suspended && (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
               <p className="text-sm font-semibold text-amber-800">Campanha temporariamente suspensa</p>
