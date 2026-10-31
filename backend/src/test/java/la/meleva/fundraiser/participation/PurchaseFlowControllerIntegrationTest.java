@@ -88,6 +88,9 @@ class PurchaseFlowControllerIntegrationTest {
         String offerId = JsonPath.read(offers.getResponse().getContentAsString(), "$[0].id");
 
         open(campaign);
+        // O divulgador precisa ter ao menos 1 cota comprada para indicar.
+        participations.request(promoter.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1,
+                beneficiary.getPublicId());
 
         // Checkout exige CSRF e sessão.
         String checkoutBody = "{\"idempotencyKey\":\"" + UUID.randomUUID() + "\",\"offerId\":\"" + offerId
@@ -126,7 +129,7 @@ class PurchaseFlowControllerIntegrationTest {
         mvc.perform(post(confirmPath, campaign.getPublicId(), requestPublicId).cookie(buyerSession).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        assertThat(countNumbers(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(2);
+        assertThat(countNumbers(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(3);
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(2);
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM beneficiary_selections WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND beneficiary_id=?",
@@ -147,6 +150,7 @@ class PurchaseFlowControllerIntegrationTest {
                         .content("{\"quantity\":1,\"totalCents\":65}"))
                 .andExpect(status().isCreated()).andReturn();
         String offerId = JsonPath.read(offer.getResponse().getContentAsString(), "$.id");
+        var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade promo"));
 
         open(campaign);
 
@@ -154,7 +158,8 @@ class PurchaseFlowControllerIntegrationTest {
         var buyerSession = login(buyer.phone());
         mvc.perform(post("/participations/campaigns/{campaignId}/checkout", campaign.getPublicId())
                         .cookie(buyerSession).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"idempotencyKey\":\"" + UUID.randomUUID() + "\",\"offerId\":\"" + offerId + "\"}"))
+                        .content("{\"idempotencyKey\":\"" + UUID.randomUUID() + "\",\"offerId\":\"" + offerId
+                                + "\",\"entityId\":\"" + beneficiary.getPublicId() + "\"}"))
                 .andExpect(status().isForbidden());
     }
 

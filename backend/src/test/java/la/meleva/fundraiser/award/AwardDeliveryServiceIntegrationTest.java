@@ -111,7 +111,7 @@ class AwardDeliveryServiceIntegrationTest {
         var request=requests.save(new ParticipationRequest(campaign.getId(),beneficiary.getId(),UUID.randomUUID().toString(),1));
         var entry=new ParticipationEntry(campaign.getId(),beneficiary.getId(),request.getId(),"DEMO_SIMULATION"); entry.markAssigned(); entry.freeze(); entries.save(entry);
         var prize=prizes.save(new CampaignPrize(campaign.getId(),CampaignPrize.PrizeType.GOODS,"Prêmio simulado",100,1,1));
-        jdbc.update("INSERT INTO campaign_numbers (campaign_id,series_code,number_value,status,entry_id) VALUES (?,'A',0,'FROZEN',?)",campaign.getId(),entry.getId());
+        jdbc.update("INSERT INTO campaign_numbers (campaign_id,series_code,number_value,status,entry_id,charity_institution) VALUES (?,'A',0,'FROZEN',?,'Entidade teste')",campaign.getId(),entry.getId());
         Long numberId=jdbc.queryForObject("SELECT id FROM campaign_numbers WHERE campaign_id=? AND number_value=0",Long.class,campaign.getId());
         jdbc.update("INSERT INTO entry_number_assignments (entry_id,campaign_number_id) VALUES (?,?)",entry.getId(),numberId);
         jdbc.update("INSERT INTO draw_rules (campaign_id,version,source_kind,formula_json) VALUES (?,1,'DEMO',JSON_OBJECT('simulation',TRUE))",campaign.getId());

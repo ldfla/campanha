@@ -47,12 +47,17 @@ class ReservationServiceIntegrationTest {
     @Autowired OrderService orderService;
     @Autowired BeneficiaryRepository beneficiaries;
     @Autowired ReferralService referrals;
+    private final java.util.Map<Long, BeneficiaryEntity> beneficiariesByCampaign = new java.util.HashMap<>();
+
+    private String entityIdFor(Campaign campaign) {
+        return beneficiariesByCampaign.get(campaign.getId()).getPublicId();
+    }
 
     @Test
     void expiryIsIdempotentUnderConcurrentWorkersAndReturnsStock() throws Exception {
         var campaign = openCampaign("lease-expiry", 3);
         var user = users.save(new User("Pessoa", "Reserva", "+55119999001301"));
-        var view = reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 2);
+        var view = reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 2, entityIdFor(campaign));
         long requestId = jdbc.queryForObject("SELECT id FROM participation_requests WHERE public_id=?", Long.class, view.requestPublicId());
         assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.RESERVED)).isEqualTo(2);
         assertThat(reservations.expireByRequestId(requestId, view.expiresAt().minusSeconds(1))).isFalse();
@@ -76,7 +81,7 @@ class ReservationServiceIntegrationTest {
         }
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var tasks = people.stream().<java.util.concurrent.Callable<ReservationService.ReservationView>>map(user ->
-                    () -> reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1)).toList();
+                    () -> reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign))).toList();
             var futures = executor.invokeAll(tasks, 90, TimeUnit.SECONDS);
             var allocated = new java.util.HashSet<String>();
             for (var future : futures) assertThat(allocated.add(future.get().numbers().getFirst())).isTrue();
@@ -90,7 +95,7 @@ class ReservationServiceIntegrationTest {
     void outboxWorkerReleasesExpiredReservation() {
         var campaign = openCampaign("lease-worker", 2);
         var user = users.save(new User("Pessoa", "Worker", "+55119999001302"));
-        var view = reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1);
+        var view = reservations.reserveDemo(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
         Long requestId = jdbc.queryForObject("SELECT id FROM participation_requests WHERE public_id=?", Long.class, view.requestPublicId());
         jdbc.update("UPDATE reservation_leases SET expires_at=TIMESTAMPADD(SECOND,-5,UTC_TIMESTAMP()) WHERE request_id=?", requestId);
         jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-5,UTC_TIMESTAMP()) WHERE aggregate_id=? AND event_type='RESERVATION_EXPIRY_REQUESTED'", requestId);
@@ -106,6 +111,7 @@ class ReservationServiceIntegrationTest {
         var promoter = users.save(new User("Pessoa", "Indicação", "+55119999001305"));
         var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade teste"));
         var referral = referrals.link(campaign.getId(), promoter.getId()).getCode();
+        participations.request(promoter.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
         var offer = offers.save(new PurchaseOffer(campaign.getId(), 2, 250));
         String key = UUID.randomUUID().toString();
         var start = checkout.start(user.getId(), campaign.getPublicId(), key, offer.getPublicId(), beneficiary.getPublicId(), referral);
@@ -114,7 +120,7 @@ class ReservationServiceIntegrationTest {
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isZero();
         assertThatThrownBy(() -> checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId()))
                 .isInstanceOf(ErrorCode.BusinessException.class);
-        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isZero();
+        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(1);
         Long paymentId = jdbc.queryForObject("SELECT p.id FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.public_id=?", Long.class, start.orderPublicId());
         String chargeId = jdbc.queryForObject("SELECT provider_charge_id FROM payments WHERE id=?", String.class, paymentId);
         provider.setState(chargeId, PaymentProvider.ChargeState.PAID);
@@ -123,7 +129,7 @@ class ReservationServiceIntegrationTest {
         checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId());
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM beneficiary_selections WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND beneficiary_id=?", Long.class, start.reservation().requestPublicId(), beneficiary.getId())).isEqualTo(1L);
-        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(2);
+        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(3);
         assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.RESERVED)).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reservation_leases WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND status='CONSUMED'", Long.class, start.reservation().requestPublicId())).isEqualTo(2);
     }
@@ -133,7 +139,7 @@ class ReservationServiceIntegrationTest {
         var campaign = openCampaign("lease-late-payment", 2);
         var user = users.save(new User("Pessoa", "Atraso", "+55119999001304"));
         var offer = offers.save(new PurchaseOffer(campaign.getId(), 1, 100));
-        var start = checkout.start(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), offer.getPublicId());
+        var start = checkout.start(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), offer.getPublicId(), entityIdFor(campaign), null);
         Long requestId = jdbc.queryForObject("SELECT id FROM participation_requests WHERE public_id=?", Long.class, start.reservation().requestPublicId());
         Long paymentId = jdbc.queryForObject("SELECT p.id FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.public_id=?", Long.class, start.orderPublicId());
         String chargeId = jdbc.queryForObject("SELECT provider_charge_id FROM payments WHERE id=?", String.class, paymentId);
@@ -158,6 +164,7 @@ class ReservationServiceIntegrationTest {
         campaign.transitionTo(CampaignStatus.OPEN);
         campaign = campaigns.save(campaign);
         participations.initializeSeries(campaign.getPublicId());
+        beneficiariesByCampaign.put(campaign.getId(), beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade " + slug)));
         return campaign;
     }
 }
