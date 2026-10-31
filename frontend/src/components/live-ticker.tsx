@@ -15,12 +15,27 @@ const CITIES = [
   "Salvador", "Brasília", "Fortaleza", "Recife", "Porto Alegre",
 ];
 
-function randomItem<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-function randomMinutes(): number {
-  return Math.floor(Math.random() * 15) + 1;
+function pick<T>(arr: readonly T[], random: () => number): T {
+  const item = arr[Math.floor(random() * arr.length)];
+  if (item === undefined) {
+    throw new Error("Lista de sorteio vazia");
+  }
+  return item;
+}
+
+function randomMinutes(random: () => number): number {
+  return Math.floor(random() * 15) + 1;
 }
 
 interface Purchase {
@@ -31,54 +46,64 @@ interface Purchase {
   minutes: number;
 }
 
-export function LiveTicker() {
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [visible, setVisible] = useState<Purchase | null>(null);
+function initialPurchases(): Purchase[] {
+  const random = seededRandom(20261221);
+  return Array.from({ length: 8 }, (_, i) => ({
+    id: i,
+    name: pick(NAMES, random),
+    qty: pick(QUANTITIES, random),
+    city: pick(CITIES, random),
+    minutes: randomMinutes(random),
+  }));
+}
 
-  useEffect(() => {
-    const initial: Purchase[] = Array.from({ length: 5 }, (_, i) => ({
-      id: i,
-      name: randomItem(NAMES),
-      qty: randomItem(QUANTITIES),
-      city: randomItem(CITIES),
-      minutes: randomMinutes(),
-    }));
-    setPurchases(initial);
-    setVisible(initial[0]);
-  }, []);
+export function LiveTicker() {
+  const [purchases] = useState<Purchase[]>(initialPurchases);
+  const [index, setIndex] = useState(0);
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
     if (purchases.length === 0) return;
-    let idx = 0;
     const interval = setInterval(() => {
-      idx = (idx + 1) % purchases.length;
-      setVisible(purchases[idx]);
-    }, 3500);
+      setIndex((current) => (current + 1) % purchases.length);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [purchases]);
+  }, [purchases.length]);
 
-  if (!visible) return null;
+  const visible = purchases[index];
+
+  if (!visible || !show) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 z-40 md:bottom-6 md:left-6 max-w-[320px]">
+    <div className="fixed bottom-[76px] left-3 z-40 max-w-[280px] sm:max-w-[300px] md:bottom-5 md:left-5">
       <div
-        key={visible.id + "-" + visible.name}
-        className="animate-slide-in bg-white rounded-xl shadow-lg border border-black/5 px-4 py-3 flex items-start gap-3"
+        key={`${visible.id}-${visible.name}`}
+        className="flex animate-slide-in items-center gap-2.5 rounded-xl border border-black/[0.06] bg-white/95 px-3.5 py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-sm"
       >
-        <div className="w-8 h-8 rounded-full bg-[var(--color-lime)] flex items-center justify-center text-[var(--color-charcoal)] text-xs font-bold shrink-0">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-green)] text-[10px] font-bold text-[var(--color-forest)]">
           {visible.name.charAt(0)}
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-charcoal)] leading-tight">
-            <strong>{visible.name}</strong> comprou{" "}
-            <strong className="text-[var(--color-terracotta)]">
-              {visible.qty} {visible.qty === 1 ? "número" : "números"}
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] leading-tight text-[var(--color-ink)] sm:text-[13px]">
+            <strong className="font-semibold">{visible.name}</strong>{" "}
+            <span className="text-[var(--color-ink-soft)]">comprou</span>{" "}
+            <strong className="font-semibold text-[var(--color-orange)]">
+              {visible.qty} {visible.qty === 1 ? "nº" : "nºs"}
             </strong>
           </p>
-          <p className="text-xs text-[var(--color-charcoal)]/50 mt-0.5">
-            {visible.city} · há {visible.minutes} min
+          <p className="mt-px text-[10px] text-[var(--color-ink-soft)] sm:text-[11px]">
+            {visible.city} · {visible.minutes}min
           </p>
         </div>
+        <button
+          onClick={() => setShow(false)}
+          className="shrink-0 p-1 text-[var(--color-ink-soft)]/60 transition-colors hover:text-[var(--color-ink)]"
+          aria-label="Fechar notificações"
+        >
+          <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3" aria-hidden="true">
+            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
     </div>
   );

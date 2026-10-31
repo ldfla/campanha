@@ -7,7 +7,7 @@ export function FloatingCTA() {
 
   useEffect(() => {
     function onScroll() {
-      setShow(window.scrollY > 600);
+      setShow(window.scrollY > 500);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -16,14 +16,26 @@ export function FloatingCTA() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-md border-t border-black/5 px-4 py-3 animate-slide-in">
-      <a
-        href="/participar"
-        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-base bg-[var(--color-lime)] text-[var(--color-charcoal)] shadow-[0_4px_24px_rgba(198,242,78,0.4)] active:scale-[0.97] transition-transform"
-      >
-        Garantir meu número — R$&nbsp;0,56
-        <span aria-hidden="true">&rarr;</span>
-      </a>
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[var(--color-forest)]/97 px-5 py-3 pb-safe backdrop-blur-md md:hidden">
+      <div className="mx-auto flex max-w-[1140px] items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-[10px] leading-tight text-white/60">
+            Total em prêmios
+          </span>
+          <span className="font-[family-name:var(--font-heading)] text-base font-bold leading-tight text-[var(--color-gold-metal)]">
+            R$ 18.500
+          </span>
+        </div>
+        <a
+          href="/participar"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-orange)] px-6 py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.97]"
+        >
+          Participar
+          <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
+            R$&nbsp;0,65
+          </span>
+        </a>
+      </div>
     </div>
   );
 }

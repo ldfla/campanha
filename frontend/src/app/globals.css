@@ -1,62 +1,242 @@
 @import "tailwindcss";
 
 :root {
-  --color-terracotta: #B5502F;
-  --color-cream: #F6EFE6;
-  --color-lime: #C6F24E;
-  --color-charcoal: #2B1D16;
-  --color-terracotta-dark: #944025;
-  --color-cream-warm: #EDE4D8;
-  --color-red-urgent: #E53E3E;
+  /* ── Paleta de confiança: verde profundo + verde claro + laranja ── */
+  --color-forest: #0b2b26;
+  --color-forest-deep: #102e23;
+  --color-forest-light: #153b33;
+
+  --color-green: #2ecc71;
+  --color-orange: #ff6b35;
+
+  --color-snow: #fafbfc;
+  --color-snow-warm: #f3f4f6;
+  --color-white: #ffffff;
+
+  /* Metais dos combos */
+  --color-bronze: #cd7f32;
+  --color-silver: #c0c0c0;
+  --color-gold-metal: #ffd700;
+  --color-diamond: #b9f2ff;
+
+  /* Texto de apoio sobre branco (contraste AA) */
+  --color-ink: #0b2b26;
+  --color-ink-soft: #3f5a53;
+  --color-gold-ink: #8a6d00;
+
+  /* Aliases legados mantidos para as demais páginas não quebrarem */
+  --color-midnight: var(--color-forest);
+  --color-midnight-light: var(--color-forest-light);
+  --color-ember: var(--color-orange);
+  --color-jade: var(--color-green);
+  --color-iris: #1e9e6a;
+  --color-gold: #ffb800;
+  --color-rose: #ff3b7a;
 
   --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-overlock), system-ui, -apple-system, sans-serif;
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @theme inline {
-  --color-terracotta: var(--color-terracotta);
-  --color-cream: var(--color-cream);
-  --color-lime: var(--color-lime);
-  --color-charcoal: var(--color-charcoal);
+  --color-forest: var(--color-forest);
+  --color-forest-deep: var(--color-forest-deep);
+  --color-forest-light: var(--color-forest-light);
+  --color-green: var(--color-green);
+  --color-orange: var(--color-orange);
+  --color-snow: var(--color-snow);
+  --color-midnight: var(--color-midnight);
+  --color-ember: var(--color-ember);
+  --color-gold: var(--color-gold);
+  --color-jade: var(--color-jade);
+  --color-iris: var(--color-iris);
+  --color-bronze: var(--color-bronze);
+  --color-silver: var(--color-silver);
+  --color-gold-metal: var(--color-gold-metal);
+  --color-diamond: var(--color-diamond);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/*
+ * Reset dentro de @layer base: o preflight do Tailwind já zera margens.
+ * Um reset sem camada anularia TODAS as utilities de espaçamento (py-*, mt-*)
+ * porque CSS sem camada tem precedência sobre @layer utilities.
+ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
-body {
-  background: var(--color-cream);
-  color: var(--color-charcoal);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    background: var(--color-snow);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* reserva de espaço para a barra fixa do mobile não cobrir o fim da página */
+    padding-bottom: calc(84px + var(--safe-bottom));
+  }
+
+  @media (min-width: 768px) {
+    body {
+      padding-bottom: 0;
+    }
+  }
+
+  p,
+  li {
+    line-height: 1.6;
+  }
 }
 
 ::selection {
-  background: var(--color-terracotta);
-  color: var(--color-cream);
+  background: var(--color-green);
+  color: var(--color-forest);
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+/* ── CTA: um único elemento com movimento forte ── */
+@keyframes cta-beacon {
+  0%,
+  100% {
+    box-shadow:
+      0 4px 24px rgba(255, 107, 53, 0.32),
+      0 0 0 0 rgba(255, 107, 53, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 8px 36px rgba(255, 107, 53, 0.45),
+      0 0 0 10px rgba(255, 107, 53, 0);
+  }
 }
 
+.animate-cta-beacon {
+  animation: cta-beacon 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── Anel de progresso ── */
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-circumference);
+  }
+  to {
+    stroke-dashoffset: var(--ring-offset);
+  }
+}
+
+.animate-ring {
+  animation: ring-fill 2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* ── Entrada suave (substitui o pulso do contador) ── */
+@keyframes fade-in-soft {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-soft 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Brilho dourado dos prêmios ── */
+@keyframes gold-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(255, 184, 0, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(255, 184, 0, 0.32),
+      0 0 40px rgba(255, 184, 0, 0.08);
+  }
+}
+
+.animate-gold-glow {
+  animation: gold-glow 3.4s ease-in-out infinite;
+}
+
+/* ── Entrada de itens do feed ── */
 @keyframes slide-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes progress-fill {
-  from { width: 0; }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-slide-in {
-  animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: slide-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.animate-pulse-dot {
-  animation: pulse-dot 1.5s ease-in-out infinite;
+/* ── Shimmer de carregamento ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255, 255, 255, 0.4) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.pb-safe {
+  padding-bottom: max(var(--safe-bottom), 12px);
+}
+
+/* ── Contêiner padrão: centralizado, sem sobra lateral ── */
+@layer components {
+  .section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .section {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .section-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1140px;
+    margin-inline: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ring,
+  .animate-gold-glow,
+  .animate-slide-in,
+  .animate-fade-in,
+  .animate-shimmer,
+  .animate-cta-beacon {
+    animation: none;
+  }
 }

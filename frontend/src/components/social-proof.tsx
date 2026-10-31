@@ -23,40 +23,48 @@ export function SocialProof() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  const avatars = [
+    { letter: "A", bg: "#FF6347" },
+    { letter: "M", bg: "#7C5CFC" },
+    { letter: "C", bg: "#10B981" },
+    { letter: "R", bg: "#FFB800" },
+    { letter: "J", bg: "#FF3B7A" },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-5 px-4 bg-[var(--color-cream-warm)] border-y border-[var(--color-charcoal)]/5">
-      <div className="flex items-center gap-2">
-        <div className="flex -space-x-2">
-          {["A", "M", "C", "R", "J"].map((letter, i) => (
-            <div
-              key={letter}
-              className="w-7 h-7 rounded-full border-2 border-[var(--color-cream-warm)] flex items-center justify-center text-[10px] font-bold text-white"
-              style={{
-                backgroundColor: ["#B5502F", "#2B6CB0", "#38A169", "#D69E2E", "#805AD5"][i],
-                zIndex: 5 - i,
-              }}
-            >
-              {letter}
-            </div>
-          ))}
+    <div className="bg-white border-y border-black/[0.04] py-5 px-4">
+      <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {avatars.map((a, i) => (
+              <div
+                key={a.letter}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                style={{ backgroundColor: a.bg, zIndex: 5 - i }}
+              >
+                {a.letter}
+              </div>
+            ))}
+          </div>
+          <span className="text-sm text-[var(--color-midnight)]">
+            <strong className="tabular-nums font-bold">{count.toLocaleString("pt-BR")}</strong> participando
+          </span>
         </div>
-        <span className="text-sm text-[var(--color-charcoal)]">
-          <strong className="tabular-nums">{count.toLocaleString("pt-BR")}</strong> pessoas participando
-        </span>
-      </div>
-      <span className="text-[var(--color-charcoal)]/30 hidden sm:inline">|</span>
-      <div className="flex items-center gap-1.5 text-sm text-[var(--color-charcoal)]/70">
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
-          <path d="M8 1L10.2 5.5L15 6.2L11.5 9.6L12.3 14.4L8 12.1L3.7 14.4L4.5 9.6L1 6.2L5.8 5.5Z" fill="var(--color-terracotta)" />
-        </svg>
-        <span>Sorteio pela Loteria Federal</span>
-      </div>
-      <span className="text-[var(--color-charcoal)]/30 hidden sm:inline">|</span>
-      <div className="flex items-center gap-1.5 text-sm text-[var(--color-charcoal)]/70">
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
-          <path d="M13.5 4.5L6 12L2.5 8.5" stroke="var(--color-terracotta)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span>Pagamento via Pix</span>
+
+        <div className="hidden sm:flex items-center gap-5 text-sm text-[var(--color-midnight)]/50">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-jade)]" />
+            Loteria Federal
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-iris)]" />
+            Pix
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-gold)]" />
+            Auditável
+          </span>
+        </div>
       </div>
     </div>
   );

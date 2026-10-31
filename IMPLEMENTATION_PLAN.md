@@ -589,6 +589,8 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P05.  
 **Entregáveis:** experiência responsiva de apresentação da campanha.
 
+**Referência de layout para o Claude:** o layout da branch `feature/p06-landing-page` foi escolhido pelo responsável como o melhor encontrado até agora. Preserve sua direção visual como referência nas próximas alterações; a escolha do layout não substitui os critérios de aceite e testes desta fase.
+
 - [ ] `P06-01` Criar design system, tokens de cores, tipografia, estados e componentes reutilizáveis.
 - [ ] `P06-02` Implementar landing page e página da campanha com SEO e imagens responsivas.
 - [ ] `P06-03` Exibir galeria e lista completa dos itens do kit, com alt e valor verificável.
@@ -605,15 +607,15 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P03/P04/P05.  
 **Entregáveis:** atribuição transacional segura de até 100.000 números.
 
-- [x] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
+- [ ] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
 - [ ] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário.
 - [x] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
 - [ ] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento.
 - [x] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
-- [x] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
-- [ ] `P07-07` Estados e auditoria de concessão, invalidação excepcional e congelamento.
-- [ ] `P07-08` Testar 100.000 posições, `00000`, `00001`, `99999`, esgotamento e 100–500 concorrentes.
-- [x] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira.
+- [ ] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
+- [x] `P07-07` Estados e auditoria de concessão, invalidação excepcional e congelamento.
+- [x] `P07-08` Testar 100.000 posições, `00000`, `00001`, `99999`, esgotamento e 100–500 concorrentes.
+- [ ] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira.
 
 **Aceite:** zero duplicidades em carga concorrente; atribuição reproduzível nos testes, dados congeláveis e elegíveis.
 
