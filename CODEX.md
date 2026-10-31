@@ -238,14 +238,14 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch existente:** `feature/p11-completion`
 
-- [ ] `P11-01` Implementar 2 tiers de prêmios-surpresa (10×R$100 + 100×R$10) conforme seção 5
-- [ ] `P11-02` Validação: `prize.type` compatível com modalidade. CASH recusado em promoção comercial.
-- [ ] `P11-03` Gerador seguro: `SecureRandom`, 110 números únicos no intervalo da campanha.
-- [ ] `P11-04` Commit-reveal: canonicalizar dados (JSON sorted), `SHA-256(salt + dados)`, sal forte (32 bytes), segredo cifrado.
-- [ ] `P11-05` Publicar hash (commitment) antes da abertura; timestamp e versão da regra.
-- [ ] `P11-06` Endpoint de verificação que recalcula hash e confirma igualdade. Sem substituição posterior.
-- [ ] `P11-07` Testes: falsificação, mudança de segredo, duplicidade, revelação prematura.
-- [ ] `P11-08` Contingência para número não atribuído.
+- [x] `P11-01` Implementar 2 tiers de prêmios-surpresa (10×R$100 + 100×R$10) conforme seção 5
+- [x] `P11-02` Validação: `prize.type` compatível com modalidade. CASH recusado em promoção comercial.
+- [x] `P11-03` Gerador seguro: `SecureRandom`, 110 números únicos no intervalo da campanha.
+- [x] `P11-04` Commit-reveal: canonicalizar dados (JSON sorted), `SHA-256(salt + dados)`, sal forte (32 bytes), segredo cifrado.
+- [x] `P11-05` Publicar hash (commitment) antes da abertura; timestamp e versão da regra.
+- [x] `P11-06` Endpoint de verificação que recalcula hash e confirma igualdade. Sem substituição posterior.
+- [x] `P11-07` Testes: falsificação, mudança de segredo, duplicidade, revelação prematura.
+- [x] `P11-08` Contingência para número não atribuído.
 
 ### Bloco C — Motor de apuração (P12, sem branch)
 

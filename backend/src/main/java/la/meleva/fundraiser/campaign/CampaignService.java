@@ -4,6 +4,12 @@ import la.meleva.fundraiser.campaign.dto.CreateCampaignRequest;
 import la.meleva.fundraiser.campaign.dto.PrizeRequest;
 import la.meleva.fundraiser.campaign.dto.UpdateCampaignRequest;
 import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.audit.AuditEvent;
+import la.meleva.fundraiser.audit.AuditEventRepository;
+import la.meleva.fundraiser.identity.Membership;
+import la.meleva.fundraiser.identity.MembershipRepository;
+import la.meleva.fundraiser.identity.UserRole;
+import la.meleva.fundraiser.drawing.SurpriseCommitmentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,11 +20,17 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final CampaignPrizeRepository prizeRepository;
+    private final MembershipRepository memberships;
+    private final AuditEventRepository audits;
+    private final SurpriseCommitmentRepository surpriseCommitments;
 
     public CampaignService(CampaignRepository campaignRepository,
-                           CampaignPrizeRepository prizeRepository) {
+                           CampaignPrizeRepository prizeRepository, MembershipRepository memberships, AuditEventRepository audits, SurpriseCommitmentRepository surpriseCommitments) {
         this.campaignRepository = campaignRepository;
         this.prizeRepository = prizeRepository;
+        this.memberships = memberships;
+        this.audits = audits;
+        this.surpriseCommitments = surpriseCommitments;
     }
 
     @Transactional
@@ -58,16 +70,29 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign transition(String publicId, CampaignStatus targetStatus) {
-        var campaign = findByPublicId(publicId);
+    public Campaign transition(Long actorId, String publicId, CampaignStatus targetStatus) {
+        var campaign = campaignRepository.findLockedByPublicId(publicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if (actorId == null || (!memberships.existsByUserIdAndOrganizationIdAndRoleAndStatus(actorId,campaign.getOrganizationId(),UserRole.CAMPAIGN_MANAGER,Membership.MembershipStatus.ACTIVE)
+                && !memberships.existsByUserIdAndOrganizationIdAndRoleAndStatus(actorId,campaign.getOrganizationId(),UserRole.SYSTEM_ADMIN,Membership.MembershipStatus.ACTIVE))) {
+            throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        }
 
+        if ((targetStatus == CampaignStatus.LEGAL_REVIEW || targetStatus == CampaignStatus.SCHEDULED || targetStatus == CampaignStatus.OPEN)
+                && campaign.isSurpriseEnabled() && !surpriseCommitments.existsByCampaignIdAndEncryptedSecretIsNotNull(campaign.getId())) {
+            throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
+        }
         if (targetStatus == CampaignStatus.OPEN || targetStatus == CampaignStatus.SCHEDULED) {
             if (!campaign.getMode().isDemo()) {
                 AdminGateMatrix.requireGatesForTransition(campaign.getMode(), targetStatus);
             }
         }
 
+        var oldStatus=campaign.getStatus();
         campaign.transitionTo(targetStatus);
+        try {
+            String hash=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((publicId+":"+oldStatus+":"+targetStatus).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            audits.save(new AuditEvent(actorId,"CAMPAIGN_TRANSITIONED","campaign",campaign.getId(),hash));
+        } catch (java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
         return campaignRepository.save(campaign);
     }
 

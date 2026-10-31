@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/slug/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/*/prizes").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rankings/campaigns/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/surprises/campaigns/*/commitment").permitAll()
                 .requestMatchers("/admin/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
                 .requestMatchers("/auth/me", "/auth/logout").authenticated()
                 .anyRequest().authenticated()

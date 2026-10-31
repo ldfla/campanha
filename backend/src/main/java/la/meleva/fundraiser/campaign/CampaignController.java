@@ -67,8 +67,9 @@ public class CampaignController {
     @PreAuthorize("hasAnyRole('CAMPAIGN_MANAGER', 'SYSTEM_ADMIN')")
     public ResponseEntity<CampaignResponse> transition(
             @PathVariable String id,
-            @Valid @RequestBody TransitionRequest request) {
-        var campaign = campaignService.transition(id, request.targetStatus());
+            @Valid @RequestBody TransitionRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        var campaign = campaignService.transition(principal.userId(), id, request.targetStatus());
         return ResponseEntity.ok(CampaignResponse.from(campaign));
     }
 

@@ -13,6 +13,9 @@ import la.meleva.fundraiser.identity.Organization;
 import la.meleva.fundraiser.identity.OrganizationRepository;
 import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
+import la.meleva.fundraiser.identity.Membership;
+import la.meleva.fundraiser.identity.MembershipRepository;
+import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.participation.ParticipationEntry;
 import la.meleva.fundraiser.participation.ParticipationEntryRepository;
 import la.meleva.fundraiser.participation.ParticipationService;
@@ -47,6 +50,7 @@ class RankingServiceIntegrationTest {
     @Autowired RankingSnapshotRepository snapshots;
     @Autowired RankingPositionRepository positions;
     @Autowired JdbcTemplate jdbc;
+    @Autowired MembershipRepository memberships;
 
     @Test
     void promoterRankingCountsOnlyEligibleReferralsAndIsRepeatable() {
@@ -138,7 +142,7 @@ class RankingServiceIntegrationTest {
         assertThat(export.payloadJson()).contains("\"position\":1").contains("A.L. 0041");
         assertThat(export.payloadJson()).doesNotContain("Lima").doesNotContain("+551199990041");
 
-        campaignService.transition(fixture.campaign().getPublicId(), CampaignStatus.LOCKED);
+        campaignService.transition(fixture.manager().getId(), fixture.campaign().getPublicId(), CampaignStatus.LOCKED);
         participation.freezeAssignedNumbers(fixture.campaign().getPublicId());
         participation.invalidateFrozenEntry(leader.getId(), fixture.campaign().getPublicId(),
                 secondEntry.getId(), "contestação de pagamento simulada");
@@ -214,21 +218,23 @@ class RankingServiceIntegrationTest {
 
     private Fixture fixture(String slug) {
         Fixture draft = draftFixture(slug);
-        campaignService.transition(draft.campaign().getPublicId(), CampaignStatus.LEGAL_REVIEW);
-        campaignService.transition(draft.campaign().getPublicId(), CampaignStatus.AUTHORIZED);
-        campaignService.transition(draft.campaign().getPublicId(), CampaignStatus.SCHEDULED);
-        campaignService.transition(draft.campaign().getPublicId(), CampaignStatus.OPEN);
+        campaignService.transition(draft.manager().getId(), draft.campaign().getPublicId(), CampaignStatus.LEGAL_REVIEW);
+        campaignService.transition(draft.manager().getId(), draft.campaign().getPublicId(), CampaignStatus.AUTHORIZED);
+        campaignService.transition(draft.manager().getId(), draft.campaign().getPublicId(), CampaignStatus.SCHEDULED);
+        campaignService.transition(draft.manager().getId(), draft.campaign().getPublicId(), CampaignStatus.OPEN);
         Campaign campaign = campaigns.findByPublicId(draft.campaign().getPublicId()).orElseThrow();
         participation.initializeSeries(campaign.getPublicId());
-        return new Fixture(campaign, draft.organization());
+        return new Fixture(campaign, draft.organization(), draft.manager());
     }
 
     private Fixture draftFixture(String slug) {
         Organization organization = organizations.save(new Organization("Organização " + slug, "ASSOCIATION"));
+        User manager = users.save(new User("Gestor", "Teste", null));
+        memberships.save(new Membership(organization,manager,UserRole.CAMPAIGN_MANAGER));
         Campaign campaign = campaigns.save(new Campaign(organization.getId(), "Campanha " + slug, slug, CampaignMode.DEMO));
         campaign.setNumberRange(0, 49);
         Campaign saved = campaigns.save(campaign);
-        return new Fixture(saved, organization);
+        return new Fixture(saved, organization, manager);
     }
 
     private User user(String name, String surname, String phone) {
@@ -250,5 +256,5 @@ class RankingServiceIntegrationTest {
         referrals.attribute(fixture.campaign().getId(), link.getCode(), entry.getId());
     }
 
-    private record Fixture(Campaign campaign, Organization organization) {}
+    private record Fixture(Campaign campaign, Organization organization, User manager) {}
 }
