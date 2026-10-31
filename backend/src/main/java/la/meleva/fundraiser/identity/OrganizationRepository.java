@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
 
     Optional<Organization> findByPublicId(String publicId);
+
+    Optional<Organization> findByLegalName(String legalName);
 }

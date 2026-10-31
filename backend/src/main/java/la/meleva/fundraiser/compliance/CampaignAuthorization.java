@@ -1,0 +1,7 @@
+package la.meleva.fundraiser.compliance;
+import jakarta.persistence.*;
+import java.time.Instant;
+@Entity @Table(name="campaign_authorizations") public class CampaignAuthorization {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Column(name="campaign_id",nullable=false) private Long campaignId; private String issuer; @Column(name="certificate_no") private String certificateNo; @Column(name="valid_from") private Instant validFrom; @Column(name="valid_to") private Instant validTo; @Column(name="approval_scope_json",columnDefinition="json") private String approvalScopeJson; @Column(name="document_uri") private String documentUri; @Column(name="verified_at") private Instant verifiedAt; @Column(nullable=false) private String status; @Column(name="created_at",nullable=false) private Instant createdAt; @Column(name="updated_at",nullable=false) private Instant updatedAt;
+ protected CampaignAuthorization() {} public CampaignAuthorization(Long campaignId,String issuer,String certificateNo,Instant validFrom,Instant validTo,String documentUri){if(validFrom!=null&&validTo!=null&&validTo.isBefore(validFrom))throw la.meleva.fundraiser.shared.ErrorCode.VALIDATION_ERROR.toException();this.campaignId=campaignId;this.issuer=issuer;this.certificateNo=certificateNo;this.validFrom=validFrom;this.validTo=validTo;this.documentUri=documentUri;this.status="PENDING";this.createdAt=Instant.now();this.updatedAt=createdAt;} public Long getId(){return id;}
+}

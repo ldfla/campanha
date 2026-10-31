@@ -16,10 +16,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
+    private final ContactVerificationProvider contactVerificationProvider;
+    private final MfaService mfaService;
+    private final LoginAttemptTracker loginAttemptTracker;
 
-    public AuthService(UserRepository userRepository, MembershipRepository membershipRepository) {
+    public AuthService(UserRepository userRepository, MembershipRepository membershipRepository,
+                       ContactVerificationProvider contactVerificationProvider, MfaService mfaService,
+                       LoginAttemptTracker loginAttemptTracker) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
+        this.contactVerificationProvider = contactVerificationProvider;
+        this.mfaService = mfaService;
+        this.loginAttemptTracker = loginAttemptTracker;
     }
 
     @Transactional
@@ -32,6 +40,7 @@ public class AuthService {
 
         var user = new User(request.firstName(), request.surname(), normalizedPhone);
         user = userRepository.save(user);
+        contactVerificationProvider.sendVerification(normalizedPhone);
 
         var details = buildUserDetails(user);
         setAuthentication(details);
@@ -39,19 +48,50 @@ public class AuthService {
         return UserResponse.from(user, List.of(UserRole.PARTICIPANT.name()));
     }
 
-    @Transactional(readOnly = true)
-    public UserResponse login(LoginRequest request) {
-        String normalizedPhone = normalizePhone(request.phoneNumber());
-
+    @Transactional
+    public void verifyContact(String phoneNumber, String code) {
+        String normalizedPhone = normalizePhone(phoneNumber);
         var user = userRepository.findByPhoneNumber(normalizedPhone)
                 .orElseThrow(ErrorCode.AUTH_INVALID_CREDENTIALS::toException);
+        if (!contactVerificationProvider.verify(normalizedPhone, code)) {
+            throw ErrorCode.AUTH_INVALID_CREDENTIALS.toException();
+        }
+        user.markPhoneVerified();
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserResponse verifyMfa(String phoneNumber, String code) {
+        String normalizedPhone = normalizePhone(phoneNumber);
+        var user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(ErrorCode.AUTH_INVALID_CREDENTIALS::toException);
+        var details = buildUserDetails(user);
+        mfaService.verify(user.getId(), code);
+        setAuthentication(details);
+        return UserResponse.from(user, details.roles().stream().map(UserRole::name).toList());
+    }
+
+    @Transactional
+    public UserResponse login(LoginRequest request) {
+        String normalizedPhone = normalizePhone(request.phoneNumber());
+        loginAttemptTracker.checkAllowed(normalizedPhone);
+
+        var user = userRepository.findByPhoneNumber(normalizedPhone).orElse(null);
+        if (user == null) {
+            loginAttemptTracker.recordFailure(normalizedPhone);
+            throw ErrorCode.AUTH_INVALID_CREDENTIALS.toException();
+        }
 
         if (!user.isActive()) {
             throw ErrorCode.AUTH_ACCOUNT_LOCKED.toException();
         }
 
         var details = buildUserDetails(user);
+        if (mfaService.ensureEnrollment(user, details.roles())) {
+            throw ErrorCode.AUTH_MFA_REQUIRED.toException();
+        }
         setAuthentication(details);
+        loginAttemptTracker.recordSuccess(normalizedPhone);
 
         var roleNames = details.roles().stream().map(UserRole::name).toList();
         return UserResponse.from(user, roleNames);

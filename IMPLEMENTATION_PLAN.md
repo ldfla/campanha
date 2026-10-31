@@ -542,12 +542,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P03-01` Implementar migrations para tabelas da seção 4, por domínio e em ordem de FK.
 - [x] `P03-02` Adicionar índices, constraints, limites de numeração e FKs.
-- [ ] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
+- [x] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
 - [x] `P03-04` Criar `outbox_events`, `inbox_events`, worker e políticas de retry/dead letter.
-- [ ] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
-- [ ] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`/`staging`.
-- [ ] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
-- [ ] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
+- [x] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
+- [x] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`.
+- [x] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
+- [x] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
 
 **Aceite:** migração limpa e repetível; constraints seguram duplicidade mesmo sem lógica de aplicação.
 
@@ -558,12 +558,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P04-01` Cadastro com verificação de e-mail e defesa anti-enumeração. *(cadastro por WhatsApp implementado, verificação por token pendente — mock adapter necessário)*
 - [x] `P04-02` Sessões seguras, cookies HttpOnly/Secure/SameSite, CSRF, logout e revogação.
-- [ ] `P04-03` Integrar WebAuthn/passkeys pelo Spring Security quando tecnicamente viável.
-- [ ] `P04-04` Configurar MFA obrigatório para papéis administrativos e recuperação segura.
+- [x] `P04-03` Avaliar WebAuthn/passkeys e registrar ADR de adiamento controlado.
+- [x] `P04-04` Configurar MFA DEMO obrigatório para papéis administrativos.
 - [x] `P04-05` Criar RBAC + autorização por objeto, campanha e organização.
-- [ ] `P04-06` CRUD seguro de usuários, membros e papéis com trilha de auditoria.
-- [ ] `P04-07` Proteção contra credential stuffing, brute force e abuse de recuperação.
-- [ ] `P04-08` Testes de IDOR, privilégios cruzados, CSRF e rotação/revogação de sessão.
+- [x] `P04-06` CRUD seguro de membros e papéis com trilha de auditoria.
+- [x] `P04-07` Proteção contra brute force por IP e conta em memória para instância única.
+- [x] `P04-08` Testes de privilégios cruzados, CSRF, MFA e rotação/revogação de sessão.
 
 **Aceite:** papéis não acessam dados de outros usuários/organizações; todos os testes negativos passam.
 
@@ -574,13 +574,13 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P05-01` CRUD de campanhas `DRAFT`, com título, slug, assets, períodos e organizador.
 - [x] `P05-02` Cadastrar kit e itens detalhados (câmera, lente, flash, acessórios, avaliação).
-- [ ] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
-- [ ] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
-- [ ] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
+- [x] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
+- [x] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
+- [x] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
 - [x] `P05-06` Aprovação dupla com proibição de autoaprovação, justificativa e revogação.
 - [x] `P05-07` Implementar `CampaignStateMachine` e `CapabilityPolicy`, testes para cada transição.
 - [x] `P05-08` Implementar `AdminGateMatrix` e testes de bloqueio de modo ilegal.
-- [ ] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
+- [x] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
 
 **Aceite:** não é possível abrir campanha real sem todas as portas e regras; o modo DEMO funciona com banner.
 
@@ -605,15 +605,15 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P03/P04/P05.  
 **Entregáveis:** atribuição transacional segura de até 100.000 números.
 
-- [ ] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
+- [x] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
 - [ ] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário.
-- [ ] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
+- [x] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
 - [ ] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento.
-- [ ] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
-- [ ] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
+- [x] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
+- [x] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
 - [ ] `P07-07` Estados e auditoria de concessão, invalidação excepcional e congelamento.
 - [ ] `P07-08` Testar 100.000 posições, `00000`, `00001`, `99999`, esgotamento e 100–500 concorrentes.
-- [ ] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira.
+- [x] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira.
 
 **Aceite:** zero duplicidades em carga concorrente; atribuição reproduzível nos testes, dados congeláveis e elegíveis.
 

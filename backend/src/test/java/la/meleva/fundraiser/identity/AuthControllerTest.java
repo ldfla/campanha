@@ -25,6 +25,9 @@ class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired private UserRepository userRepository;
+    @Autowired private OrganizationRepository organizationRepository;
+    @Autowired private MembershipRepository membershipRepository;
 
     private Cookie[] performRegister(String phone) throws Exception {
         MvcResult result = mockMvc.perform(post("/auth/register")
@@ -144,5 +147,52 @@ class AuthControllerTest {
                         """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void demoContactVerificationAcceptsOnlyFixedSandboxCode() throws Exception {
+        performRegister("+5511999990010");
+
+        mockMvc.perform(post("/auth/verify-contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"phoneNumber": "+5511999990010", "code": "000000"}
+                        """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/auth/verify-contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"phoneNumber": "+5511999990010", "code": "123456"}
+                        """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void systemAdminMustCompleteDemoMfaBeforeSessionIsCreated() throws Exception {
+        String phone = "+5511999990011";
+        performRegister(phone);
+        var user = userRepository.findByPhoneNumber(phone).orElseThrow();
+        var organization = organizationRepository.save(new Organization("Organização MFA", "ASSOCIATION"));
+        membershipRepository.save(new Membership(organization, user, UserRole.SYSTEM_ADMIN));
+
+        mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content("{" + "\"phoneNumber\":\"" + phone + "\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_MFA_REQUIRED"));
+        mockMvc.perform(post("/auth/mfa/verify").contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"phoneNumber\":\"" + phone + "\",\"code\":\"000000\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles[0]").value("SYSTEM_ADMIN"));
+    }
+
+    @Test
+    void loginRotatesExistingSessionCookie() throws Exception {
+        String phone = "+5511999990012";
+        Cookie initial = sessionCookie(performRegister(phone));
+        MvcResult result = mockMvc.perform(post("/auth/login").cookie(initial)
+                        .contentType(MediaType.APPLICATION_JSON).content("{" + "\"phoneNumber\":\"" + phone + "\"}"))
+                .andExpect(status().isOk()).andReturn();
+        Cookie rotated = sessionCookie(result.getResponse().getCookies());
+        org.assertj.core.api.Assertions.assertThat(rotated.getValue()).isNotEqualTo(initial.getValue());
     }
 }
