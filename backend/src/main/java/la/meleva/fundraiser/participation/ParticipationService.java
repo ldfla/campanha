@@ -10,6 +10,8 @@ import la.meleva.fundraiser.campaign.CampaignStatus;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
 import la.meleva.fundraiser.identity.UserRepository;
+import la.meleva.fundraiser.notification.OutboxEvent;
+import la.meleva.fundraiser.notification.OutboxEventRepository;
 import la.meleva.fundraiser.shared.ErrorCode;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -27,11 +29,13 @@ public class ParticipationService {
     private final EligibilityEventRepository eligibilityEventRepository;
     private final UserRepository userRepository;
     private final AuditEventRepository auditEventRepository;
+    private final OutboxEventRepository outbox;
 
     ParticipationService(CampaignRepository campaignRepository, CampaignNumberRepository numberRepository,
                          ParticipationRequestRepository requestRepository, ParticipationEntryRepository entryRepository,
                          EntryNumberAssignmentRepository assignmentRepository, EligibilityEventRepository eligibilityEventRepository,
-                         UserRepository userRepository, AuditEventRepository auditEventRepository) {
+                         UserRepository userRepository, AuditEventRepository auditEventRepository,
+                         OutboxEventRepository outbox) {
         this.campaignRepository = campaignRepository;
         this.numberRepository = numberRepository;
         this.requestRepository = requestRepository;
@@ -40,6 +44,7 @@ public class ParticipationService {
         this.eligibilityEventRepository = eligibilityEventRepository;
         this.userRepository = userRepository;
         this.auditEventRepository = auditEventRepository;
+        this.outbox = outbox;
     }
 
     @Transactional
@@ -94,6 +99,10 @@ public class ParticipationService {
             assigned.add(new ParticipationAllocation.AssignedNumber(entry.getPublicId(), number.getSeriesCode(), number.getNumberValue(), format(number.getNumberValue())));
         }
         request.markAssigned();
+        if (campaign.getMode().isDemo()) {
+            outbox.save(new OutboxEvent("PARTICIPATION_REQUEST", request.getId(),
+                    "NOTIFICATION_PARTICIPATION_VALID_V1", "{}"));
+        }
         return new ParticipationAllocation(request.getPublicId(), assigned);
     }
 
