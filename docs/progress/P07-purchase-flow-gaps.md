@@ -16,7 +16,7 @@
     `CONFIRMED`/`RECONCILED`).
   - **Contrato HTTP.** `PurchaseFlowController` expõe `offers` (lista/criação) e `checkout`
     (iniciar/confirmar); preço sempre definido no servidor.
-  - Migração `V012__purchase_flow.sql` (four novas tabelas, todas com FK e CHECK).
+  - Migração `V019__purchase_flow.sql` (four novas tabelas, todas com FK e CHECK).
   - Contratos documentados em `docs/api/purchase-flow.md`.
 - Comandos executados e resultados:
   - `./mvnw -B verify` — `Tests run: 110, Failures: 0, Errors: 0` / `BUILD SUCCESS` (linha de base
@@ -33,7 +33,9 @@
   - `PurchaseFlowControllerIntegrationTest`: ofertas com preço do servidor (403 para não gestor);
     checkout exige CSRF/sessão; confirmação antes do pagamento → `502`; após conciliação → `204`
     idempotente; indicação e voto persistidos; campanha não-DEMO → `403`.
-- Contratos/ADRs/migrações alterados: `V012__purchase_flow.sql`; `docs/api/purchase-flow.md`.
+- Contratos/ADRs/migrações alterados: `V019__purchase_flow.sql`; `docs/api/purchase-flow.md`.
+- Renumeração: a migração passou de `V012` para `V019` porque a `main` já recebeu `V013`–`V015` (P11)
+  e as PRs #13 (`V016`) e #16 (`V017`,`V018`) estão abertas. **Ordem de merge requerida: #13 → #16 → #20.**
 - Riscos, limitações e bloqueios:
   - Fluxo disponível **somente em DEMO** com `MockPaymentProvider`; `LIVE_OPERATIONS_ENABLED=false`
     e nenhum provedor real de pagamento.

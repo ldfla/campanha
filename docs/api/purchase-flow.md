@@ -100,5 +100,5 @@ expirada → `410 PAYMENT_ORDER_EXPIRED`. Sucesso (idempotente) → `204`.
 
 ## Migração
 
-`V012__purchase_flow.sql`: `beneficiary_entities`, `beneficiary_selections`,
+`V019__purchase_flow.sql`: `beneficiary_entities`, `beneficiary_selections`,
 `campaign_purchase_offers`, `reservation_payment_links`.
