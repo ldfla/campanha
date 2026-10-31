@@ -6,7 +6,7 @@ export const PRICE_UNIT_CENTS = 65;
 
 export const TOTAL_NUMBERS = 100_000;
 
-export const TOTAL_PRIZES_CENTS = 1_850_000;
+export const TOTAL_PRIZES_CENTS = 1_950_000;
 
 export const ORGANIZER = {
   name: "LDF Tecnologia da Informação",
@@ -55,10 +55,10 @@ export const PRIZES = [
   },
 ] as const;
 
-export const SURPRISE_PRIZES = {
-  count: 10,
-  valueCentsEach: 10_000,
-} as const;
+export const SURPRISE_PRIZES = [
+  { count: 10, valueCentsEach: 10_000, label: "10 prêmios-surpresa", unitLabel: "R$ 100,00 cada" },
+  { count: 100, valueCentsEach: 1_000, label: "100 prêmios-surpresa", unitLabel: "R$ 10,00 cada" },
+] as const;
 
 export function formatBRL(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {

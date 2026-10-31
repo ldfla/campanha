@@ -66,9 +66,10 @@ const prizeStyles = [
   },
 ] as const;
 
+const totalSurpriseCount = SURPRISE_PRIZES.reduce((sum, t) => sum + t.count, 0);
 const totalPrizesCents =
   PRIZES.reduce((sum, p) => sum + p.valueCents, 0) +
-  SURPRISE_PRIZES.count * SURPRISE_PRIZES.valueCentsEach;
+  SURPRISE_PRIZES.reduce((sum, t) => sum + t.count * t.valueCentsEach, 0);
 
 export function Prizes() {
   return (
@@ -77,7 +78,7 @@ export function Prizes() {
         Como você é retribuído
       </h2>
       <p className="mt-2 text-center text-sm text-[var(--color-ink-soft)]">
-        {PRIZES.length} retribuições principais + {SURPRISE_PRIZES.count}{" "}
+        {PRIZES.length} retribuições principais + {totalSurpriseCount}{" "}
         surpresas
       </p>
 
@@ -131,22 +132,28 @@ export function Prizes() {
         })}
       </div>
 
-      <div className="mt-6 flex w-full items-center gap-4 rounded-2xl border border-[var(--color-iris)]/15 bg-gradient-to-r from-[var(--color-iris)]/[0.06] to-transparent px-5 py-4">
-        <div className="flex-1">
-          <span className="text-xs font-semibold text-[var(--color-iris)]">
-            Bônus
-          </span>
-          <h3 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-ink)] sm:text-base">
-            {SURPRISE_PRIZES.count} prêmios-surpresa
-          </h3>
-          <p className="text-xs text-[var(--color-ink-soft)]">
-            {formatBRL(SURPRISE_PRIZES.valueCentsEach)} cada, números aleatórios
-            selados
-          </p>
-        </div>
-        <span className="shrink-0 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--color-iris)]">
-          {formatBRL(SURPRISE_PRIZES.count * SURPRISE_PRIZES.valueCentsEach)}
-        </span>
+      <div className="mt-6 flex w-full flex-col gap-3">
+        {SURPRISE_PRIZES.map((tier) => (
+          <div
+            key={tier.count}
+            className="flex w-full items-center gap-4 rounded-2xl border border-[var(--color-iris)]/15 bg-gradient-to-r from-[var(--color-iris)]/[0.06] to-transparent px-5 py-4"
+          >
+            <div className="flex-1">
+              <span className="text-xs font-semibold text-[var(--color-iris)]">
+                Bônus
+              </span>
+              <h3 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-ink)] sm:text-base">
+                {tier.label}
+              </h3>
+              <p className="text-xs text-[var(--color-ink-soft)]">
+                {tier.unitLabel}, números aleatórios selados
+              </p>
+            </div>
+            <span className="shrink-0 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--color-iris)]">
+              {formatBRL(tier.count * tier.valueCentsEach)}
+            </span>
+          </div>
+        ))}
       </div>
 
       <div className="mt-14 flex w-full flex-col items-center gap-4">

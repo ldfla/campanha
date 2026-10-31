@@ -17,7 +17,7 @@ export default function Home() {
       </div>
 
       {/* 1. Hero — foto dos prêmios como background com overlay escuro */}
-      <section className="section relative overflow-hidden py-20 text-white md:py-28">
+      <section className="section relative overflow-hidden py-12 text-white md:py-16">
         {/* Background: foto dos produtos com transparência natural */}
         <div
           className="absolute inset-0 z-0 bg-[url('/hero-mobile.png')] bg-cover bg-center bg-no-repeat md:bg-[url('/hero-produtos.jpeg')]"
@@ -49,11 +49,11 @@ export default function Home() {
             Estou dividindo um sonho com quem quer construir junto.
           </p>
 
-          <div className="my-10 flex w-full justify-center md:my-12">
+          <div className="my-6 flex w-full justify-center md:my-8">
             <CommunityRing />
           </div>
 
-          <div className="flex w-full flex-col items-center gap-8">
+          <div className="flex w-full flex-col items-center gap-5">
             <CTAButton showPrice />
 
             <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">
@@ -75,8 +75,8 @@ export default function Home() {
       </section>
 
       {/* 2. A história */}
-      <Section tone="white">
-        <div className="mx-auto max-w-xl">
+      <section className="bg-gradient-to-b from-amber-50/80 to-orange-50/40 px-5 py-12 md:px-8 md:py-14">
+        <div className="mx-auto flex max-w-xl flex-col items-center">
           <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
             Todo negócio começa com alguém acreditando antes de existir
           </h2>
@@ -84,7 +84,7 @@ export default function Home() {
             Hoje, esse alguém pode ser você.
           </p>
 
-          <div className="mt-8 space-y-5 text-base leading-relaxed text-[var(--color-ink-soft)]">
+          <div className="mt-6 space-y-4 text-base leading-relaxed text-[var(--color-ink-soft)]">
             <p>
               Estou vendendo o que tenho, abrindo o que posso e devolvendo o que consigo.
               Porque sonho bom é sonho dividido.
@@ -96,16 +96,16 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </Section>
+      </section>
 
       {/* 3. A troca */}
-      <Section tone="snow">
-        <div className="mx-auto max-w-xl">
+      <section className="bg-gradient-to-b from-rose-50/60 to-amber-50/30 px-5 py-12 md:px-8 md:py-14">
+        <div className="mx-auto flex max-w-xl flex-col items-center">
           <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
             Eu não venho de mãos vazias
           </h2>
 
-          <div className="mt-8 space-y-5 text-base leading-relaxed text-[var(--color-ink-soft)]">
+          <div className="mt-6 space-y-4 text-base leading-relaxed text-[var(--color-ink-soft)]">
             <p>
               Devolvo com o que tenho: minhas câmeras, meu computador atual, retribuições
               em dinheiro e participação no que vamos construir juntos.
@@ -116,7 +116,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </Section>
+      </section>
 
       {/* 4. Combos */}
       <ComboCards />
@@ -124,38 +124,48 @@ export default function Home() {
       {/* 3. Prêmios */}
       <Prizes />
 
-      {/* 4. Como participar */}
-      <HowItWorks />
-
-      {/* 5. Feed da comunidade */}
-      <LiveFeed />
-
-      {/* 7. Impacto social */}
+      {/* 5. Quem você deseja ajudar */}
       <Section tone="snow">
-        <div className="mx-auto max-w-xl">
+        <div className="mx-auto max-w-2xl">
           <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
-            Seu apoio vai além
+            Quem você deseja ajudar
           </h2>
-          <p className="mt-4 text-center text-base leading-relaxed text-[var(--color-ink-soft)]">
+          <p className="mt-3 text-center text-base leading-relaxed text-[var(--color-ink-soft)]">
             Parte da sua contribuição você escolhe para onde vai.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            {["GRAAC", "Casa Hope", "AACD", "TUCCA", "ITACI", "AACC"].map((org) => (
-              <span
-                key={org}
-                className="rounded-full border border-[var(--color-jade)]/20 bg-[var(--color-jade)]/[0.06] px-5 py-2.5 text-sm font-semibold text-[var(--color-jade)]"
-              >
-                {org}
-              </span>
-            ))}
-          </div>
-
-          <p className="mt-6 text-center text-sm text-[var(--color-ink-soft)]">
             Seu apoio ao meu sonho também vira apoio a quem mais precisa.
           </p>
+
+          <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-6">
+            {[
+              { name: "GRAAC", color: "#E4002B", initials: "G" },
+              { name: "Casa Hope", color: "#00A651", initials: "CH" },
+              { name: "AACD", color: "#0072BC", initials: "A" },
+              { name: "TUCCA", color: "#8B5CF6", initials: "T" },
+              { name: "ITACI", color: "#F59E0B", initials: "I" },
+              { name: "AACC", color: "#EC4899", initials: "A" },
+            ].map((org) => (
+              <div key={org.name} className="flex flex-col items-center gap-2.5">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-sm"
+                  style={{ backgroundColor: org.color }}
+                  aria-hidden="true"
+                >
+                  {org.initials}
+                </div>
+                <span className="text-center text-xs font-semibold text-[var(--color-ink)]">
+                  {org.name}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
+
+      {/* 6. Como participar */}
+      <HowItWorks />
+
+      {/* 7. Feed da comunidade */}
+      <LiveFeed />
 
       {/* 8. CTA final + contagem regressiva */}
       <Section tone="forest" spacing="tall">
