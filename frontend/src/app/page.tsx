@@ -1,172 +1,134 @@
+import { CommunityRing } from "@/components/community-ring";
+import { ComboCards } from "@/components/combo-cards";
+import { Countdown } from "@/components/countdown";
 import { CTAButton } from "@/components/cta-button";
-import { SocialProof } from "@/components/social-proof";
-import { HowItWorks } from "@/components/how-it-works";
-import { Prizes } from "@/components/prizes";
-import { UrgencyBar } from "@/components/urgency-bar";
-import { LiveTicker } from "@/components/live-ticker";
 import { FloatingCTA } from "@/components/floating-cta";
+import { HowItWorks } from "@/components/how-it-works";
+import { LiveFeed } from "@/components/live-feed";
+import { Prizes } from "@/components/prizes";
+import { Section } from "@/components/section";
+import { UrgencyBar } from "@/components/urgency-bar";
 
 export default function Home() {
   return (
     <>
-      {/* ── Barra de urgência (sticky) ── */}
       <div className="sticky top-0 z-50">
         <UrgencyBar />
       </div>
 
-      {/* ── Hero — Produto primeiro ── */}
-      <section className="px-4 md:px-8 lg:px-16 pt-10 pb-16 md:pt-16 md:pb-24 bg-[var(--color-cream)]">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
-            {/* Lado esquerdo — Copy de venda */}
-            <div className="md:pt-4">
-              <div className="inline-flex items-center gap-2 bg-[var(--color-terracotta)]/10 text-[var(--color-terracotta)] text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-terracotta)]" />
-                Ação entre Amigos
-              </div>
+      {/* 1. Hero — foto dos prêmios como background com overlay escuro */}
+      <section className="section relative overflow-hidden py-20 text-white md:py-28">
+        {/* Background: foto dos produtos com transparência natural */}
+        <div
+          className="absolute inset-0 z-0 bg-[url('/hero-mobile.png')] bg-cover bg-center bg-no-repeat md:bg-[url('/hero-produtos.jpeg')]"
+          aria-hidden="true"
+        />
 
-              <h1 className="font-[family-name:var(--font-heading)] text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] font-bold text-[var(--color-charcoal)] tracking-tight">
-                Seu número da sorte
-                <br />
-                <span className="text-[var(--color-terracotta)]">por apenas R$&nbsp;0,56</span>
-              </h1>
+        {/* Overlay: escurece a foto para garantir contraste do texto (AA) */}
+        <div
+          className="absolute inset-0 z-[1]"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(7, 26, 22, 0.82) 0%, rgba(10, 36, 30, 0.72) 50%, rgba(11, 43, 38, 0.88) 100%)",
+          }}
+          aria-hidden="true"
+        />
 
-              <p className="mt-5 text-base md:text-lg text-[var(--color-charcoal)]/65 leading-relaxed max-w-md">
-                Concorra a <strong className="text-[var(--color-charcoal)] font-semibold">R$&nbsp;18.500 em prêmios</strong> — câmeras profissionais,
-                MacBook, dinheiro e 10 surpresas. Resultado pela Loteria Federal.
-              </p>
+        {/* Conteúdo acima do overlay */}
+        <div className="section-inner relative z-10">
+          <p className="mb-6 text-sm font-medium text-[var(--color-green)]">
+            Ação entre Amigos
+          </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row items-start gap-4">
-                <CTAButton showPrice />
-              </div>
+          <h1 className="mx-auto max-w-2xl text-center font-[family-name:var(--font-heading)] text-[clamp(1.75rem,5vw,3rem)] font-bold leading-[1.15] tracking-tight">
+            Juntos, a gente faz acontecer
+          </h1>
 
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[var(--color-charcoal)]/55">
-                <span className="flex items-center gap-1.5">
-                  <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-[var(--color-terracotta)]/60" aria-hidden="true">
-                    <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M5.5 8l2 2 3-3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Pix instantâneo
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-[var(--color-terracotta)]/60" aria-hidden="true">
-                    <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M5.5 8l2 2 3-3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Sem cadastro longo
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-[var(--color-terracotta)]/60" aria-hidden="true">
-                    <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M5.5 8l2 2 3-3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Sorteio auditável
-                </span>
-              </div>
-            </div>
+          <p className="mx-auto mt-4 max-w-md text-center text-base text-white/75">
+            Cada número comprado nos aproxima de R$&nbsp;18.500 em prêmios.
+            Junte-se a milhares de participantes.
+          </p>
 
-            {/* Lado direito — Vitrine de prêmios */}
-            <div className="relative pb-6">
-              <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-black/[0.04] overflow-hidden">
-                {/* Prêmio destaque */}
-                <div className="bg-gradient-to-br from-[var(--color-charcoal)] via-[#352620] to-[#2B1D16] px-6 py-8 md:px-8 md:py-10 text-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(198,242,78,0.06),transparent_60%)]" />
-                  <div className="relative">
-                    <span className="inline-block bg-[var(--color-lime)] text-[var(--color-charcoal)] text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
-                      1º Prêmio
-                    </span>
-                    <div className="text-5xl md:text-6xl mb-3" aria-hidden="true">📸</div>
-                    <h2 className="font-[family-name:var(--font-heading)] text-xl md:text-2xl font-bold text-[var(--color-cream)] mb-1">
-                      Kit Canon Profissional
-                    </h2>
-                    <p className="text-sm text-[var(--color-cream)]/50 mb-4">
-                      Canon D70 + Lente 24-70 f/4 + Flash 430EX
-                    </p>
-                    <span className="font-[family-name:var(--font-heading)] text-3xl md:text-4xl font-bold text-[var(--color-lime)]">
-                      R$ 10.000
-                    </span>
-                  </div>
-                </div>
+          <div className="my-10 flex w-full justify-center md:my-12">
+            <CommunityRing />
+          </div>
 
-                {/* Mini lista de outros prêmios */}
-                <div className="divide-y divide-black/[0.04]">
-                  {[
-                    { emoji: "💻", name: "MacBook Air M1", value: "R$ 4.000" },
-                    { emoji: "📷", name: "Kit Canon T1i Rebel", value: "R$ 2.000" },
-                    { emoji: "💰", name: "Dinheiro via Pix", value: "R$ 1.000" },
-                    { emoji: "💵", name: "Dinheiro via Pix", value: "R$ 500" },
-                  ].map((p) => (
-                    <div key={p.name + p.value} className="flex items-center gap-3 px-5 py-3.5 md:px-7 hover:bg-black/[0.01] transition-colors">
-                      <span className="text-xl" aria-hidden="true">{p.emoji}</span>
-                      <span className="flex-1 text-sm font-medium text-[var(--color-charcoal)]">{p.name}</span>
-                      <span className="text-sm font-bold text-[var(--color-terracotta)] tabular-nums">{p.value}</span>
-                    </div>
-                  ))}
-                </div>
+          <div className="flex w-full flex-col items-center gap-8">
+            <CTAButton showPrice />
 
-                {/* Surpresas */}
-                <div className="bg-[var(--color-lime)]/8 px-6 py-3.5 md:px-8 text-center border-t border-[var(--color-lime)]/10">
-                  <span className="text-sm text-[var(--color-charcoal)]/70">
-                    🎁 <strong className="font-semibold">+ 10 prêmios-surpresa</strong> de R$ 100
-                  </span>
-                </div>
-              </div>
-
-              {/* Badge de total */}
-              <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 bg-[var(--color-terracotta)] text-white px-6 py-2.5 rounded-full shadow-[0_4px_16px_rgba(181,80,47,0.3)] whitespace-nowrap">
-                <span className="text-sm font-bold tracking-wide">Total: R$ 18.500 em prêmios</span>
-              </div>
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-green)]" aria-hidden="true" />
+                Pix instantâneo
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-green)]" aria-hidden="true" />
+                Loteria Federal
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-green)]" aria-hidden="true" />
+                Sorteio auditável
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Prova social ── */}
-      <SocialProof />
+      {/* 2. Combos */}
+      <ComboCards />
 
-      {/* ── Como funciona ── */}
-      <HowItWorks />
-
-      {/* ── Todos os prêmios ── */}
+      {/* 3. Prêmios */}
       <Prizes />
 
-      {/* ── CTA Final ── */}
-      <section className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-20 md:py-28">
-        <div className="max-w-2xl mx-auto text-center">
-          <p className="text-5xl md:text-6xl mb-5" aria-hidden="true">🍀</p>
-          <h2 className="font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.75rem)] font-bold text-[var(--color-cream)] mb-5">
-            Não deixe pra depois
+      {/* 4. Como participar */}
+      <HowItWorks />
+
+      {/* 5. Feed da comunidade */}
+      <LiveFeed />
+
+      {/* 6. CTA final + contagem regressiva */}
+      <Section tone="forest" spacing="tall">
+        <div className="mx-auto flex max-w-lg flex-col items-center">
+          <h2 className="font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.5rem)] font-bold leading-tight text-white">
+            Falta pouco pra fechar
           </h2>
-          <p className="text-base md:text-lg text-[var(--color-cream)]/55 mb-10 max-w-md mx-auto leading-relaxed">
-            Cada número vendido é um a menos disponível. Garanta o seu agora e concorra a R$&nbsp;18.500 em prêmios.
+          <p className="mt-4 max-w-sm text-base text-white/70">
+            Cada número que sai é um a menos disponível. Entre agora e faça
+            parte dessa comunidade.
           </p>
+
+          <div className="my-10 w-full">
+            <Countdown />
+          </div>
 
           <CTAButton showPrice />
 
-          <p className="mt-6 text-sm text-[var(--color-cream)]/30">
-            Pagamento seguro via Pix · Resultado transparente
+          <p className="mt-6 text-sm text-white/50">
+            Pagamento seguro via Pix
           </p>
         </div>
-      </section>
+      </Section>
 
-      {/* ── Rodapé mínimo ── */}
-      <footer className="bg-[var(--color-charcoal)] border-t border-white/5 px-4 md:px-8 lg:px-16 py-8 pb-24 md:pb-8">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[var(--color-cream)]/40">
-          <span className="font-[family-name:var(--font-heading)] text-base text-[var(--color-cream)]/60">
+      {/* 7. Rodapé */}
+      <footer className="bg-[var(--color-forest-deep)] px-5 pb-safe pt-8 md:px-8 md:pb-8">
+        <div className="mx-auto flex max-w-[1140px] flex-col items-center justify-between gap-4 text-sm text-white/50 md:flex-row">
+          <span className="font-[family-name:var(--font-heading)] text-base text-white/70">
             Ação entre Amigos
           </span>
-          <nav className="flex gap-6">
-            <a href="/regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
-            <a href="/rankings" className="hover:text-[var(--color-cream)]/70 transition-colors">Rankings</a>
-            <a href="/meus-numeros" className="hover:text-[var(--color-cream)]/70 transition-colors">Meus números</a>
+          <nav className="flex gap-6 text-xs" aria-label="Rodapé">
+            <a href="/regulamento" className="transition-colors hover:text-white/80">
+              Regulamento
+            </a>
+            <a href="/rankings" className="transition-colors hover:text-white/80">
+              Rankings
+            </a>
+            <a href="/meus-numeros" className="transition-colors hover:text-white/80">
+              Meus números
+            </a>
           </nav>
         </div>
       </footer>
 
-      {/* ── Ticker de compras em tempo real ── */}
-      <LiveTicker />
-
-      {/* ── CTA flutuante mobile ── */}
       <FloatingCTA />
     </>
   );

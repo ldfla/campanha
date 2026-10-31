@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, DM_Sans } from "next/font/google";
+import { Fraunces, Overlock } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -8,9 +8,11 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const overlock = Overlock({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  weight: ["400", "700", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-overlock",
   display: "swap",
 });
 
@@ -31,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${fraunces.variable} ${dmSans.variable}`}
+      className={`${fraunces.variable} ${overlock.variable}`}
     >
       <body>{children}</body>
     </html>

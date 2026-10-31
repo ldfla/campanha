@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Regulamento — Ação entre Amigos",
@@ -70,68 +71,60 @@ Os rankings são atualizados em tempo real e identificados pelas iniciais do nom
 
 export default function RegulamentoPage() {
   return (
-    <div className="min-h-dvh bg-[var(--color-cream)]">
-      {/* Header */}
-      <header className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-5">
+    <div className="min-h-dvh bg-[var(--color-snow)]">
+      <header className="bg-[var(--color-midnight)] px-5 md:px-8 lg:px-16 py-5">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <a href="/" className="font-[family-name:var(--font-heading)] text-base font-bold text-[var(--color-cream)] hover:text-[var(--color-lime)] transition-colors">
-            &larr; Ação entre Amigos
-          </a>
-          <a
-            href="/participar"
-            className="text-sm font-semibold text-[var(--color-lime)] hover:text-[var(--color-lime)]/80 transition-colors"
-          >
-            Participar &rarr;
+          <Link href="/" className="font-[family-name:var(--font-heading)] text-base font-bold text-white/80 hover:text-white transition-colors">
+            Ação entre Amigos
+          </Link>
+          <a href="/participar" className="text-sm font-semibold text-[var(--color-ember)] hover:text-[var(--color-ember)]/80 transition-colors">
+            Participar
           </a>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="px-4 md:px-8 lg:px-16 py-12 md:py-20">
+      <main className="px-5 md:px-8 lg:px-16 py-12 md:py-20">
         <div className="max-w-3xl mx-auto">
-          <h1 className="font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,3rem)] font-bold text-[var(--color-charcoal)] mb-3">
+          <h1 className="font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,3rem)] font-bold text-[var(--color-midnight)] mb-3">
             Regulamento
           </h1>
-          <p className="text-sm text-[var(--color-charcoal)]/50 mb-12 md:mb-16">
+          <p className="text-sm text-[var(--color-midnight)]/40 mb-12 md:mb-16">
             Leia atentamente as condições de participação na Ação entre Amigos.
           </p>
 
           <div className="space-y-10 md:space-y-14">
             {sections.map((section) => (
               <section key={section.title}>
-                <h2 className="font-[family-name:var(--font-heading)] text-lg md:text-xl font-semibold text-[var(--color-charcoal)] mb-3">
+                <h2 className="font-[family-name:var(--font-heading)] text-lg md:text-xl font-semibold text-[var(--color-midnight)] mb-3">
                   {section.title}
                 </h2>
-                <div className="text-sm md:text-base text-[var(--color-charcoal)]/70 leading-relaxed whitespace-pre-line">
+                <div className="text-sm md:text-base text-[var(--color-midnight)]/60 leading-relaxed whitespace-pre-line">
                   {section.content}
                 </div>
               </section>
             ))}
           </div>
 
-          {/* CTA */}
-          <div className="mt-16 md:mt-20 pt-10 border-t border-[var(--color-charcoal)]/10 text-center">
-            <p className="text-sm text-[var(--color-charcoal)]/50 mb-5">
+          <div className="mt-16 md:mt-20 pt-10 border-t border-[var(--color-midnight)]/8 text-center">
+            <p className="text-sm text-[var(--color-midnight)]/40 mb-5">
               Ao participar, você aceita integralmente este regulamento.
             </p>
             <a
               href="/participar"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base bg-[var(--color-lime)] text-[var(--color-charcoal)] shadow-[0_4px_24px_rgba(198,242,78,0.3)] hover:brightness-105 active:scale-[0.98] transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white animate-cta-beacon hover:scale-[1.05] active:scale-[0.97] transition-transform"
             >
               Quero participar
-              <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-8">
-        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-[var(--color-cream)]/40">
-          <span className="font-[family-name:var(--font-heading)] text-base text-[var(--color-cream)]/60">
+      <footer className="bg-[var(--color-midnight)] px-5 md:px-8 lg:px-16 py-8">
+        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-white/30">
+          <span className="font-[family-name:var(--font-heading)] text-base text-white/50">
             Ação entre Amigos
           </span>
-          <a href="/" className="hover:text-[var(--color-cream)]/70 transition-colors">Voltar ao início</a>
+          <Link href="/" className="hover:text-white/60 transition-colors">Voltar ao início</Link>
         </div>
       </footer>
     </div>

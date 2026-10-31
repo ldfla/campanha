@@ -1,4 +1,5 @@
 import { CTAButton } from "@/components/cta-button";
+import { Section } from "@/components/section";
 
 const prizes = [
   {
@@ -6,132 +7,163 @@ const prizes = [
     name: "Kit Fotográfico Canon",
     items: "Canon D70 + Lente 24-70 f/4 + Flash 430EX",
     value: "R$ 10.000",
-    emoji: "📸",
-    highlight: true,
+    accent: "var(--color-gold)",
+    ink: "var(--color-gold-ink)",
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="h-12 w-12" aria-hidden="true">
+        <circle cx="24" cy="22" r="12" stroke="var(--color-gold)" strokeWidth="1.5" />
+        <circle cx="24" cy="22" r="7" stroke="var(--color-gold)" strokeWidth="1.5" />
+        <circle cx="24" cy="22" r="3" fill="var(--color-gold)" />
+        <rect x="17" y="34" width="14" height="6" rx="2" stroke="var(--color-gold)" strokeWidth="1.5" />
+      </svg>
+    ),
+    glow: true,
   },
   {
     tag: "2º Prêmio",
     name: "MacBook Air M1",
-    items: '13" · 8GB · Chip Apple Silicon',
+    items: '13" · 8GB · Apple Silicon',
     value: "R$ 4.000",
-    emoji: "💻",
-    highlight: true,
+    accent: "var(--color-iris)",
+    ink: "var(--color-iris)",
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="h-12 w-12" aria-hidden="true">
+        <rect x="8" y="10" width="32" height="20" rx="3" stroke="var(--color-iris)" strokeWidth="1.5" />
+        <rect x="13" y="14" width="22" height="12" rx="1" stroke="var(--color-iris)" strokeWidth="1" opacity="0.4" />
+        <path d="M4 36h40" stroke="var(--color-iris)" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M17 30h14v6H17z" stroke="var(--color-iris)" strokeWidth="1.5" />
+      </svg>
+    ),
+    glow: false,
   },
   {
     tag: "3º Prêmio",
     name: "Kit Canon T1i Rebel",
-    items: "Câmera + acessórios para começar",
+    items: "Câmera + acessórios",
     value: "R$ 2.000",
-    emoji: "📷",
-    highlight: true,
+    accent: "var(--color-orange)",
+    ink: "#B4400F",
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="h-12 w-12" aria-hidden="true">
+        <rect x="8" y="14" width="32" height="20" rx="5" stroke="var(--color-orange)" strokeWidth="1.5" />
+        <circle cx="27" cy="24" r="6" stroke="var(--color-orange)" strokeWidth="1.5" />
+        <circle cx="27" cy="24" r="2.5" fill="var(--color-orange)" />
+        <rect x="12" y="18" width="6" height="4" rx="1" stroke="var(--color-orange)" strokeWidth="1" />
+      </svg>
+    ),
+    glow: false,
   },
   {
     tag: "4º Prêmio",
-    name: "Prêmio em dinheiro",
-    items: "Pix direto na sua conta",
+    name: "Pix na sua conta",
+    items: "Transferência direta",
     value: "R$ 1.000",
-    emoji: "💰",
-    highlight: false,
+    accent: "var(--color-jade)",
+    ink: "#0F7A44",
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="h-12 w-12" aria-hidden="true">
+        <circle cx="24" cy="24" r="14" stroke="var(--color-jade)" strokeWidth="1.5" />
+        <path d="M18 24h12M24 18v12" stroke="var(--color-jade)" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    glow: false,
   },
   {
     tag: "5º Prêmio",
-    name: "Prêmio em dinheiro",
-    items: "Pix direto na sua conta",
+    name: "Pix na sua conta",
+    items: "Transferência direta",
     value: "R$ 500",
-    emoji: "💵",
-    highlight: false,
+    accent: "var(--color-jade)",
+    ink: "#0F7A44",
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="h-12 w-12" aria-hidden="true">
+        <circle cx="24" cy="24" r="14" stroke="var(--color-jade)" strokeWidth="1.5" />
+        <path d="M18 24h12" stroke="var(--color-jade)" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    glow: false,
   },
 ] as const;
 
 export function Prizes() {
   return (
-    <section id="premios" className="px-4 md:px-8 lg:px-16 py-16 md:py-24 bg-[var(--color-cream)]">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10 md:mb-14">
-          <span className="inline-block bg-[var(--color-terracotta)] text-white text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full mb-4">
-            5 prêmios + 10 surpresas
-          </span>
-          <h2 className="font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,3rem)] font-bold text-[var(--color-charcoal)]">
-            O que você pode ganhar
-          </h2>
-        </div>
+    <Section tone="white">
+      <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-[var(--color-ink)]">
+        O que você pode ganhar
+      </h2>
+      <p className="mt-2 text-center text-sm text-[var(--color-ink-soft)]">
+        5 prêmios principais + 10 prêmios-surpresa
+      </p>
 
-        <div className="space-y-2.5 md:space-y-3">
-          {prizes.map((prize) => (
-            <article
-              key={prize.tag}
-              className={`group flex items-center gap-3.5 sm:gap-5 md:gap-6 rounded-xl sm:rounded-2xl px-4 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 transition-all duration-150 ${
-                prize.highlight
-                  ? "bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-black/[0.04]"
-                  : "bg-[var(--color-cream-warm)] hover:bg-white border border-transparent hover:border-black/[0.04] hover:shadow-sm"
-              }`}
+      {/* Faixa do total, integrada ao topo da seção (sem sobrepor nada) */}
+      <div className="mt-8 flex w-full max-w-lg items-center justify-center gap-3 rounded-2xl border border-[var(--color-gold)]/35 bg-[var(--color-gold)]/[0.08] px-5 py-3">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-soft)]">
+          Total em prêmios
+        </span>
+        <span className="font-[family-name:var(--font-heading)] text-2xl font-bold tabular-nums text-[var(--color-gold-ink)]">
+          R$ 18.500
+        </span>
+      </div>
+
+      <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {prizes.map((prize) => (
+          <article
+            key={prize.tag}
+            className={`flex flex-col items-center rounded-2xl border border-black/[0.06] p-5 text-center transition-shadow hover:shadow-lg ${
+              prize.glow ? "animate-gold-glow" : ""
+            }`}
+          >
+            <div
+              className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `color-mix(in srgb, ${prize.accent} 8%, transparent)` }}
             >
-              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-[var(--color-charcoal)]/[0.04] flex items-center justify-center shrink-0">
-                <span className="text-2xl sm:text-3xl" aria-hidden="true">{prize.emoji}</span>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
-                  prize.highlight ? "text-[var(--color-terracotta)]" : "text-[var(--color-charcoal)]/40"
-                }`}>
-                  {prize.tag}
-                </span>
-                <h3 className="font-[family-name:var(--font-heading)] text-sm sm:text-base md:text-lg font-semibold text-[var(--color-charcoal)] leading-tight">
-                  {prize.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--color-charcoal)]/50 mt-0.5 hidden sm:block">
-                  {prize.items}
-                </p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <span className={`font-[family-name:var(--font-heading)] font-bold tabular-nums ${
-                  prize.highlight
-                    ? "text-lg sm:text-xl md:text-2xl text-[var(--color-terracotta)]"
-                    : "text-base sm:text-lg md:text-xl text-[var(--color-charcoal)]/80"
-                }`}>
-                  {prize.value}
-                </span>
-              </div>
-            </article>
-          ))}
-
-          {/* Prêmios-surpresa */}
-          <div className="flex items-center gap-3.5 sm:gap-5 md:gap-6 rounded-xl sm:rounded-2xl px-4 py-4 sm:px-6 sm:py-5 md:px-8 md:py-5 bg-[var(--color-lime)]/[0.08] border border-[var(--color-lime)]/15">
-            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-[var(--color-lime)]/15 flex items-center justify-center shrink-0">
-              <span className="text-2xl sm:text-3xl" aria-hidden="true">🎁</span>
+              {prize.icon}
             </div>
-            <div className="flex-1">
-              <h3 className="font-[family-name:var(--font-heading)] text-sm sm:text-base md:text-lg font-semibold text-[var(--color-charcoal)]">
-                + 10 prêmios-surpresa
-              </h3>
-              <p className="text-xs sm:text-sm text-[var(--color-charcoal)]/50">
-                R$ 100 cada · Números aleatórios
-              </p>
-            </div>
-            <div className="shrink-0">
-              <span className="font-[family-name:var(--font-heading)] font-bold text-base sm:text-lg md:text-xl text-[var(--color-charcoal)]/80">
-                R$ 1.000
-              </span>
-            </div>
-          </div>
-        </div>
+            <span
+              className="mb-1.5 text-[10px] font-bold tracking-wider"
+              style={{ color: prize.ink }}
+            >
+              {prize.tag}
+            </span>
+            <h3 className="mb-1 font-[family-name:var(--font-heading)] text-sm font-semibold leading-tight text-[var(--color-ink)]">
+              {prize.name}
+            </h3>
+            <p className="mb-3 text-xs leading-snug text-[var(--color-ink-soft)]">
+              {prize.items}
+            </p>
+            <span
+              className="mt-auto font-[family-name:var(--font-heading)] text-xl font-bold tabular-nums"
+              style={{ color: prize.ink }}
+            >
+              {prize.value}
+            </span>
+          </article>
+        ))}
+      </div>
 
-        {/* Total */}
-        <div className="mt-5 p-4 md:p-5 rounded-xl bg-[var(--color-charcoal)] flex items-center justify-center gap-3">
-          <span className="text-[var(--color-cream)]/60 text-sm">Total em prêmios:</span>
-          <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-lime)]">
-            R$ 18.500
-          </span>
-        </div>
-
-        <div className="mt-10 flex flex-col items-center gap-3">
-          <CTAButton showPrice />
-          <p className="text-xs sm:text-sm text-[var(--color-charcoal)]/45">
-            Quanto mais números, mais chances de ganhar
+      {/* Prêmios-surpresa */}
+      <div className="mt-6 flex w-full items-center gap-4 rounded-2xl border border-[var(--color-iris)]/15 bg-gradient-to-r from-[var(--color-iris)]/[0.06] to-transparent px-5 py-4">
+        <div className="flex-1">
+          <span className="text-xs font-semibold text-[var(--color-iris)]">Bônus</span>
+          <h3 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-ink)] sm:text-base">
+            10 prêmios-surpresa
+          </h3>
+          <p className="text-xs text-[var(--color-ink-soft)]">
+            R$ 100 cada, números aleatórios selados
           </p>
         </div>
+        <span className="shrink-0 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--color-iris)]">
+          R$ 1.000
+        </span>
       </div>
-    </section>
+
+      {/* CTA com área própria de respiro */}
+      <div className="mt-14 flex w-full flex-col items-center gap-4">
+        <CTAButton showPrice />
+        <p className="text-xs text-[var(--color-ink-soft)] sm:text-sm">
+          Quanto mais números, mais chances
+        </p>
+      </div>
+    </Section>
   );
 }

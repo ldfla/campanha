@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function IndicarPage() {
   const [phone, setPhone] = useState("");
@@ -25,32 +26,31 @@ export default function IndicarPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[var(--color-cream)]">
-      {/* Header */}
-      <header className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-4">
+    <div className="min-h-dvh bg-[var(--color-snow)]">
+      <header className="bg-[var(--color-midnight)] px-5 md:px-8 lg:px-16 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <a href="/" className="font-[family-name:var(--font-heading)] text-base font-bold text-[var(--color-cream)] hover:text-[var(--color-lime)] transition-colors">
-            &larr; Ação entre Amigos
-          </a>
-          <a href="/rankings" className="text-sm font-semibold text-[var(--color-lime)] hover:text-[var(--color-lime)]/80 transition-colors">
-            Rankings &rarr;
+          <Link href="/" className="font-[family-name:var(--font-heading)] text-base font-bold text-white/80 hover:text-white transition-colors">
+            Ação entre Amigos
+          </Link>
+          <a href="/rankings" className="text-sm font-semibold text-[var(--color-ember)] hover:text-[var(--color-ember)]/80 transition-colors">
+            Rankings
           </a>
         </div>
       </header>
 
-      <main className="px-4 md:px-8 lg:px-16 py-10 md:py-16">
+      <main className="px-5 md:px-8 lg:px-16 py-10 md:py-16">
         <div className="max-w-lg mx-auto">
           {!authenticated ? (
             <div className="animate-slide-in">
-              <h1 className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-charcoal)] mb-2">
+              <h1 className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-midnight)] mb-2">
                 Indicar amigos
               </h1>
-              <p className="text-sm text-[var(--color-charcoal)]/55 mb-8">
+              <p className="text-sm text-[var(--color-midnight)]/45 mb-8">
                 Compartilhe seu link e concorra a prêmios extras no ranking de indicações.
               </p>
 
               <div className="bg-white rounded-2xl border border-black/[0.06] p-6 md:p-8">
-                <label htmlFor="phone" className="block text-sm font-medium text-[var(--color-charcoal)] mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-[var(--color-midnight)] mb-2">
                   Seu WhatsApp
                 </label>
                 <input
@@ -59,12 +59,12 @@ export default function IndicarPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-[var(--color-cream)] text-[var(--color-charcoal)] placeholder:text-[var(--color-charcoal)]/30 outline-none focus:border-[var(--color-terracotta)]/40 focus:ring-2 focus:ring-[var(--color-terracotta)]/10 transition-all mb-4 text-lg"
+                  className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-[var(--color-snow)] text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all mb-4 text-lg"
                 />
                 <button
                   onClick={handleLookup}
                   disabled={phone.trim().length < 10}
-                  className="w-full py-4 rounded-xl font-bold text-base bg-[var(--color-terracotta)] text-white hover:bg-[var(--color-terracotta-dark)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-4 rounded-xl font-bold text-base bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white shadow-[0_4px_24px_rgba(255,99,71,0.3)] hover:shadow-[0_8px_32px_rgba(255,99,71,0.45)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Ver meu link de indicação
                 </button>
@@ -72,32 +72,30 @@ export default function IndicarPage() {
             </div>
           ) : (
             <div className="animate-slide-in">
-              <h1 className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-charcoal)] mb-2">
+              <h1 className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-midnight)] mb-2">
                 Seu link de indicação
               </h1>
-              <p className="text-sm text-[var(--color-charcoal)]/55 mb-8">
+              <p className="text-sm text-[var(--color-midnight)]/45 mb-8">
                 Compartilhe para subir no ranking e ganhar prêmios. Seu ID: <strong>*{referrerId}</strong>
               </p>
 
-              {/* Link to share */}
               <div className="bg-white rounded-2xl border border-black/[0.06] p-5 md:p-6 mb-6">
-                <div className="flex items-center gap-3 bg-[var(--color-cream)] rounded-xl px-4 py-3 mb-4">
-                  <span className="flex-1 text-sm text-[var(--color-charcoal)] truncate font-mono tabular-nums">
+                <div className="flex items-center gap-3 bg-[var(--color-snow)] rounded-xl px-4 py-3 mb-4">
+                  <span className="flex-1 text-sm text-[var(--color-midnight)] truncate font-mono tabular-nums">
                     {referralLink}
                   </span>
                   <button
                     onClick={handleCopy}
                     className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                       copied
-                        ? "bg-emerald-500 text-white"
-                        : "bg-[var(--color-terracotta)] text-white hover:bg-[var(--color-terracotta-dark)]"
+                        ? "bg-[var(--color-jade)] text-white"
+                        : "bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white"
                     }`}
                   >
                     {copied ? "Copiado!" : "Copiar"}
                   </button>
                 </div>
 
-                {/* Share buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <a
                     href={`https://wa.me/?text=${encodeURIComponent(`Fala! 🎉 Participe da Ação entre Amigos e concorra a R$ 18.500 em prêmios!\n\n📎 Use meu link: ${referralLink}\n🆔 Indicado por: *${referrerId}\n\nSó R$ 0,56 por número. Sorteio pela Loteria Federal!`)}`}
@@ -113,7 +111,7 @@ export default function IndicarPage() {
                   </a>
                   <button
                     onClick={handleCopy}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--color-charcoal)]/[0.06] text-[var(--color-charcoal)]/70 font-semibold text-sm hover:bg-[var(--color-charcoal)]/10 transition-colors"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--color-midnight)]/[0.06] text-[var(--color-midnight)]/60 font-semibold text-sm hover:bg-[var(--color-midnight)]/10 transition-colors"
                   >
                     <svg viewBox="0 0 20 20" fill="none" className="w-4.5 h-4.5" aria-hidden="true">
                       <rect x="5" y="5" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
@@ -124,25 +122,23 @@ export default function IndicarPage() {
                 </div>
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
-                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-charcoal)] tabular-nums">{stats.clicks}</p>
-                  <p className="text-xs text-[var(--color-charcoal)]/50 mt-0.5">Cliques</p>
+                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-midnight)] tabular-nums">{stats.clicks}</p>
+                  <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Cliques</p>
                 </div>
                 <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
-                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-emerald-600 tabular-nums">{stats.sales}</p>
-                  <p className="text-xs text-[var(--color-charcoal)]/50 mt-0.5">Vendas</p>
+                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-jade)] tabular-nums">{stats.sales}</p>
+                  <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Vendas</p>
                 </div>
                 <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
-                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-terracotta)] tabular-nums">12º</p>
-                  <p className="text-xs text-[var(--color-charcoal)]/50 mt-0.5">Ranking</p>
+                  <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-iris)] tabular-nums">12º</p>
+                  <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Ranking</p>
                 </div>
               </div>
 
-              {/* Prizes info */}
-              <div className="bg-[var(--color-charcoal)] rounded-2xl p-5 md:p-6">
-                <h3 className="font-[family-name:var(--font-heading)] text-base font-semibold text-[var(--color-cream)] mb-4">
+              <div className="bg-[var(--color-midnight)] rounded-2xl p-5 md:p-6">
+                <h3 className="font-[family-name:var(--font-heading)] text-base font-semibold text-white mb-4">
                   Prêmios por indicação
                 </h3>
                 <div className="space-y-2.5">
@@ -152,17 +148,17 @@ export default function IndicarPage() {
                     { pos: "3º", prize: "R$ 500" },
                   ].map((p) => (
                     <div key={p.pos} className="flex items-center justify-between text-sm">
-                      <span className="text-[var(--color-cream)]/55">{p.pos} lugar em vendas concluídas</span>
-                      <span className="font-bold text-[var(--color-lime)]">{p.prize}</span>
+                      <span className="text-white/45">{p.pos} lugar em vendas concluídas</span>
+                      <span className="font-bold text-[var(--color-gold)]">{p.prize}</span>
                     </div>
                   ))}
                 </div>
-                <a href="/rankings" className="inline-block mt-4 text-xs text-[var(--color-lime)]/60 hover:text-[var(--color-lime)] transition-colors">
-                  Ver ranking completo &rarr;
+                <a href="/rankings" className="inline-block mt-4 text-xs text-[var(--color-iris)] hover:text-[var(--color-iris)]/80 transition-colors">
+                  Ver ranking completo
                 </a>
               </div>
 
-              <p className="mt-6 text-center text-xs text-[var(--color-charcoal)]/30">
+              <p className="mt-6 text-center text-xs text-[var(--color-midnight)]/25">
                 Modo demonstração · Link e dados simulados
               </p>
             </div>
@@ -170,12 +166,12 @@ export default function IndicarPage() {
         </div>
       </main>
 
-      <footer className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-[var(--color-cream)]/40">
-          <span className="font-[family-name:var(--font-heading)] text-base text-[var(--color-cream)]/60">Ação entre Amigos</span>
+      <footer className="bg-[var(--color-midnight)] px-5 md:px-8 lg:px-16 py-6">
+        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-white/30">
+          <span className="font-[family-name:var(--font-heading)] text-base text-white/50">Ação entre Amigos</span>
           <nav className="flex gap-4 text-xs">
-            <a href="/regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
-            <a href="/rankings" className="hover:text-[var(--color-cream)]/70 transition-colors">Rankings</a>
+            <a href="/regulamento" className="hover:text-white/60 transition-colors">Regulamento</a>
+            <a href="/rankings" className="hover:text-white/60 transition-colors">Rankings</a>
           </nav>
         </div>
       </footer>

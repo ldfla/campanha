@@ -589,6 +589,8 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P05.  
 **Entregáveis:** experiência responsiva de apresentação da campanha.
 
+**Referência de layout para o Claude:** o layout da branch `feature/p06-landing-page` foi escolhido pelo responsável como o melhor encontrado até agora. Preserve sua direção visual como referência nas próximas alterações; a escolha do layout não substitui os critérios de aceite e testes desta fase.
+
 - [ ] `P06-01` Criar design system, tokens de cores, tipografia, estados e componentes reutilizáveis.
 - [ ] `P06-02` Implementar landing page e página da campanha com SEO e imagens responsivas.
 - [ ] `P06-03` Exibir galeria e lista completa dos itens do kit, com alt e valor verificável.
