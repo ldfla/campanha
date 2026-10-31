@@ -311,15 +311,15 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch sugerida:** `feature/p16-security-lgpd`
 
-- [ ] `P16-01` Threat model STRIDE com trust boundaries.
-- [ ] `P16-02` Checklist OWASP ASVS 2 e API Top 10.
-- [ ] `P16-03` Security headers (CSP, HSTS), CORS estrito, rate limits aprimorados.
-- [ ] `P16-04` PII cifrada: CPF via criptografia de campo, índice HMAC para busca.
-- [ ] `P16-05` Portal LGPD: acesso, correção, exclusão, exportação.
-- [ ] `P16-06` SAST, SCA, secrets scan, SBOM em CI.
-- [ ] `P16-07` Red-team local: `docs/security/red-team-report.md`.
-- [ ] `P16-08` Corrigir achados críticos/altos, reexecutar testes.
-- [ ] `P16-09` Plano de incidente e continuidade.
+- [x] `P16-01` Threat model STRIDE com trust boundaries.
+- [x] `P16-02` Checklist OWASP ASVS 2 e API Top 10.
+- [x] `P16-03` Security headers (CSP, HSTS), CORS estrito, rate limits aprimorados.
+- [ ] `P16-04` PII cifrada: CPF via criptografia de campo, índice HMAC para busca. **PARCIAL/N/A**: domínio atual não tem CPF (identidade por telefone E.164); e-mail mascarado na exportação LGPD; cifra de campo/HMAC pendentes se o CPF for adotado.
+- [x] `P16-05` Portal LGPD: acesso, correção, exclusão, exportação.
+- [x] `P16-06` SAST, SCA, secrets scan, SBOM em CI.
+- [x] `P16-07` Red-team local: `docs/security/red-team-report.md`.
+- [x] `P16-08` Corrigir achados críticos/altos, reexecutar testes.
+- [x] `P16-09` Plano de incidente e continuidade.
 
 ### Bloco H — Carga e recuperação (P18)
 
