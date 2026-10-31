@@ -1,0 +1,144 @@
+package la.meleva.fundraiser.participation;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Objects;
+import la.meleva.fundraiser.campaign.CampaignRepository;
+import la.meleva.fundraiser.participation.purchase.PurchaseOfferRepository;
+import la.meleva.fundraiser.participation.purchase.ReservationPaymentLink;
+import la.meleva.fundraiser.participation.purchase.ReservationPaymentLinkRepository;
+import la.meleva.fundraiser.payment.OrderRepository;
+import la.meleva.fundraiser.payment.OrderService;
+import la.meleva.fundraiser.payment.OrderStatus;
+import la.meleva.fundraiser.payment.PaymentProvider;
+import la.meleva.fundraiser.payment.PaymentRepository;
+import la.meleva.fundraiser.payment.PaymentStatus;
+import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.identity.UserRepository;
+import la.meleva.fundraiser.referral.ReferralService;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Checkout apenas simulado; a oferta e o preço são escolhidos no servidor. */
+@Service
+public class ReservationCheckoutService {
+    private final ReservationService reservations;
+    private final CampaignRepository campaigns;
+    private final PurchaseOfferRepository offers;
+    private final ParticipationRequestRepository requests;
+    private final ReservationPaymentLinkRepository links;
+    private final OrderRepository orders;
+    private final OrderService orderService;
+    private final PaymentRepository payments;
+    private final PaymentProvider provider;
+    private final ReservationLeaseRepository leases;
+    private final CampaignNumberRepository numbers;
+    private final ParticipationEntryRepository entries;
+    private final EntryNumberAssignmentRepository assignments;
+    private final EligibilityEventRepository eligibility;
+    private final EntityManager entityManager;
+    private final Clock clock;
+    private final UserRepository users;
+    private final ReferralService referrals;
+
+    @Autowired
+    public ReservationCheckoutService(ReservationService reservations, CampaignRepository campaigns,
+            PurchaseOfferRepository offers, ParticipationRequestRepository requests, ReservationPaymentLinkRepository links,
+            OrderRepository orders, OrderService orderService, PaymentRepository payments, PaymentProvider provider,
+            ReservationLeaseRepository leases, CampaignNumberRepository numbers, ParticipationEntryRepository entries,
+            EntryNumberAssignmentRepository assignments, EligibilityEventRepository eligibility, EntityManager entityManager,
+            UserRepository users, ReferralService referrals) {
+        this.reservations=reservations; this.campaigns=campaigns; this.offers=offers; this.requests=requests;
+        this.links=links; this.orders=orders; this.orderService=orderService; this.payments=payments; this.provider=provider;
+        this.leases=leases; this.numbers=numbers; this.entries=entries; this.assignments=assignments;
+        this.eligibility=eligibility; this.entityManager=entityManager; this.clock=Clock.systemUTC();
+        this.users=Objects.requireNonNull(users, "users"); this.referrals=Objects.requireNonNull(referrals, "referrals");
+    }
+
+    @Transactional
+    public CheckoutView start(Long userId, String campaignPublicId, String key, String offerPublicId) {
+        return start(userId, campaignPublicId, key, offerPublicId, null, null);
+    }
+
+    @Transactional
+    public CheckoutView start(Long userId, String campaignPublicId, String key, String offerPublicId,
+                              @Nullable String entityId, @Nullable String referralCode) {
+        Objects.requireNonNull(userId, "userId"); Objects.requireNonNull(campaignPublicId, "campaignPublicId");
+        Objects.requireNonNull(key, "key"); Objects.requireNonNull(offerPublicId, "offerPublicId");
+        if (!"MOCK".equals(provider.name())) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException();
+        var campaign = campaigns.findByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        var offer = offers.findByPublicIdAndCampaignIdAndActiveTrue(offerPublicId, campaign.getId())
+                .orElseThrow(ErrorCode.VALIDATION_ERROR::toException);
+        var validReferral = referralCode == null || referralCode.isBlank() ? java.util.Optional.<String>empty()
+                : referrals.validCodeForUser(campaign.getId(), referralCode, userId);
+        var reservation = reservations.reserveDemo(userId, campaignPublicId, key, offer.getQuantity(), entityId);
+        var request = requests.findByPublicId(reservation.requestPublicId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        var existing = links.findByRequestId(request.getId());
+        if (existing.isPresent()) {
+            if (!existing.get().getOfferId().equals(offer.getId()) || existing.get().getTotalCents()!=offer.getTotalCents()
+                    || !existing.get().referralCode().equals(validReferral)) {
+                throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
+            }
+            var order = orders.findById(existing.get().getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+            return new CheckoutView(reservation, order.getPublicId(), offer.getTotalCents(), "BRL", true);
+        }
+        var receipt = orderService.createOrder(campaign.getId(), userId, offer.getTotalCents(), key);
+        var order = orders.findByPublicId(receipt.orderPublicId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        if (!order.getCampaignId().equals(campaign.getId()) || !order.getUserId().equals(userId)
+                || order.getTotalCents()!=offer.getTotalCents()) throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
+        links.save(new ReservationPaymentLink(request.getId(), order.getId(), offer.getId(), offer.getTotalCents(), validReferral.orElse(null)));
+        return new CheckoutView(reservation, order.getPublicId(), offer.getTotalCents(), "BRL", true);
+    }
+
+    @Transactional
+    public void confirm(Long userId, String campaignPublicId, String requestPublicId) {
+        Objects.requireNonNull(userId, "userId"); Objects.requireNonNull(campaignPublicId, "campaignPublicId");
+        Objects.requireNonNull(requestPublicId, "requestPublicId");
+        if (!"MOCK".equals(provider.name())) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException();
+        if (users.findById(userId).filter(user -> user.isActive()).isEmpty()) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        var campaign = campaigns.findLockedByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        var request = requests.findByPublicId(requestPublicId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        entityManager.refresh(request, LockModeType.PESSIMISTIC_WRITE);
+        if (!request.getCampaignId().equals(campaign.getId()) || !request.getUserId().equals(userId)) {
+            throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        }
+        var link = links.findByRequestId(request.getId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        var payment = payments.findLockedByOrderId(link.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        var order = orders.findById(link.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        var charge = provider.getCharge(payment.getProviderChargeId());
+        if (!"MOCK".equals(payment.getProvider()) || payment.getStatus()!=PaymentStatus.CONFIRMED
+                || order.getStatus()!=OrderStatus.RECONCILED || !order.getUserId().equals(userId)
+                || !order.getCampaignId().equals(campaign.getId()) || order.getTotalCents()!=link.getTotalCents()
+                || payment.getAmountCents()!=link.getTotalCents() || charge.amountCents()!=link.getTotalCents()
+                || charge.state()!=PaymentProvider.ChargeState.PAID
+                || !Objects.equals(charge.id(), payment.getProviderChargeId())
+                || !Objects.equals(charge.txid(), payment.getTxid())) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        if (request.getStatus()==ParticipationStatus.ASSIGNED) return;
+        if (request.getStatus()!=ParticipationStatus.REQUESTED) throw ErrorCode.PAYMENT_ORDER_EXPIRED.toException();
+        var active = leases.findByRequestIdAndStatusOrderByIdAsc(request.getId(), "ACTIVE");
+        if (active.size()!=request.getRequestedCount()) throw new IllegalStateException("reservation.lease_count_invalid");
+        Instant now = Instant.now(clock);
+        if (active.stream().anyMatch(lease -> lease.isExpiredAt(now))) throw ErrorCode.PAYMENT_ORDER_EXPIRED.toException();
+        for (var lease : active) {
+            var number = numbers.findById(lease.getNumberId()).orElseThrow(ErrorCode.NUMBER_NOT_AVAILABLE::toException);
+            Long entryId = Objects.requireNonNull(number.getEntryId(), "reservation.entryId");
+            var entry = entries.findById(entryId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+            if (!request.getId().equals(entry.getRequestId()) || !campaign.getId().equals(number.getCampaignId())
+                    || entry.getStatus()!=ParticipationStatus.REQUESTED) throw new IllegalStateException("reservation.entry_mismatch");
+            number.assignReservation(entryId); entry.markAssigned(); lease.consume(now);
+            assignments.save(new EntryNumberAssignment(entryId, number.getId()));
+            eligibility.save(new EligibilityEvent(entryId, 1, "ELIGIBLE", "DEMO_PAYMENT_CONFIRMED"));
+            link.referralCode().ifPresent(code -> referrals.attributeIfValid(campaign.getId(), code, entryId));
+        }
+        request.markAssigned();
+    }
+
+    public record CheckoutView(ReservationService.ReservationView reservation, String orderPublicId,
+                               long amountCents, String currency, boolean simulation) { }
+}

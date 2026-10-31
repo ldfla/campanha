@@ -31,4 +31,5 @@ public class ParticipationRequest {
     public int getRequestedCount() { return requestedCount; }
     public ParticipationStatus getStatus() { return status; }
     public void markAssigned() { this.status = ParticipationStatus.ASSIGNED; this.updatedAt = Instant.now(); }
+    public void rejectReservation() { if (status != ParticipationStatus.REQUESTED) throw new IllegalStateException("participation.request_invalid"); this.status = ParticipationStatus.REJECTED; this.updatedAt = Instant.now(); }
 }

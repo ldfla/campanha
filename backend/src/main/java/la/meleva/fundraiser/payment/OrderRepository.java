@@ -1,4 +1,4 @@
 package la.meleva.fundraiser.payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
-public interface OrderRepository extends JpaRepository<Order,Long>{Optional<Order> findByCampaignIdAndUserIdAndIdempotencyKey(Long campaignId,Long userId,String idempotencyKey);}
+public interface OrderRepository extends JpaRepository<Order,Long>{Optional<Order> findByCampaignIdAndUserIdAndIdempotencyKey(Long campaignId,Long userId,String idempotencyKey); Optional<Order> findByPublicId(String publicId);}

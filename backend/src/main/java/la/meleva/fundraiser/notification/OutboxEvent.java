@@ -29,8 +29,11 @@ public class OutboxEvent {
 
     protected OutboxEvent() {}
     public OutboxEvent(String aggregateType, Long aggregateId, String eventType, String payloadJson) {
+        this(aggregateType, aggregateId, eventType, payloadJson, Instant.now());
+    }
+    public OutboxEvent(String aggregateType, Long aggregateId, String eventType, String payloadJson, Instant availableAt) {
         this.aggregateType = aggregateType; this.aggregateId = aggregateId; this.eventType = eventType; this.payloadJson = payloadJson;
-        this.status = "PENDING"; this.availableAt = Instant.now(); this.attemptCount = 0; this.maxAttempts = 5; this.createdAt = Instant.now();
+        this.status = "PENDING"; this.availableAt = java.util.Objects.requireNonNull(availableAt, "availableAt"); this.attemptCount = 0; this.maxAttempts = 5; this.createdAt = Instant.now();
     }
     public Long getId() { return id; }
     public String getAggregateType() { return aggregateType; }

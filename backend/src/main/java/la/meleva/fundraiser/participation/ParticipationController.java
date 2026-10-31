@@ -29,7 +29,7 @@ public class ParticipationController {
     public ResponseEntity<ParticipationAllocation> request(@AuthenticationPrincipal AppUserDetails principal,
             @PathVariable String campaignId, @Valid @RequestBody CreateParticipationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.request(principal.userId(), campaignId, request.idempotencyKey(), request.count()));
+                .body(service.request(principal.userId(), campaignId, request.idempotencyKey(), request.count(), request.entityId(), request.referralCode()));
     }
 
     @GetMapping("/availability")

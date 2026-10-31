@@ -228,11 +228,11 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch sugerida:** `feature/p07-purchase-flow-gaps`
 
-- [ ] Adicionar campo `entityId` ao `CreateParticipationRequest` e registrar voto na entidade beneficiada (seção 4.1)
-- [ ] Conectar `referralCode` ao fluxo de participação, chamar `ReferralService.attribute()` (seção 4.2)
-- [ ] Implementar `ReservationLease` com TTL e worker de expiração (seção 4.3)
-- [ ] Testes de integração para os 3 fluxos corrigidos
-- [ ] Atualizar OpenAPI/contratos
+- [x] Adicionar campo `entityId` ao `CreateParticipationRequest` e registrar voto na entidade beneficiada (seção 4.1)
+- [x] Conectar `referralCode` ao fluxo de participação, chamar `ReferralService.attribute()` (seção 4.2)
+- [x] Implementar `ReservationLease` com TTL e worker de expiração (seção 4.3)
+- [x] Testes de integração para os 3 fluxos corrigidos
+- [x] Atualizar OpenAPI/contratos (`docs/api/purchase-flow.md`)
 
 ### Bloco B — Completar P11 (PR #12 em draft)
 
@@ -375,9 +375,9 @@ Antes de declarar backend completo:
 - [ ] Motor de apuração é determinístico (vetores fixos)
 - [ ] Números-surpresa com commit-reveal SHA-256 verificável (2 tiers: 10×R$100 + 100×R$10)
 - [ ] Concorrência: zero duplicatas em 100+ threads
-- [ ] Voto na entidade beneficiada registrado no fluxo de compra
-- [ ] Indicação (`referralCode`) conectada ao fluxo de participação
-- [ ] `ReservationLease` com TTL e worker de expiração funcionando
+- [x] Voto na entidade beneficiada registrado no fluxo de compra
+- [x] Indicação (`referralCode`) conectada ao fluxo de participação
+- [x] `ReservationLease` com TTL e worker de expiração funcionando
 - [ ] Rankings com 2 escopos (BUYERS, INFLUENCERS), 3 posições cada, pseudônimos
 - [ ] JSpecify `@NullMarked` em pacotes novos, fail-fast com `Objects.requireNonNull`
 - [ ] `docs/progress/Pxx.md` existe para cada fase concluída

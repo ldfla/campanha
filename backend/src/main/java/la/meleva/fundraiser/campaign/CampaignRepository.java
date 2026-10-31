@@ -14,6 +14,9 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Campaign> findLockedByPublicId(String publicId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Campaign> findLockedById(Long id);
+
     Optional<Campaign> findBySlug(String slug);
 
     List<Campaign> findByOrganizationId(Long organizationId);
