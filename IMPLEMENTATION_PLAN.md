@@ -675,7 +675,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [ ] `P11-01` Modelar bens, valores, quantidades, classificação e regras de entrega.
 - [ ] `P11-02` Validar `prize.type` por modalidade; recusar moeda/dinheiro em promoção comercial.
-- [ ] `P11-03` Implementar generator seguro de dez números únicos, com intervalo correto.
+- [ ] `P11-03` Implementar generator seguro de dez números únicos, com intervalo correto. **PARCIAL**: gerador testado; checkpoint de segurança aguarda SEC-0002.
 - [ ] `P11-04` Criar canonicalização, `SHA-256`, sal forte e segredo cifrado.
 - [ ] `P11-05` Publicar hash antes da abertura; gravar horário e versão da regra.
 - [ ] `P11-06` Revelar após gatilho aprovado e verificar igualdade, sem substituição posterior.

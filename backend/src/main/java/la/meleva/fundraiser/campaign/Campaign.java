@@ -67,6 +67,9 @@ public class Campaign {
     @Column(name = "max_entries_per_user", nullable = false)
     private int maxEntriesPerUser;
 
+    @Column(name = "surprise_enabled", nullable = false)
+    private boolean surpriseEnabled;
+
     @Column(name = "current_regulation_id")
     private Long currentRegulationId;
 
@@ -112,6 +115,8 @@ public class Campaign {
     public int getNumberMin() { return numberMin; }
     public int getNumberMax() { return numberMax; }
     public int getMaxEntriesPerUser() { return maxEntriesPerUser; }
+    public boolean isSurpriseEnabled() { return surpriseEnabled; }
+    public void enableSurprise() { requireEditable(); this.surpriseEnabled = true; this.updatedAt = Instant.now(); }
     public Long getCurrentRegulationId() { return currentRegulationId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

@@ -3,6 +3,8 @@ package la.meleva.fundraiser.identity;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 public interface MembershipRepository extends JpaRepository<Membership, Long> {
 
@@ -14,4 +16,9 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
 
     boolean existsByUserIdAndOrganizationIdAndRoleAndStatus(
             Long userId, Long organizationId, UserRole role, Membership.MembershipStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Query("SELECT m FROM Membership m JOIN m.user u WHERE u.id = :userId AND u.status = :userStatus AND m.organization.id = :orgId AND m.status = :membershipStatus AND m.role IN :roles")
+    List<Membership> lockActiveForAuthorization(Long userId, Long orgId, List<UserRole> roles,
+                                                Membership.MembershipStatus membershipStatus, User.UserStatus userStatus);
 }

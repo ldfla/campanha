@@ -32,6 +32,7 @@ class CampaignControllerTest {
     @Autowired private UserRepository userRepository;
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private MembershipRepository membershipRepository;
+    @Autowired private CampaignRepository campaignRepository;
 
     private Cookie registerAndGetSession(String phone) throws Exception {
         MvcResult result = mockMvc.perform(post("/auth/register")
@@ -174,6 +175,18 @@ class CampaignControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("LEGAL_REVIEW"));
+    }
+
+    @Test
+    void managerCannotTransitionAnotherOrganizationsCampaign() throws Exception {
+        Cookie session = loginWithRole("+5511888880011", UserRole.CAMPAIGN_MANAGER);
+        var other = organizationRepository.save(new Organization("Outra organização", "ASSOCIATION"));
+        var campaign = campaignRepository.save(new Campaign(other.getId(), "Campanha externa", "campanha-externa-transicao", CampaignMode.DEMO));
+        mockMvc.perform(post("/api/campaigns/" + campaign.getPublicId() + "/transition")
+                        .cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
+                .andExpect(status().isForbidden());
+        org.assertj.core.api.Assertions.assertThat(campaignRepository.findById(campaign.getId()).orElseThrow().getStatus()).isEqualTo(CampaignStatus.DRAFT);
     }
 
     @Test

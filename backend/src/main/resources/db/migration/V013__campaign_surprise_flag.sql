@@ -1,0 +1,1 @@
+ALTER TABLE campaigns ADD COLUMN surprise_enabled BOOLEAN NOT NULL DEFAULT FALSE;
