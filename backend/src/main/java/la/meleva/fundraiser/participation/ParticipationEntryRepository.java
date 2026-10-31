@@ -8,4 +8,5 @@ public interface ParticipationEntryRepository extends JpaRepository<Participatio
     List<ParticipationEntry> findByRequestId(Long requestId);
     List<ParticipationEntry> findByCampaignIdAndStatus(Long campaignId, ParticipationStatus status);
     long countByCampaignIdAndUserId(Long campaignId, Long userId);
+    long countByCampaignIdAndUserIdAndStatusNotIn(Long campaignId, Long userId, java.util.Collection<ParticipationStatus> statuses);
 }

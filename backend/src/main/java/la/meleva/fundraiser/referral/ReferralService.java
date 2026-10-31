@@ -3,6 +3,8 @@ package la.meleva.fundraiser.referral;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.Objects;
+import java.util.Optional;
 import la.meleva.fundraiser.participation.ParticipationEntry;
 import la.meleva.fundraiser.participation.ParticipationEntryRepository;
 import la.meleva.fundraiser.participation.ParticipationStatus;
@@ -42,6 +44,29 @@ public class ReferralService {
     @Transactional
     public ReferralAttribution attribute(Long campaignId, String code, Long entryId) {
         ReferralLink link = active(code);
+        return attributeKnownLink(campaignId, link, entryId);
+    }
+
+    @Transactional
+    public Optional<ReferralAttribution> attributeIfValid(Long campaignId, String code, Long entryId) {
+        Objects.requireNonNull(campaignId, "campaignId");
+        Objects.requireNonNull(code, "code");
+        Objects.requireNonNull(entryId, "entryId");
+        return linkRepository.findByCode(code).filter(ReferralLink::isActive)
+                .filter(link -> link.getCampaignId().equals(campaignId))
+                .map(link -> attributeKnownLink(campaignId, link, entryId));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> validCodeForUser(Long campaignId, String code, Long userId) {
+        Objects.requireNonNull(campaignId, "campaignId"); Objects.requireNonNull(code, "code"); Objects.requireNonNull(userId, "userId");
+        var link = linkRepository.findByCode(code).filter(ReferralLink::isActive)
+                .filter(candidate -> candidate.getCampaignId().equals(campaignId));
+        if (link.isPresent() && link.get().getPromoterUserId().equals(userId)) throw ErrorCode.REFERRAL_SELF_REFERRAL.toException();
+        return link.map(ReferralLink::getCode);
+    }
+
+    private ReferralAttribution attributeKnownLink(Long campaignId, ReferralLink link, Long entryId) {
         if (!link.getCampaignId().equals(campaignId)) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
         ParticipationEntry entry = entryRepository.findById(entryId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         if (!entry.getCampaignId().equals(link.getCampaignId()) || entry.getStatus() != ParticipationStatus.ASSIGNED) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();

@@ -38,6 +38,21 @@ public class CampaignNumber {
     public NumberStatus getStatus() { return status; }
     public Long getEntryId() { return entryId; }
     public void assignTo(Long entryId) { this.entryId = entryId; this.status = NumberStatus.ASSIGNED; this.updatedAt = Instant.now(); }
+    public void reserveFor(Long entryId) {
+        java.util.Objects.requireNonNull(entryId, "entryId");
+        if (status != NumberStatus.AVAILABLE) throw new IllegalStateException("number.not_available");
+        this.entryId = entryId; this.status = NumberStatus.RESERVED; this.updatedAt = Instant.now();
+    }
+    public void releaseReservation(Long expectedEntryId) {
+        java.util.Objects.requireNonNull(expectedEntryId, "expectedEntryId");
+        if (status != NumberStatus.RESERVED || !expectedEntryId.equals(entryId)) throw new IllegalStateException("number.reservation_mismatch");
+        this.entryId = null; this.status = NumberStatus.AVAILABLE; this.updatedAt = Instant.now();
+    }
+    public void assignReservation(Long expectedEntryId) {
+        java.util.Objects.requireNonNull(expectedEntryId, "expectedEntryId");
+        if (status != NumberStatus.RESERVED || !expectedEntryId.equals(entryId)) throw new IllegalStateException("number.reservation_mismatch");
+        this.status = NumberStatus.ASSIGNED; this.updatedAt = Instant.now();
+    }
     public void freeze() { if (status == NumberStatus.ASSIGNED) { this.status = NumberStatus.FROZEN; this.updatedAt = Instant.now(); } }
     public void invalidate() { if (status == NumberStatus.FROZEN) { this.status = NumberStatus.INVALIDATED; this.updatedAt = Instant.now(); } }
 }

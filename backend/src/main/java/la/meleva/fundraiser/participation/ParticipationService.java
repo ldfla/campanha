@@ -13,6 +13,12 @@ import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.notification.OutboxEvent;
 import la.meleva.fundraiser.notification.OutboxEventRepository;
 import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiaryEntity;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiaryRepository;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiarySelection;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiarySelectionRepository;
+import org.jspecify.annotations.Nullable;
+import la.meleva.fundraiser.referral.ReferralService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -30,12 +36,16 @@ public class ParticipationService {
     private final UserRepository userRepository;
     private final AuditEventRepository auditEventRepository;
     private final OutboxEventRepository outbox;
+    private final BeneficiaryRepository beneficiaries;
+    private final BeneficiarySelectionRepository selections;
+    private final ReferralService referrals;
 
     ParticipationService(CampaignRepository campaignRepository, CampaignNumberRepository numberRepository,
                          ParticipationRequestRepository requestRepository, ParticipationEntryRepository entryRepository,
                          EntryNumberAssignmentRepository assignmentRepository, EligibilityEventRepository eligibilityEventRepository,
                          UserRepository userRepository, AuditEventRepository auditEventRepository,
-                         OutboxEventRepository outbox) {
+                         OutboxEventRepository outbox, BeneficiaryRepository beneficiaries,
+                         BeneficiarySelectionRepository selections, ReferralService referrals) {
         this.campaignRepository = campaignRepository;
         this.numberRepository = numberRepository;
         this.requestRepository = requestRepository;
@@ -45,6 +55,9 @@ public class ParticipationService {
         this.userRepository = userRepository;
         this.auditEventRepository = auditEventRepository;
         this.outbox = outbox;
+        this.beneficiaries = beneficiaries;
+        this.selections = selections;
+        this.referrals = referrals;
     }
 
     @Transactional
@@ -61,6 +74,18 @@ public class ParticipationService {
 
     @Transactional
     public ParticipationAllocation request(Long userId, String campaignPublicId, String idempotencyKey, int count) {
+        return request(userId, campaignPublicId, idempotencyKey, count, null);
+    }
+
+    @Transactional
+    public ParticipationAllocation request(Long userId, String campaignPublicId, String idempotencyKey, int count,
+                                           @Nullable String entityId) {
+        return request(userId, campaignPublicId, idempotencyKey, count, entityId, null);
+    }
+
+    @Transactional
+    public ParticipationAllocation request(Long userId, String campaignPublicId, String idempotencyKey, int count,
+                                           @Nullable String entityId, @Nullable String referralCode) {
         if (userId == null || count < 1 || count > MAX_NUMBERS_PER_REQUEST || idempotencyKey == null
                 || !idempotencyKey.matches("^[0-9a-fA-F-]{36}$")) {
             throw ErrorCode.VALIDATION_ERROR.toException();
@@ -76,8 +101,21 @@ public class ParticipationService {
             throw ErrorCode.PARTICIPATION_CAMPAIGN_CLOSED.toException();
         }
         var existing = requestRepository.findByCampaignIdAndUserIdAndIdempotencyKey(campaign.getId(), userId, idempotencyKey);
-        if (existing.isPresent()) return allocationFor(existing.get());
-        if (entryRepository.countByCampaignIdAndUserId(campaign.getId(), userId) + count > campaign.getMaxEntriesPerUser()) {
+        if (existing.isPresent()) {
+            var prior = existing.get();
+            var priorEntity = selections.findByRequestId(prior.getId())
+                    .flatMap(selection -> beneficiaries.findById(selection.getBeneficiaryId()))
+                    .map(BeneficiaryEntity::getPublicId).orElse(null);
+            if (prior.getRequestedCount() != count || !java.util.Objects.equals(priorEntity, entityId)) {
+                throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
+            }
+            return allocationFor(prior);
+        }
+        var beneficiary = entityId == null ? java.util.Optional.<BeneficiaryEntity>empty()
+                : java.util.Optional.of(beneficiaries.findByPublicIdAndCampaignIdAndActiveTrue(entityId, campaign.getId())
+                        .orElseThrow(ErrorCode.VALIDATION_ERROR::toException));
+        if (entryRepository.countByCampaignIdAndUserIdAndStatusNotIn(campaign.getId(), userId,
+                List.of(ParticipationStatus.REJECTED, ParticipationStatus.INVALIDATED)) + count > campaign.getMaxEntriesPerUser()) {
             throw ErrorCode.PARTICIPATION_LIMIT_EXCEEDED.toException();
         }
         ParticipationRequest request;
@@ -96,6 +134,9 @@ public class ParticipationService {
             number.assignTo(entry.getId());
             assignmentRepository.save(new EntryNumberAssignment(entry.getId(), number.getId()));
             eligibilityEventRepository.save(new EligibilityEvent(entry.getId(), 1, "ELIGIBLE", "DEMO_SIMULATION"));
+            if (referralCode != null && !referralCode.isBlank()) {
+                referrals.attributeIfValid(campaign.getId(), referralCode, entry.getId());
+            }
             assigned.add(new ParticipationAllocation.AssignedNumber(entry.getPublicId(), number.getSeriesCode(), number.getNumberValue(), format(number.getNumberValue())));
         }
         request.markAssigned();
@@ -103,6 +144,8 @@ public class ParticipationService {
             outbox.save(new OutboxEvent("PARTICIPATION_REQUEST", request.getId(),
                     "NOTIFICATION_PARTICIPATION_VALID_V1", "{}"));
         }
+        beneficiary.ifPresent(entity -> selections.save(new BeneficiarySelection(request.getId(),
+                java.util.Objects.requireNonNull(entity.getId(), "beneficiary.id"))));
         return new ParticipationAllocation(request.getPublicId(), assigned);
     }
 

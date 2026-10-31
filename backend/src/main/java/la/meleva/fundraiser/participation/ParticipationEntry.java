@@ -31,6 +31,7 @@ public class ParticipationEntry {
     public String getPublicId() { return publicId; }
     public ParticipationStatus getStatus() { return status; }
     public void markAssigned() { this.status = ParticipationStatus.ASSIGNED; this.issuedAt = Instant.now(); this.validatedAt = issuedAt; this.updatedAt = issuedAt; }
+    public void rejectReservation() { if (status != ParticipationStatus.REQUESTED) throw new IllegalStateException("participation.reservation_invalid"); this.status = ParticipationStatus.REJECTED; this.updatedAt = Instant.now(); }
     public void freeze() { if (status == ParticipationStatus.ASSIGNED) { this.status = ParticipationStatus.FROZEN; this.updatedAt = Instant.now(); } }
     public void invalidate() { if (status == ParticipationStatus.FROZEN) { this.status = ParticipationStatus.INVALIDATED; this.updatedAt = Instant.now(); } }
 }
