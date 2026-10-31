@@ -8,13 +8,13 @@ export function CTAButton({ size = "lg", showPrice = false }: { size?: "lg" | "m
   return (
     <a
       href="/participar"
-      className={`group inline-flex items-center font-bold bg-[var(--color-lime)] text-[var(--color-charcoal)] shadow-[0_4px_24px_rgba(198,242,78,0.35)] transition-all duration-150 hover:brightness-110 hover:shadow-[0_6px_32px_rgba(198,242,78,0.5)] hover:scale-[1.02] active:scale-[0.98] ${cls}`}
+      className={`group inline-flex items-center font-bold bg-[var(--color-lime)] text-[var(--color-charcoal)] shadow-[0_4px_24px_rgba(198,242,78,0.3)] transition-all duration-150 hover:brightness-105 hover:shadow-[0_6px_32px_rgba(198,242,78,0.45)] hover:scale-[1.02] active:scale-[0.97] ${cls}`}
     >
       {showPrice ? (
         <>
           Garantir meu número
-          <span className="bg-[var(--color-charcoal)] text-[var(--color-lime)] text-xs font-bold px-2.5 py-1 rounded-lg">
-            R$ 0,56
+          <span className="bg-[var(--color-charcoal)] text-[var(--color-lime)] text-[11px] font-extrabold px-2.5 py-1 rounded-md tracking-wide">
+            R$&nbsp;0,56
           </span>
         </>
       ) : (

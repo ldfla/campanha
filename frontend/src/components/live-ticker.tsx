@@ -34,9 +34,10 @@ interface Purchase {
 export function LiveTicker() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [visible, setVisible] = useState<Purchase | null>(null);
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
-    const initial: Purchase[] = Array.from({ length: 5 }, (_, i) => ({
+    const initial: Purchase[] = Array.from({ length: 8 }, (_, i) => ({
       id: i,
       name: randomItem(NAMES),
       qty: randomItem(QUANTITIES),
@@ -53,32 +54,42 @@ export function LiveTicker() {
     const interval = setInterval(() => {
       idx = (idx + 1) % purchases.length;
       setVisible(purchases[idx]);
-    }, 3500);
+    }, 4000);
     return () => clearInterval(interval);
   }, [purchases]);
 
-  if (!visible) return null;
+  if (!visible || !show) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 z-40 md:bottom-6 md:left-6 max-w-[320px]">
+    <div className="fixed bottom-[76px] left-3 z-40 md:bottom-5 md:left-5 max-w-[280px] sm:max-w-[300px]">
       <div
         key={visible.id + "-" + visible.name}
-        className="animate-slide-in bg-white rounded-xl shadow-lg border border-black/5 px-4 py-3 flex items-start gap-3"
+        className="animate-slide-in bg-white/95 backdrop-blur-sm rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-black/[0.06] px-3.5 py-2.5 flex items-center gap-2.5"
       >
-        <div className="w-8 h-8 rounded-full bg-[var(--color-lime)] flex items-center justify-center text-[var(--color-charcoal)] text-xs font-bold shrink-0">
+        <div className="w-7 h-7 rounded-full bg-[var(--color-lime)]/80 flex items-center justify-center text-[var(--color-charcoal)] text-[10px] font-bold shrink-0">
           {visible.name.charAt(0)}
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-charcoal)] leading-tight">
-            <strong>{visible.name}</strong> comprou{" "}
-            <strong className="text-[var(--color-terracotta)]">
-              {visible.qty} {visible.qty === 1 ? "número" : "números"}
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] sm:text-[13px] text-[var(--color-charcoal)] leading-tight">
+            <strong className="font-semibold">{visible.name}</strong>{" "}
+            <span className="text-[var(--color-charcoal)]/60">comprou</span>{" "}
+            <strong className="text-[var(--color-terracotta)] font-semibold">
+              {visible.qty} {visible.qty === 1 ? "nº" : "nºs"}
             </strong>
           </p>
-          <p className="text-xs text-[var(--color-charcoal)]/50 mt-0.5">
-            {visible.city} · há {visible.minutes} min
+          <p className="text-[10px] sm:text-[11px] text-[var(--color-charcoal)]/40 mt-px">
+            {visible.city} · {visible.minutes}min
           </p>
         </div>
+        <button
+          onClick={() => setShow(false)}
+          className="text-[var(--color-charcoal)]/25 hover:text-[var(--color-charcoal)]/60 transition-colors shrink-0 p-1"
+          aria-label="Fechar notificações"
+        >
+          <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true">
+            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
     </div>
   );
