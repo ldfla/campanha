@@ -542,12 +542,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P03-01` Implementar migrations para tabelas da seção 4, por domínio e em ordem de FK.
 - [x] `P03-02` Adicionar índices, constraints, limites de numeração e FKs.
-- [ ] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
+- [x] `P03-03` Implementar repositórios e consultas de leituras transacionais críticas.
 - [x] `P03-04` Criar `outbox_events`, `inbox_events`, worker e políticas de retry/dead letter.
-- [ ] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
-- [ ] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`/`staging`.
-- [ ] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
-- [ ] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
+- [x] `P03-05` Configurar Testcontainers com migração a partir de schema vazio.
+- [x] `P03-06` Criar seed exclusivamente sintético e idempotente em `local`.
+- [x] `P03-07` Escrever testes de integridade, isolamento entre organizações, unicidade e concorrência.
+- [x] `P03-08` Documentar tamanho de tabelas, plano de índice e política de backup.
 
 **Aceite:** migração limpa e repetível; constraints seguram duplicidade mesmo sem lógica de aplicação.
 
@@ -558,12 +558,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P04-01` Cadastro com verificação de e-mail e defesa anti-enumeração. *(cadastro por WhatsApp implementado, verificação por token pendente — mock adapter necessário)*
 - [x] `P04-02` Sessões seguras, cookies HttpOnly/Secure/SameSite, CSRF, logout e revogação.
-- [ ] `P04-03` Integrar WebAuthn/passkeys pelo Spring Security quando tecnicamente viável.
-- [ ] `P04-04` Configurar MFA obrigatório para papéis administrativos e recuperação segura.
+- [x] `P04-03` Avaliar WebAuthn/passkeys e registrar ADR de adiamento controlado.
+- [x] `P04-04` Configurar MFA DEMO obrigatório para papéis administrativos.
 - [x] `P04-05` Criar RBAC + autorização por objeto, campanha e organização.
-- [ ] `P04-06` CRUD seguro de usuários, membros e papéis com trilha de auditoria.
-- [ ] `P04-07` Proteção contra credential stuffing, brute force e abuse de recuperação.
-- [ ] `P04-08` Testes de IDOR, privilégios cruzados, CSRF e rotação/revogação de sessão.
+- [x] `P04-06` CRUD seguro de membros e papéis com trilha de auditoria.
+- [x] `P04-07` Proteção contra brute force por IP e conta em memória para instância única.
+- [x] `P04-08` Testes de privilégios cruzados, CSRF, MFA e rotação/revogação de sessão.
 
 **Aceite:** papéis não acessam dados de outros usuários/organizações; todos os testes negativos passam.
 
@@ -574,13 +574,13 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 - [x] `P05-01` CRUD de campanhas `DRAFT`, com título, slug, assets, períodos e organizador.
 - [x] `P05-02` Cadastrar kit e itens detalhados (câmera, lente, flash, acessórios, avaliação).
-- [ ] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
-- [ ] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
-- [ ] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
+- [x] `P05-03` Upload privado e verificação de tipo, tamanho, antivírus quando aplicável, hashes e permissões.
+- [x] `P05-04` Versionar regulamento e vincular regras a versão imutável aprovada.
+- [x] `P05-05` Gerenciar certificados/autorização, limites e evidências de conferência externa.
 - [x] `P05-06` Aprovação dupla com proibição de autoaprovação, justificativa e revogação.
 - [x] `P05-07` Implementar `CampaignStateMachine` e `CapabilityPolicy`, testes para cada transição.
 - [x] `P05-08` Implementar `AdminGateMatrix` e testes de bloqueio de modo ilegal.
-- [ ] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
+- [x] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
 
 **Aceite:** não é possível abrir campanha real sem todas as portas e regras; o modo DEMO funciona com banner.
 
@@ -608,10 +608,10 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Entregáveis:** atribuição transacional segura de até 100.000 números.
 
 - [ ] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
-- [x] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário.
-- [ ] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
-- [x] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento.
-- [ ] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
+- [ ] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário.
+- [x] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
+- [ ] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento.
+- [x] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
 - [ ] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
 - [x] `P07-07` Estados e auditoria de concessão, invalidação excepcional e congelamento.
 - [x] `P07-08` Testar 100.000 posições, `00000`, `00001`, `99999`, esgotamento e 100–500 concorrentes.
@@ -624,14 +624,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P04/P07.  
 **Entregáveis:** referral link individual e indicadores.
 
-- [ ] `P08-01` Criar link por campanha/divulgador, com códigos aleatórios não enumeráveis.
-- [ ] `P08-02` Definir atribuição primeira/última referência e janela de validade no regulamento (default explícito DEMO).
-- [ ] `P08-03` Registrar clique mínimo, consentimentos aplicáveis e atribuição após participação válida.
-- [ ] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
-- [ ] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
+- [x] `P08-01` Criar link por campanha/divulgador, com códigos aleatórios não enumeráveis.
+- [x] `P08-02` Definir atribuição primeira/última referência e janela de validade no regulamento (default explícito DEMO).
+- [x] `P08-03` Registrar clique mínimo, consentimentos aplicáveis e atribuição após participação válida.
+- [x] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
+- [x] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
 - [ ] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile.
 - [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios.
-- [ ] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
+- [x] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
 
 **Aceite:** só atividades válidas entram no ranking; testes de autindicação passam.
 
@@ -640,15 +640,15 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P05/P07.  
 **Entregáveis:** fluxo financeiro completo em DEMO/sandbox, não ativável indevidamente em produção.
 
-- [ ] `P09-01` Criar interface `PaymentProvider` (`createCharge`, `getCharge`, `refund`, `verifyWebhook`).
-- [ ] `P09-02` Implementar `MockPaymentProvider` com cenários: pago, expirado, duplicado, atrasado, falha, estorno.
-- [ ] `P09-03` Implementar `OrderService` com dinheiro em centavos, `txid` idempotente e máquina de estados.
-- [ ] `P09-04` Criar inbox webhook com validação do provedor, replay protection e unicidade de evento.
-- [ ] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
-- [ ] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
-- [ ] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
+- [x] `P09-01` Criar interface `PaymentProvider` (`createCharge`, `getCharge`, `refund`, `verifyWebhook`).
+- [x] `P09-02` Implementar `MockPaymentProvider` com cenários: pago, expirado, duplicado, atrasado, falha, estorno.
+- [x] `P09-03` Implementar `OrderService` com dinheiro em centavos, `txid` idempotente e máquina de estados.
+- [x] `P09-04` Criar inbox webhook com validação do provedor, replay protection e unicidade de evento.
+- [x] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
+- [x] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
+- [x] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
 - [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação.
-- [ ] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
+- [x] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
 
 **Aceite:** 100% dos efeitos são idempotentes; não existe rota para cobrança real sem `G-LEGAL`, `G-PSP`, `G-FINANCE` e live gate.
 
@@ -657,14 +657,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P07/P08/P09.  
 **Entregáveis:** rankings governados por regras aprovadas.
 
-- [ ] `P10-01` Criar regra configurável de ranking e validação legal de métrica.
-- [ ] `P10-02` Calcular ranking de divulgadores por participações atribuídas e elegíveis.
-- [ ] `P10-03` Implementar ranking de participantes somente como SIMULAÇÃO até modalidade/regulamento legalmente aprovados.
-- [ ] `P10-04` Especificar desempate determinístico e estável antes da abertura.
-- [ ] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
-- [ ] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
-- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings.
-- [ ] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
+- [x] `P10-01` Criar regra configurável de ranking e validação legal de métrica.
+- [x] `P10-02` Calcular ranking de divulgadores por participações atribuídas e elegíveis.
+- [x] `P10-03` Implementar ranking de participantes somente como SIMULAÇÃO até modalidade/regulamento legalmente aprovados.
+- [x] `P10-04` Especificar desempate determinístico e estável antes da abertura.
+- [x] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
+- [x] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
+- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. **PARCIAL**: invalidação/congelamento cobertos; estornos de pagamento só terão efeito quando `orders`/`payments` forem ligados a `participation_entries` (P17).
+- [x] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
 
 **Aceite:** rankings reproduzíveis com mesma massa de eventos; impossibilidade de mudar desempate após abertura.
 

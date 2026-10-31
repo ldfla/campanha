@@ -38,6 +38,12 @@ public enum ErrorCode {
     REFERRAL_SELF_REFERRAL("Autoindicação não permitida", 409),
     REFERRAL_ALREADY_ATTRIBUTED("Participação já atribuída a outra indicação", 409),
 
+    // Ranking
+    RANKING_RULE_INVALID("Regra de ranking inválida para o escopo informado", 400),
+    RANKING_RULE_NOT_FOUND("Nenhuma regra de ranking vigente para a campanha", 404),
+    RANKING_SNAPSHOT_NOT_FOUND("Snapshot de ranking não encontrado", 404),
+    RANKING_SNAPSHOT_HASH_MISMATCH("Hash do snapshot de ranking não confere", 409),
+
     // Sorteio
     DRAW_RESULTS_NOT_VERIFIED("Resultados oficiais não verificados por dois revisores", 409),
     DRAW_RULE_MISMATCH("Regra de apuração não corresponde ao regulamento aprovado", 409),

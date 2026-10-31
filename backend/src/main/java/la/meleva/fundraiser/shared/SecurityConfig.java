@@ -36,18 +36,19 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(csrfHandler)
-                .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/logout")
+                .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/logout", "/auth/verify-contact", "/auth/mfa/verify")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(3)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login", "/auth/verify-contact", "/auth/mfa/verify").permitAll()
                 .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/campaigns/public/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/slug/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/*/prizes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/rankings/campaigns/**").permitAll()
                 .requestMatchers("/admin/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
                 .requestMatchers("/auth/me", "/auth/logout").authenticated()
                 .anyRequest().authenticated()
