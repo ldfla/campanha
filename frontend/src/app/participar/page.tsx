@@ -4,27 +4,37 @@ import { useState } from "react";
 import Link from "next/link";
 import { UrgencyBar } from "@/components/urgency-bar";
 import { Countdown } from "@/components/countdown";
+import { useAuth } from "@/lib/use-auth";
+import {
+  participations,
+  payments,
+  type PaymentOrderResponse,
+  ApiError,
+} from "@/lib/api-client";
+import {
+  COMBOS,
+  PRICE_UNIT_CENTS,
+  isSoldOut,
+  isDemoMode,
+  formatBRL,
+} from "@/lib/campaign-config";
 
-const PRICE_UNIT_CENTS = 65;
-
-const COMBOS = [
-  { id: "bronze", qty: 10, totalCents: 600, label: "Bronze", unitCents: 60, badge: null, popular: false },
-  { id: "prata", qty: 100, totalCents: 5000, label: "Prata", unitCents: 50, badge: null, popular: false },
-  { id: "ouro", qty: 1000, totalCents: 46000, label: "Ouro", unitCents: 46, badge: "Mais popular", popular: true },
-  { id: "diamante", qty: 5000, totalCents: 210000, label: "Diamante", unitCents: 42, badge: "Nível máximo", popular: false },
-] as const;
-
-function formatBRL(cents: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-}
+const DEMO_CAMPAIGN_ID = "demo";
 
 export default function ParticiparPage() {
-  const [selectedCombo, setSelectedCombo] = useState<string>("prata");
+  const { user, register } = useAuth();
+  const [selectedCombo, setSelectedCombo] = useState<string>("torcida");
+  const soldOut = isSoldOut();
+  const demoMode = isDemoMode();
   const [customQty, setCustomQty] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [step, setStep] = useState<"choose" | "register" | "payment">("choose");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentOrder, setPaymentOrder] = useState<PaymentOrderResponse | null>(null);
+  const [assignedNumbers, setAssignedNumbers] = useState<number[]>([]);
 
   const combo = COMBOS.find((c) => c.id === selectedCombo);
   const isCustom = customQty !== null;
@@ -37,15 +47,47 @@ export default function ParticiparPage() {
     setCustomQty(null);
   }
 
-  function handleNext() {
-    if (step === "choose" && qty > 0) {
+  async function handleNext() {
+    if (step === "choose" && qty > 0 && !soldOut) {
       setStep("register");
     } else if (step === "register" && name.trim() && surname.trim() && whatsapp.trim()) {
-      setStep("payment");
+      setSubmitting(true);
+      setError(null);
+      try {
+        const phoneFormatted = whatsapp.replace(/\D/g, "");
+        const phoneWithCountry = phoneFormatted.startsWith("55")
+          ? phoneFormatted
+          : `55${phoneFormatted}`;
+
+        if (!user) {
+          await register(name.trim(), surname.trim(), phoneWithCountry);
+        }
+
+        const idempotencyKey = crypto.randomUUID();
+        const allocation = await participations.request(
+          DEMO_CAMPAIGN_ID,
+          idempotencyKey,
+          qty,
+        );
+        setAssignedNumbers(allocation.numbersAssigned);
+
+        const order = await payments.createOrder(total, allocation.entryId);
+        setPaymentOrder(order);
+        setStep("payment");
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setError(err.detail);
+        } else {
+          setError("Ocorreu um erro. Tente novamente.");
+        }
+      } finally {
+        setSubmitting(false);
+      }
     }
   }
 
   function handleBack() {
+    setError(null);
     if (step === "register") setStep("choose");
     if (step === "payment") setStep("register");
   }
@@ -80,6 +122,12 @@ export default function ParticiparPage() {
             })}
           </div>
 
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {step === "choose" && (
             <div className="animate-slide-in">
               <h1 className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-[var(--color-midnight)] mb-2">
@@ -98,13 +146,14 @@ export default function ParticiparPage() {
                     <button
                       key={c.id}
                       onClick={() => selectCombo(c.id)}
+                      disabled={soldOut}
                       className={`relative w-full text-left rounded-2xl p-5 transition-all ${
                         isSelected
                           ? c.popular
                             ? "bg-gradient-to-br from-[var(--color-iris)]/[0.08] to-[var(--color-jade)]/[0.06] border-2 border-[var(--color-iris)]/30 shadow-[0_4px_20px_rgba(124,92,252,0.12)]"
                             : "bg-white border-2 border-[var(--color-iris)]/25 shadow-md"
                           : "bg-white border border-black/[0.06] hover:border-black/[0.12] hover:shadow-sm"
-                      }`}
+                      } ${soldOut ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       {c.badge && (
                         <span className={`absolute -top-2.5 left-5 text-[10px] font-bold px-3 py-1 rounded-full ${
@@ -150,29 +199,31 @@ export default function ParticiparPage() {
               </div>
 
               {/* Custom qty */}
-              <div className="mb-6">
-                <button
-                  onClick={() => setCustomQty(customQty === null ? 1 : null)}
-                  className="text-sm text-[var(--color-iris)] font-medium hover:underline"
-                >
-                  {isCustom ? "Voltar para combos" : "Escolher quantidade personalizada"}
-                </button>
-                {isCustom && (
-                  <div className="flex items-center gap-3 bg-white rounded-xl border border-black/[0.06] px-4 py-3 mt-3">
-                    <label htmlFor="qty" className="text-sm text-[var(--color-midnight)]/50 shrink-0">Quantidade:</label>
-                    <input
-                      id="qty"
-                      type="number"
-                      min={1}
-                      max={10000}
-                      value={customQty}
-                      onChange={(e) => setCustomQty(Math.max(1, Math.min(10000, parseInt(e.target.value) || 1)))}
-                      className="flex-1 text-right text-lg font-bold text-[var(--color-midnight)] bg-transparent outline-none tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-sm text-[var(--color-midnight)]/40">nºs</span>
-                  </div>
-                )}
-              </div>
+              {!soldOut && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => setCustomQty(customQty === null ? 1 : null)}
+                    className="text-sm text-[var(--color-iris)] font-medium hover:underline"
+                  >
+                    {isCustom ? "Voltar para combos" : "Escolher quantidade personalizada"}
+                  </button>
+                  {isCustom && (
+                    <div className="flex items-center gap-3 bg-white rounded-xl border border-black/[0.06] px-4 py-3 mt-3">
+                      <label htmlFor="qty" className="text-sm text-[var(--color-midnight)]/50 shrink-0">Quantidade:</label>
+                      <input
+                        id="qty"
+                        type="number"
+                        min={1}
+                        max={10000}
+                        value={customQty}
+                        onChange={(e) => setCustomQty(Math.max(1, Math.min(10000, parseInt(e.target.value) || 1)))}
+                        className="flex-1 text-right text-lg font-bold text-[var(--color-midnight)] bg-transparent outline-none tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-sm text-[var(--color-midnight)]/40">nºs</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Total */}
               <div className="bg-[var(--color-midnight)] rounded-2xl p-5 mb-6 text-center">
@@ -185,12 +236,18 @@ export default function ParticiparPage() {
                 </p>
               </div>
 
-              <button
-                onClick={handleNext}
-                className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white animate-cta-beacon hover:scale-[1.02] active:scale-[0.97] transition-transform"
-              >
-                Garantir meus números
-              </button>
+              {soldOut ? (
+                <span className="block w-full py-4 rounded-xl font-bold text-lg text-center bg-[var(--color-ink-soft)]/40 text-white/60 cursor-not-allowed">
+                  Esgotado
+                </span>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white animate-cta-beacon hover:scale-[1.02] active:scale-[0.97] transition-transform"
+                >
+                  Garantir meus números
+                </button>
+              )}
 
               <div className="mt-8">
                 <Countdown />
@@ -210,17 +267,17 @@ export default function ParticiparPage() {
               <div className="space-y-4 mb-8">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-[var(--color-midnight)] mb-1.5">Nome</label>
-                  <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu primeiro nome"
+                  <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu primeiro nome" autoComplete="given-name"
                     className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-white text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all" />
                 </div>
                 <div>
                   <label htmlFor="surname" className="block text-sm font-medium text-[var(--color-midnight)] mb-1.5">Sobrenome</label>
-                  <input id="surname" type="text" value={surname} onChange={(e) => setSurname(e.target.value)} placeholder="Seu sobrenome"
+                  <input id="surname" type="text" value={surname} onChange={(e) => setSurname(e.target.value)} placeholder="Seu sobrenome" autoComplete="family-name"
                     className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-white text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all" />
                 </div>
                 <div>
                   <label htmlFor="whatsapp" className="block text-sm font-medium text-[var(--color-midnight)] mb-1.5">WhatsApp</label>
-                  <input id="whatsapp" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999"
+                  <input id="whatsapp" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" autoComplete="tel"
                     className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-white text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all" />
                   <p className="mt-1.5 text-xs text-[var(--color-midnight)]/35">Usado para confirmar seus números e enviar resultados</p>
                 </div>
@@ -236,9 +293,9 @@ export default function ParticiparPage() {
                   className="px-6 py-4 rounded-xl font-semibold text-base border border-black/[0.08] text-[var(--color-midnight)]/60 hover:bg-black/[0.02] transition-colors">
                   Voltar
                 </button>
-                <button onClick={handleNext} disabled={!name.trim() || !surname.trim() || !whatsapp.trim()}
+                <button onClick={handleNext} disabled={!name.trim() || !surname.trim() || !whatsapp.trim() || submitting}
                   className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white animate-cta-beacon hover:scale-[1.02] active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none">
-                  Ir para pagamento
+                  {submitting ? "Processando..." : "Ir para pagamento"}
                 </button>
               </div>
             </div>
@@ -268,27 +325,63 @@ export default function ParticiparPage() {
                 </div>
               </div>
 
-              <div className="bg-[var(--color-midnight)] rounded-2xl p-8 mb-6 text-center">
-                <div className="inline-block bg-white rounded-xl p-4 mb-4">
-                  <div className="w-40 h-40 bg-[var(--color-midnight)]/5 rounded-lg flex items-center justify-center">
-                    <svg viewBox="0 0 48 48" fill="none" className="w-16 h-16 text-[var(--color-midnight)]/20">
-                      <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="28" y="8" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="8" y="28" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="30" y="30" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="2" />
-                    </svg>
+              {assignedNumbers.length > 0 && (
+                <div className="bg-white rounded-2xl border border-black/[0.06] p-5 mb-6">
+                  <h3 className="text-sm font-semibold text-[var(--color-midnight)] mb-3">Seus números reservados</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {assignedNumbers.map((n) => (
+                      <span key={n} className="font-mono text-sm font-bold text-[var(--color-midnight)] bg-[var(--color-snow)] rounded-lg px-2.5 py-1 tabular-nums">
+                        {String(n).padStart(5, "0")}
+                      </span>
+                    ))}
                   </div>
                 </div>
+              )}
+
+              <div className="bg-[var(--color-midnight)] rounded-2xl p-8 mb-6 text-center">
+                {paymentOrder?.pixQrCodeBase64 ? (
+                  <div className="inline-block bg-white rounded-xl p-4 mb-4">
+                    <img
+                      src={`data:image/png;base64,${paymentOrder.pixQrCodeBase64}`}
+                      alt="QR Code Pix"
+                      className="w-40 h-40"
+                    />
+                  </div>
+                ) : (
+                  <div className="inline-block bg-white rounded-xl p-4 mb-4">
+                    <div className="w-40 h-40 bg-[var(--color-midnight)]/5 rounded-lg flex items-center justify-center">
+                      <svg viewBox="0 0 48 48" fill="none" className="w-16 h-16 text-[var(--color-midnight)]/20">
+                        <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+                        <rect x="28" y="8" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+                        <rect x="8" y="28" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+                        <rect x="30" y="30" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
                 <p className="text-white/40 text-sm mb-3">QR Code Pix</p>
-                <div className="inline-flex items-center gap-2 bg-[var(--color-iris)]/15 text-[var(--color-iris)] text-xs font-semibold px-3 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[var(--color-iris)] animate-pulse-dot" />
-                  Modo demonstração
-                </div>
+                {demoMode && (
+                  <div className="inline-flex items-center gap-2 bg-[var(--color-iris)]/15 text-[var(--color-iris)] text-xs font-semibold px-3 py-1.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-iris)] animate-pulse" />
+                    Modo demonstração
+                  </div>
+                )}
               </div>
 
-              <button className="w-full py-3.5 rounded-xl font-semibold text-sm bg-white border border-black/[0.08] text-[var(--color-midnight)] hover:bg-black/[0.01] active:scale-[0.99] transition-all mb-4">
-                Copiar código Pix
-              </button>
+              {paymentOrder?.pixCode && (
+                <button
+                  onClick={() => navigator.clipboard.writeText(paymentOrder.pixCode)}
+                  className="w-full py-3.5 rounded-xl font-semibold text-sm bg-white border border-black/[0.08] text-[var(--color-midnight)] hover:bg-black/[0.01] active:scale-[0.99] transition-all mb-4"
+                >
+                  Copiar código Pix
+                </button>
+              )}
+
+              {!paymentOrder?.pixCode && (
+                <button className="w-full py-3.5 rounded-xl font-semibold text-sm bg-white border border-black/[0.08] text-[var(--color-midnight)]/40 cursor-not-allowed mb-4">
+                  Copiar código Pix
+                </button>
+              )}
 
               <button onClick={handleBack} className="w-full py-3 text-center text-sm text-[var(--color-midnight)]/40 hover:text-[var(--color-midnight)]/70 transition-colors">
                 Voltar para cadastro

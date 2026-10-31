@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  isSoldOut,
+  TOTAL_PRIZES_CENTS,
+  PRICE_UNIT_CENTS,
+  formatBRL,
+} from "@/lib/campaign-config";
 
 export function FloatingCTA() {
   const [show, setShow] = useState(false);
+  const soldOut = isSoldOut();
 
   useEffect(() => {
     function onScroll() {
@@ -23,18 +30,24 @@ export function FloatingCTA() {
             Total em prêmios
           </span>
           <span className="font-[family-name:var(--font-heading)] text-base font-bold leading-tight text-[var(--color-gold-metal)]">
-            R$ 18.500
+            {formatBRL(TOTAL_PRIZES_CENTS)}
           </span>
         </div>
-        <a
-          href="/participar"
-          className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-orange)] px-6 py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.97]"
-        >
-          Participar
-          <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
-            R$&nbsp;0,65
+        {soldOut ? (
+          <span className="flex shrink-0 items-center justify-center rounded-xl bg-white/20 px-6 py-3.5 text-sm font-bold text-white/50 cursor-not-allowed">
+            Esgotado
           </span>
-        </a>
+        ) : (
+          <a
+            href="/participar"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-orange)] px-6 py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.97]"
+          >
+            Construir junto
+            <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
+              {formatBRL(PRICE_UNIT_CENTS)}
+            </span>
+          </a>
+        )}
       </div>
     </div>
   );
