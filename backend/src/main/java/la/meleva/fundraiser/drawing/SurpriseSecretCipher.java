@@ -5,6 +5,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
@@ -34,7 +35,8 @@ final class SurpriseSecretCipher {
             var wrapping=cipher(Cipher.ENCRYPT_MODE,masterKey,wrappingNonce,aad);
             byte[] wrappedKey=wrapping.doFinal(dataKey);
             var content=cipher(Cipher.ENCRYPT_MODE,new SecretKeySpec(dataKey,"AES"),contentNonce,aad);
-            String plain=secret.saltHex()+":"+secret.numbers().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+            String plain=secret.saltHex()+":"+secret.tier1().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","))
+                    +"|"+secret.tier2().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
             byte[] encrypted=content.doFinal(plain.getBytes(StandardCharsets.UTF_8));
             var buffer=java.nio.ByteBuffer.allocate(1+NONCE_SIZE+WRAPPED_KEY_SIZE+NONCE_SIZE+encrypted.length);
             return Base64.getEncoder().encodeToString(buffer.put((byte)1).put(wrappingNonce).put(wrappedKey).put(contentNonce).put(encrypted).array());
@@ -52,12 +54,19 @@ final class SurpriseSecretCipher {
             dataKey=cipher(Cipher.DECRYPT_MODE,masterKey,wrappingNonce,aad).doFinal(wrappedKey);
             var plain=new String(cipher(Cipher.DECRYPT_MODE,new SecretKeySpec(dataKey,"AES"),contentNonce,aad).doFinal(encrypted),StandardCharsets.UTF_8).split(":",2);
             if(plain.length!=2) throw new IllegalArgumentException();
-            return new SurpriseProof.Secret(Arrays.stream(plain[1].split(",")).map(Integer::valueOf).toList(),plain[0]);
+            var tiers=plain[1].split("\\|",2);
+            if(tiers.length!=2) throw new IllegalArgumentException();
+            return new SurpriseProof.Secret(asNumbers(tiers[0]),asNumbers(tiers[1]),plain[0]);
         } catch(GeneralSecurityException | IllegalArgumentException ex){throw ErrorCode.DRAW_SURPRISE_COMMITMENT_FAILED.toException();}
         finally {if(dataKey!=null) Arrays.fill(dataKey,(byte)0);}
     }
 
     private Cipher cipher(int mode,SecretKeySpec key,byte[] nonce,byte[] aad) throws GeneralSecurityException {
         var cipher=Cipher.getInstance("AES/GCM/NoPadding"); cipher.init(mode,key,new GCMParameterSpec(128,nonce)); cipher.updateAAD(aad); return cipher;
+    }
+
+    private static List<Integer> asNumbers(String csv) {
+        if (csv.isEmpty()) return List.of();
+        return Arrays.stream(csv.split(",")).map(Integer::valueOf).toList();
     }
 }

@@ -168,7 +168,12 @@ class SurpriseCommitmentIntegrationTest {
         jdbc.update("UPDATE users SET status='ACTIVE' WHERE id=?",reviewer.getId());
         var secret=service.reveal(creator.getId(),campaign.getPublicId());
         assertThat(SurpriseProof.verify(secret,published.context(),published.hash())).isTrue();
-        assertThat(secret.numbers()).hasSize(10).doesNotHaveDuplicates();
+        assertThat(secret.tier1()).hasSize(SurpriseProof.TIER1_COUNT).doesNotHaveDuplicates();
+        assertThat(secret.tier2()).hasSize(SurpriseProof.TIER2_COUNT).doesNotHaveDuplicates();
+        assertThat(secret.numbers()).hasSize(SurpriseProof.TOTAL_COUNT).doesNotHaveDuplicates();
+        assertThat(service.verify(campaign.getPublicId(),secret.tier1(),secret.tier2(),secret.saltHex())).isTrue();
+        assertThat(service.verify(campaign.getPublicId(),secret.tier1(),secret.tier2(),"00".repeat(32))).isFalse();
+        assertThat(service.verify(campaign.getPublicId(),secret.tier2().subList(0,10),concat(secret.tier1(),secret.tier2().subList(10,100)),secret.saltHex())).isFalse();
         assertSuspensionWaitsForReveal(creator.getId(),reviewer.getId(),campaign.getPublicId());
         assertThatThrownBy(()->service.reveal(creator.getId(),campaign.getPublicId())).isInstanceOf(BusinessException.class);
         jdbc.update("UPDATE users SET status='ACTIVE' WHERE id=?",reviewer.getId());
@@ -176,6 +181,19 @@ class SurpriseCommitmentIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_events WHERE entity_type='surprise_commitment' AND action='SURPRISE_REVEALED' AND entity_id=(SELECT id FROM surprise_commitments WHERE campaign_id=?)",Long.class,campaign.getId())).isEqualTo(1);
         jdbc.update("UPDATE surprise_commitments SET commitment_sha256=? WHERE campaign_id=?","0".repeat(64),campaign.getId());
         assertThatThrownBy(()->service.reveal(creator.getId(),campaign.getPublicId())).isInstanceOf(BusinessException.class);
+    }
+
+    @Test void refusesSurpriseForCommercialPromotionBecausePrizeIsCash() {
+        var org=organizations.save(new Organization("Organização promoção surpresa","COMPANY"));
+        var actor=actor(org,"+5511999777012");
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa promoção","surpresa-promocao-cash",CampaignMode.COMMERCIAL_PROMOTION));
+        assertThatThrownBy(()->service.commit(actor.getId(),campaign.getPublicId(),1))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_NOT_AUTHORIZED));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM surprise_commitments WHERE campaign_id=?",Long.class,campaign.getId())).isZero();
+    }
+
+    private static java.util.List<Integer> concat(java.util.List<Integer> first, java.util.List<Integer> second) {
+        var combined=new java.util.ArrayList<>(first); combined.addAll(second); return combined;
     }
 
     private void assertSuspensionWaitsForReveal(Long actorId,Long reviewerId,String campaignId) throws Exception {

@@ -2,7 +2,6 @@ package la.meleva.fundraiser.drawing;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.List;
 import la.meleva.fundraiser.shared.ErrorCode.BusinessException;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
@@ -10,7 +9,9 @@ import static org.assertj.core.api.Assertions.*;
 class SurpriseSecretCipherTest {
     @Test void envelopeIsRandomizedBoundToCampaignAndAuthenticated() {
         var cipher=new SurpriseSecretCipher(Base64.getEncoder().encodeToString(new byte[32]),new SecureRandom());
-        var secret=new SurpriseProof.Secret(List.of(0,1,2,3,4,5,6,7,8,9),"01".repeat(32));
+        var tier1=java.util.stream.IntStream.range(0,10).boxed().toList();
+        var tier2=java.util.stream.IntStream.range(10,110).boxed().toList();
+        var secret=new SurpriseProof.Secret(tier1,tier2,"01".repeat(32));
         var first=cipher.encrypt("campaign-a",secret); var second=cipher.encrypt("campaign-a",secret);
         assertThat(first).isNotEqualTo(second).doesNotContain(secret.saltHex());
         assertThat(cipher.decrypt("campaign-a",first)).isEqualTo(secret);

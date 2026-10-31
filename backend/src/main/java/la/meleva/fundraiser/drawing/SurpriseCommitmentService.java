@@ -38,7 +38,7 @@ public class SurpriseCommitmentService {
     public PublishedCommitment commit(Long actorId, String campaignId, int ruleVersion) {
         var campaign=campaigns.findLockedByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
         requireMembership(actorId,campaign.getOrganizationId(),UserRole.CAMPAIGN_MANAGER,UserRole.SYSTEM_ADMIN);
-        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        SurprisePrizePolicy.requireAllowed(campaign.getMode());
         if (campaign.getStatus()!=CampaignStatus.DRAFT || ruleVersion != 1 || !commitments.findByCampaignId(campaign.getId()).isEmpty()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
         campaign.enableSurprise();
         var secret=new SurpriseProof(random).generate(campaign.getNumberMin(),campaign.getNumberMax());
@@ -103,6 +103,17 @@ public class SurpriseCommitmentService {
         var campaign=campaigns.findByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
         var commitment=commitments.findByCampaignId(campaign.getId()).stream().findFirst().orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         return publishedView(commitment,campaign.getPublicId());
+    }
+
+    /** Recalcula o compromisso a partir de um segredo revelado e confirma a igualdade. Não altera estado. */
+    @Transactional(readOnly=true)
+    public boolean verify(String campaignId,java.util.List<Integer> tier1,java.util.List<Integer> tier2,String saltHex) {
+        java.util.Objects.requireNonNull(tier1,"tier1"); java.util.Objects.requireNonNull(tier2,"tier2"); java.util.Objects.requireNonNull(saltHex,"saltHex");
+        var campaign=campaigns.findByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        var commitment=commitments.findByCampaignId(campaign.getId()).stream().findFirst().orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        if (commitment.getProofNumberMin()==null || commitment.getProofNumberMax()==null || commitment.getProofRegulationVersion()==null) throw ErrorCode.DRAW_SURPRISE_COMMITMENT_FAILED.toException();
+        var context=new SurpriseProof.Context(campaign.getPublicId(),commitment.getRuleVersion(),commitment.getProofRegulationVersion(),commitment.getProofNumberMin(),commitment.getProofNumberMax(),commitment.getCommittedAt());
+        return SurpriseProof.verify(new SurpriseProof.Secret(tier1,tier2,saltHex),context,commitment.getCommitmentSha256());
     }
 
     private PublishedCommitment publishedView(SurpriseCommitment commitment,String campaignId) {

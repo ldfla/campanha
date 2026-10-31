@@ -673,14 +673,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P05/P07.  
 **Entregáveis:** catálogo de prêmios com mecanismo commit-reveal para simulação/aprovação.
 
-- [ ] `P11-01` Modelar bens, valores, quantidades, classificação e regras de entrega.
-- [ ] `P11-02` Validar `prize.type` por modalidade; recusar moeda/dinheiro em promoção comercial.
-- [ ] `P11-03` Implementar generator seguro de dez números únicos, com intervalo correto. **PARCIAL**: gerador testado; checkpoint de segurança aguarda SEC-0002.
-- [ ] `P11-04` Criar canonicalização, `SHA-256`, sal forte e segredo cifrado.
-- [ ] `P11-05` Publicar hash antes da abertura; gravar horário e versão da regra.
-- [ ] `P11-06` Revelar após gatilho aprovado e verificar igualdade, sem substituição posterior.
-- [ ] `P11-07` Criar testes de falsificação, mudança do segredo, duplicidade e revelação prematura.
-- [ ] `P11-08` Definir contingência de número não atribuído no regulamento, sem algoritmo inventado.
+- [x] `P11-01` Modelar bens, valores, quantidades, classificação e regras de entrega. **DEMO**: 2 tiers fixos, 10×R$ 100 e 100×R$ 10 (`SurpriseProof.TIER1_PRIZE_CENTS`/`TIER2_PRIZE_CENTS`).
+- [x] `P11-02` Validar `prize.type` por modalidade; recusar moeda/dinheiro em promoção comercial. `SurprisePrizePolicy.requireAllowed` só admite dinheiro simulado em `DEMO`.
+- [x] `P11-03` Implementar generator seguro de números únicos, com intervalo correto. `SecureRandom` gera **110 números únicos** (10 + 100), divisão entre tiers sorteada; intervalo mínimo validado.
+- [x] `P11-04` Criar canonicalização, `SHA-256`, sal forte e segredo cifrado. JSON canônico com tiers ordenados, sal de 32 bytes e envelope AES-GCM.
+- [x] `P11-05` Publicar hash antes da abertura; gravar horário e versão da regra. Transição para `LEGAL_REVIEW`/`SCHEDULED`/`OPEN` exige compromisso quando a surpresa está habilitada.
+- [x] `P11-06` Revelar após gatilho aprovado e verificar igualdade, sem substituição posterior. Dupla revisão distinta + evidência publicada; `POST /verify` recalcula e compara; hash adulterado falha.
+- [x] `P11-07` Criar testes de falsificação, mudança do segredo, duplicidade e revelação prematura.
+- [x] `P11-08` Definir contingência de número não atribuído no regulamento, sem algoritmo inventado. Provisório em `docs/compliance/surprise-contingency.md`, sujeito a revisão jurídica (`G-LEGAL`).
 
 **Aceite:** prova verificável e anti-manipulação; prêmios monetários proibidos bloqueados.
 
