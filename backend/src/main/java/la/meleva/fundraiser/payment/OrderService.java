@@ -47,33 +47,58 @@ public class OrderService {
     public boolean receiveWebhook(String payload,String signature) {
         var webhook=provider.verifyWebhook(payload,signature); String hash=sha256(payload);
         if (jdbc.update("INSERT IGNORE INTO inbox_events (source, source_event_id, payload_hash, received_at) VALUES (?, ?, ?, UTC_TIMESTAMP())", provider.name(), webhook.eventId(), hash) == 0) return false;
-        var payment=payments.findByProviderAndProviderChargeId(provider.name(),webhook.chargeId()).orElseThrow(ErrorCode.PAYMENT_PROVIDER_ERROR::toException);
+        var payment=payments.findLockedByProviderAndProviderChargeId(provider.name(),webhook.chargeId()).orElseThrow(ErrorCode.PAYMENT_PROVIDER_ERROR::toException);
+        var source=verifiedSource(payment);
+        if(webhook.state()==PaymentProvider.ChargeState.REFUNDED && source.state()!=PaymentProvider.ChargeState.REFUNDED)
+            throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
         var event=new PaymentEvent(payment.getId(),webhook.eventId(),webhook.state().name(),hash); paymentEvents.save(event);
-        applyProviderState(payment,webhook.state()); event.processed(); return true;
+        applyProviderState(payment,source.state()); event.processed(); return true;
     }
     @Transactional
     public void reconcile(Long paymentId) {
-        var payment=payments.findById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
-        if(order.isExpired(Instant.now(clock)) && payment.getStatus()==PaymentStatus.PENDING){payment.expire();order.expire();return;}
-        var state=provider.getCharge(payment.getProviderChargeId()).state(); applyProviderState(payment,state);
+        var payment=payments.findLockedById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        var state=verifiedSource(payment).state();
+        if(order.isExpired(Instant.now(clock)) && payment.getStatus()==PaymentStatus.PENDING && state!=PaymentProvider.ChargeState.REFUNDED){payment.expire();order.expire();return;}
+        applyProviderState(payment,state);
         if(payment.getStatus()==PaymentStatus.CONFIRMED){order.reconcile(); postLedgerOnce(order,"PAYMENT_CONFIRMED",payment.getAmountCents());}
     }
     @Transactional
     public void refund(Long paymentId,String reason) {
-        var payment=payments.findById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); if(payment.getStatus()!=PaymentStatus.CONFIRMED) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        var payment=payments.findLockedById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); if(payment.getStatus()!=PaymentStatus.CONFIRMED) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
         var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); order.refundPending();
         var result=provider.refund(payment.getProviderChargeId(),payment.getAmountCents(),reason); var refund=new Refund(paymentId,payment.getAmountCents(),reason); refund.complete(result.id()); refunds.save(refund); payment.refund();order.refunded();postLedgerOnce(order,"PAYMENT_REFUND",-payment.getAmountCents());
     }
     private void applyProviderState(Payment payment, PaymentProvider.ChargeState state) {
         var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         if(payment.getStatus()==PaymentStatus.CONFIRMED && (state==PaymentProvider.ChargeState.EXPIRED || state==PaymentProvider.ChargeState.FAILED || state==PaymentProvider.ChargeState.PENDING)) return;
-        if(payment.getStatus()==PaymentStatus.REFUNDED || payment.getStatus()==PaymentStatus.EXPIRED) return;
+        if(payment.getStatus()==PaymentStatus.REFUNDED) return;
+        if(payment.getStatus()==PaymentStatus.EXPIRED && state==PaymentProvider.ChargeState.REFUNDED)
+            throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        if(payment.getStatus()==PaymentStatus.EXPIRED) return;
+        if(state==PaymentProvider.ChargeState.REFUNDED && payment.getStatus()!=PaymentStatus.CONFIRMED)
+            throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
         if(state==PaymentProvider.ChargeState.PAID){ if(order.isExpired(Instant.now(clock))){payment.expire();order.expire();return;} payment.confirm();order.confirm();postLedgerOnce(order,"PAYMENT_CONFIRMED",payment.getAmountCents()); }
         else if(state==PaymentProvider.ChargeState.EXPIRED){payment.expire();order.expire();}
         else if(state==PaymentProvider.ChargeState.FAILED){payment.fail();}
-        else if(state==PaymentProvider.ChargeState.REFUNDED && payment.getStatus()==PaymentStatus.CONFIRMED){payment.refund();order.refunded();postLedgerOnce(order,"PAYMENT_REFUND",-payment.getAmountCents());}
+        else if(state==PaymentProvider.ChargeState.REFUNDED && payment.getStatus()==PaymentStatus.CONFIRMED){
+            // O contrato MOCK atual só admite estorno integral; provedores reais exigem contrato próprio.
+            if (!"MOCK".equals(payment.getProvider()) || !"MOCK".equals(provider.name())) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+            var charge=provider.getCharge(payment.getProviderChargeId());
+            if(charge.state()!=PaymentProvider.ChargeState.REFUNDED || charge.amountCents()!=payment.getAmountCents()
+                    || !java.util.Objects.equals(payment.getTxid(),charge.txid())) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+            var refund=new Refund(payment.getId(),payment.getAmountCents(),"Estorno integral confirmado pelo provedor simulado");
+            refund.complete(null); refunds.save(refund);
+            payment.refund();order.refunded();postLedgerOnce(order,"PAYMENT_REFUND",-payment.getAmountCents());
+        }
     }
     private void postLedgerOnce(Order order,String type,long amount){String ref=order.getPublicId();if(!ledger.existsBySourceRefAndEntryType(ref,type))ledger.save(new FinancialLedgerEntry(order.getCampaignId(),ref,type,amount));}
+    private PaymentProvider.Charge verifiedSource(Payment payment) {
+        var charge=provider.getCharge(payment.getProviderChargeId());
+        if(!java.util.Objects.equals(charge.id(),payment.getProviderChargeId())
+                || !java.util.Objects.equals(charge.txid(),payment.getTxid())
+                || charge.amountCents()!=payment.getAmountCents()) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        return charge;
+    }
     private void assertSandboxBillable(Campaign campaign) { if(campaign.getMode()==CampaignMode.COMMERCIAL_PROMOTION) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException(); if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException(); }
     private OrderReceipt receipt(Order order,Payment payment){return new OrderReceipt(order.getPublicId(),payment.getId(),payment.getProviderChargeId(),payment.getTxid(),order.getStatus());}
     private static String sha256(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}

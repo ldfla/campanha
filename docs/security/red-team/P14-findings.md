@@ -31,9 +31,9 @@ Decisão das rodadas: `PASS_WITHOUT_HIGH_FINDINGS` para os escopos limitados ava
 
 ## SEC-0013 — Estorno do provedor sem registro na tabela de estornos
 
-- Severidade: MEDIUM; status: OPEN; CWE-682. Componentes: `OrderService.applyProviderState`, tabela `refunds` e relatório P14; estado local sobre `642a2f72ac10b0a00ba4da4540df8b7b436a322`.
+- Severidade: MEDIUM; status: RETEST; CWE-682. Componentes: `OrderService.applyProviderState`, tabela `refunds` e relatório P14; estado local sobre `642a2f72ac10b0a00ba4da4540df8b7b436a322`.
 - Pré-condições: estado sintético MOCK `PAID` seguido de `REFUNDED` por reconciliação. Observado: ledger contém reversão de 1.000 centavos, mas não há linha de estorno concluído na tabela `refunds`; esperado: registro íntegro e idempotente que permita confronto por transação.
-- Impacto demonstrado: divergência na prestação de contas simulada; não comprovado impacto financeiro real. Evidência: teste independente com MySQL 8.4, dados sintéticos, sem dados pessoais. Recomendação: modelar a reconciliação idempotente do evento de estorno e identificador do provedor, com testes de duplicatas, reordenação e concorrência; responsável: pagamento. Em 2026-10-31, reteste independente confirmou que o subtotal separado dos estornos no ledger expõe a divergência; a correção definitiva e seu reteste permanecem pendentes.
+- Impacto demonstrado: divergência na prestação de contas simulada; não comprovado impacto financeiro real. Evidência: teste independente com MySQL 8.4, dados sintéticos, sem dados pessoais. Recomendação: modelar a reconciliação idempotente do evento de estorno e identificador do provedor, com testes de duplicatas, reordenação e concorrência; responsável: pagamento. Correção local usa bloqueio por pagamento e registra estorno integral confirmado pela fonte MOCK sem inventar identificador; testes locais incluem 16 threads virtuais. Reteste independente inicial confirmou esse caso, mas identificou cenários adicionais de ordenação e inconsistência da fonte. Ajustes posteriores passaram em testes locais; reteste independente final não executado por limite de uso do agente em 2026-10-31. Não declarar CLOSED até o reteste.
 
 ## SEC-0014 — Valores negativos do CSV importados como texto
 
@@ -42,3 +42,11 @@ Decisão das rodadas: `PASS_WITHOUT_HIGH_FINDINGS` para os escopos limitados ava
 - Evidência: execução independente com dados sintéticos. Recomendação: definir e testar contrato seguro de importação numérica em planilhas, mantendo proteção contra fórmulas; responsável: financeiro. Reteste: pendente, sem alegação de correção.
 
 Rodada do relatório/exportação: `PASS_WITHOUT_HIGH_FINDINGS` para o escopo examinado. Revisão independente confirmou isolamento por organização, auditoria apenas em exportação autorizada, hash, limites temporais subsegundo e escape dos casos de fórmula ensaiados. Foram executados oito testes independentes em três execuções com MySQL 8.4. Não foram testados concorrência de revogação, importação em planilha específica nem totais extremos ponta a ponta.
+
+## SEC-0015 — Eventos de pagamento fora de ordem e dados divergentes
+
+- Severidade: MEDIUM; status: RETEST; CWE-682. Componente: conciliação e inbox MOCK em `OrderService`; versão inicial `ed13aa5` com alteração local parcial de SEC-0013.
+- Pré-condições e reprodução: em dados sintéticos, entregar `REFUNDED` antes da atualização da fonte; ou entregar `REFUNDED` após expiração local; ou alterar localmente o valor do pagamento antes de consultar fonte `PAID`.
+- Observado no reteste independente: o primeiro evento foi reconhecido antes de a fonte refletir o estorno; o segundo foi reconhecido sem registrar estorno; e valor divergente foi confirmado. Esperado: manter os eventos problemáticos reprocessáveis e rejeitar confirmação de valor divergente.
+- Impacto demonstrado: inconsistência temporária de estado/ledger na simulação; não houve demonstração de impacto em PSP real ou liberação de participação. Evidência: 11 testes independentes em cópia isolada com MySQL 8.4 e MOCK, alguns destinados a observar o comportamento vulnerável.
+- Recomendação: confrontar identificador, valor e transação com a fonte também na reconciliação e não reconhecer estorno prematuro ou sem confirmação local. Responsável: pagamentos. Correção local aplicada; `verify` passou com 113 testes. Reteste independente final não executado por limite de uso do agente em 2026-10-31. Permanecem não testados PSP real, quedas de processo e estornos parciais. Não declarar CLOSED até o reteste.
