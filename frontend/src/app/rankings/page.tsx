@@ -1,41 +1,43 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Rankings — Ação entre Amigos",
-  description: "Placar em tempo real: quem mais comprou, quem mais indicou, e os divulgadores mais ativos.",
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { rankings, type RankingSnapshot, type RankingPosition, ApiError } from "@/lib/api-client";
+import { isDemoMode } from "@/lib/campaign-config";
+
+const DEMO_CAMPAIGN_ID = "demo";
+
+const SCOPES = [
+  { id: "BUYERS", title: "Quem mais comprou", subtitle: "Premiação para os 3 primeiros", accent: "text-[var(--color-gold)] bg-[var(--color-gold)]/10", metricLabel: "números" },
+  { id: "REFERRERS", title: "Quem mais indicou", subtitle: "Vendas concluídas entre amigos", accent: "text-[var(--color-iris)] bg-[var(--color-iris)]/10", metricLabel: "vendas" },
+  { id: "INFLUENCERS", title: "Divulgadores", subtitle: "Links mais ativos (Instagram/TikTok)", accent: "text-[var(--color-ember)] bg-[var(--color-ember)]/10", metricLabel: "cliques" },
+] as const;
+
+const PRIZE_MAP: Record<string, Record<number, string>> = {
+  BUYERS: { 1: "R$ 2.000", 2: "R$ 1.000", 3: "R$ 750" },
+  REFERRERS: { 1: "R$ 1.000", 2: "R$ 750", 3: "R$ 500" },
+  INFLUENCERS: { 1: "R$ 2.000", 2: "R$ 1.000", 3: "R$ 500" },
 };
 
-interface RankEntry {
-  position: number;
-  label: string;
-  metric: string;
-  prize: string;
-}
-
-const buyersRanking: RankEntry[] = [
-  { position: 1, label: "Mar... *4821", metric: "247 números", prize: "R$ 2.000" },
-  { position: 2, label: "Car... *9033", metric: "189 números", prize: "R$ 1.000" },
-  { position: 3, label: "Ana... *5517", metric: "143 números", prize: "R$ 750" },
-  { position: 4, label: "Ped... *7702", metric: "98 números", prize: "" },
-  { position: 5, label: "Fer... *3388", metric: "72 números", prize: "" },
-];
-
-const referrersRanking: RankEntry[] = [
-  { position: 1, label: "Jul... *2290", metric: "34 vendas", prize: "R$ 1.000" },
-  { position: 2, label: "Luc... *8845", metric: "28 vendas", prize: "R$ 750" },
-  { position: 3, label: "Bea... *1166", metric: "19 vendas", prize: "R$ 500" },
-  { position: 4, label: "Raf... *6634", metric: "12 vendas", prize: "" },
-  { position: 5, label: "Isa... *4477", metric: "9 vendas", prize: "" },
-];
-
-const influencersRanking: RankEntry[] = [
-  { position: 1, label: "@foto.maria", metric: "1.247 cliques", prize: "R$ 2.000" },
-  { position: 2, label: "@lucas.tech", metric: "892 cliques", prize: "R$ 1.000" },
-  { position: 3, label: "@camila.art", metric: "634 cliques", prize: "R$ 500" },
-];
-
-function RankingTable({ title, subtitle, entries, accent }: { title: string; subtitle: string; entries: RankEntry[]; accent: string }) {
+function RankingTable({
+  title,
+  subtitle,
+  entries,
+  accent,
+  metricLabel,
+  prizes,
+  loading,
+  error,
+}: {
+  title: string;
+  subtitle: string;
+  entries: RankingPosition[];
+  accent: string;
+  metricLabel: string;
+  prizes: Record<number, string>;
+  loading: boolean;
+  error: string | null;
+}) {
   return (
     <div className="bg-white rounded-2xl border border-black/[0.06] overflow-hidden">
       <div className="px-5 py-4 md:px-6 md:py-5 border-b border-black/[0.04]">
@@ -44,47 +46,88 @@ function RankingTable({ title, subtitle, entries, accent }: { title: string; sub
         </h2>
         <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">{subtitle}</p>
       </div>
-      <div className="divide-y divide-black/[0.03]">
-        {entries.map((entry) => (
-          <div
-            key={entry.position + entry.label}
-            className={`flex items-center gap-4 px-5 py-3.5 md:px-6 md:py-4 ${entry.position <= 3 ? "bg-[var(--color-snow)]" : ""}`}
-          >
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-              entry.position === 1
-                ? "bg-[var(--color-gold)] text-amber-900 animate-gold-glow"
-                : entry.position === 2
-                ? "bg-gray-300 text-gray-700"
-                : entry.position === 3
-                ? "bg-orange-300 text-orange-800"
-                : "bg-[var(--color-midnight)]/[0.06] text-[var(--color-midnight)]/40"
-            }`}>
-              {entry.position}
-            </span>
-
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-[var(--color-midnight)] tabular-nums">
-                {entry.label}
-              </span>
-            </div>
-
-            <span className="text-sm text-[var(--color-midnight)]/45 tabular-nums shrink-0">
-              {entry.metric}
-            </span>
-
-            {entry.prize && (
-              <span className={`text-xs font-bold ${accent} px-2.5 py-1 rounded-full shrink-0`}>
-                {entry.prize}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="w-6 h-6 border-2 border-[var(--color-iris)]/20 border-t-[var(--color-iris)] rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="px-5 py-8 text-center text-sm text-[var(--color-midnight)]/40">
+          {error}
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="px-5 py-8 text-center text-sm text-[var(--color-midnight)]/40">
+          Nenhum participante no ranking ainda.
+        </div>
+      ) : (
+        <div className="divide-y divide-black/[0.03]">
+          {entries.map((entry) => {
+            const prize = prizes[entry.rank] ?? "";
+            return (
+              <div
+                key={`${entry.rank}-${entry.pseudonym}`}
+                className={`flex items-center gap-4 px-5 py-3.5 md:px-6 md:py-4 ${entry.rank <= 3 ? "bg-[var(--color-snow)]" : ""}`}
+              >
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                  entry.rank === 1
+                    ? "bg-[var(--color-gold)] text-amber-900 animate-gold-glow"
+                    : entry.rank === 2
+                    ? "bg-gray-300 text-gray-700"
+                    : entry.rank === 3
+                    ? "bg-orange-300 text-orange-800"
+                    : "bg-[var(--color-midnight)]/[0.06] text-[var(--color-midnight)]/40"
+                }`}>
+                  {entry.rank}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-[var(--color-midnight)] tabular-nums">
+                    {entry.pseudonym}
+                  </span>
+                </div>
+                <span className="text-sm text-[var(--color-midnight)]/45 tabular-nums shrink-0">
+                  {entry.metricValue.toLocaleString("pt-BR")} {metricLabel}
+                </span>
+                {prize && (
+                  <span className={`text-xs font-bold ${accent} px-2.5 py-1 rounded-full shrink-0`}>
+                    {prize}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function RankingsPage() {
+  const demoMode = isDemoMode();
+  const [data, setData] = useState<Record<string, { positions: RankingPosition[]; loading: boolean; error: string | null }>>({
+    BUYERS: { positions: [], loading: true, error: null },
+    REFERRERS: { positions: [], loading: true, error: null },
+    INFLUENCERS: { positions: [], loading: true, error: null },
+  });
+
+  useEffect(() => {
+    for (const scope of SCOPES) {
+      rankings
+        .getByScope(DEMO_CAMPAIGN_ID, scope.id)
+        .then((snapshot: RankingSnapshot) => {
+          setData((prev) => ({
+            ...prev,
+            [scope.id]: { positions: snapshot.positions, loading: false, error: null },
+          }));
+        })
+        .catch((err: unknown) => {
+          const message = err instanceof ApiError ? err.detail : "Não foi possível carregar";
+          setData((prev) => ({
+            ...prev,
+            [scope.id]: { positions: [], loading: false, error: message },
+          }));
+        });
+    }
+  }, []);
+
   return (
     <div className="min-h-dvh bg-[var(--color-snow)]">
       <header className="bg-[var(--color-midnight)] px-5 md:px-8 lg:px-16 py-4">
@@ -107,16 +150,31 @@ export default function RankingsPage() {
             <p className="text-sm text-[var(--color-midnight)]/40">
               Atualizado automaticamente
             </p>
-            <div className="inline-flex items-center gap-2 mt-3 bg-[var(--color-iris)]/10 text-[var(--color-iris)] text-xs font-medium px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-iris)] animate-pulse-dot" />
-              Modo demonstração
-            </div>
+            {demoMode && (
+              <div className="inline-flex items-center gap-2 mt-3 bg-[var(--color-iris)]/10 text-[var(--color-iris)] text-xs font-medium px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-iris)] animate-pulse-dot" />
+                Modo demonstração
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 md:space-y-8">
-            <RankingTable title="Quem mais comprou" subtitle="Premiação para os 3 primeiros" entries={buyersRanking} accent="text-[var(--color-gold)] bg-[var(--color-gold)]/10" />
-            <RankingTable title="Quem mais indicou" subtitle="Vendas concluídas entre amigos" entries={referrersRanking} accent="text-[var(--color-iris)] bg-[var(--color-iris)]/10" />
-            <RankingTable title="Divulgadores" subtitle="Links mais ativos (Instagram/TikTok)" entries={influencersRanking} accent="text-[var(--color-ember)] bg-[var(--color-ember)]/10" />
+            {SCOPES.map((scope) => {
+              const d = data[scope.id];
+              return (
+                <RankingTable
+                  key={scope.id}
+                  title={scope.title}
+                  subtitle={scope.subtitle}
+                  entries={d?.positions ?? []}
+                  accent={scope.accent}
+                  metricLabel={scope.metricLabel}
+                  prizes={PRIZE_MAP[scope.id] ?? {}}
+                  loading={d?.loading ?? true}
+                  error={d?.error ?? null}
+                />
+              );
+            })}
           </div>
 
           <div className="mt-12 md:mt-16 bg-[var(--color-midnight)] rounded-2xl p-6 md:p-8 text-center">
@@ -152,6 +210,7 @@ export default function RankingsPage() {
           <nav className="flex gap-4 text-xs">
             <a href="/regulamento" className="hover:text-white/60 transition-colors">Regulamento</a>
             <a href="/indicar" className="hover:text-white/60 transition-colors">Indicar</a>
+            <a href="/faq" className="hover:text-white/60 transition-colors">FAQ</a>
           </nav>
         </div>
       </footer>

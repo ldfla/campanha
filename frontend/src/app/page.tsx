@@ -41,12 +41,12 @@ export default function Home() {
           </p>
 
           <h1 className="mx-auto max-w-2xl text-center font-[family-name:var(--font-heading)] text-[clamp(1.75rem,5vw,3rem)] font-bold leading-[1.15] tracking-tight">
-            Juntos, a gente faz acontecer
+            Cada tijolinho importa
           </h1>
 
           <p className="mx-auto mt-4 max-w-md text-center text-base text-white/75">
-            Cada número comprado nos aproxima de R$&nbsp;18.500 em prêmios.
-            Junte-se a milhares de participantes.
+            Ajude a construir esse sonho e concorra a prêmios.
+            R$&nbsp;18.500 em premiações, sorteio pela Loteria Federal.
           </p>
 
           <div className="my-10 flex w-full justify-center md:my-12">
@@ -118,6 +118,9 @@ export default function Home() {
           <nav className="flex gap-6 text-xs" aria-label="Rodapé">
             <a href="/regulamento" className="transition-colors hover:text-white/80">
               Regulamento
+            </a>
+            <a href="/faq" className="transition-colors hover:text-white/80">
+              FAQ
             </a>
             <a href="/rankings" className="transition-colors hover:text-white/80">
               Rankings
