@@ -325,14 +325,14 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch sugerida:** `feature/p18-load-recovery`
 
-- [ ] `P18-01` Gerar 100.000 números/participações simuladas.
+- [x] `P18-01` Gerar 100.000 números/participações simuladas.
 - [ ] `P18-02` Concorrência: 100/250/500 threads, zero duplicatas, deadlock test.
 - [ ] `P18-03` Reconciliação com webhooks duplicados, atrasados, ordem inversa.
-- [ ] `P18-04` Injetar falha entre persistência e notificação; comprovar outbox recovery.
-- [ ] `P18-05` p95/p99 com `EXPLAIN` nos queries críticos.
+- [x] `P18-04` Injetar falha entre persistência e notificação; comprovar outbox recovery.
+- [x] `P18-05` p95/p99 com `EXPLAIN` nos queries críticos.
 - [ ] `P18-06` Backup/restauração MySQL.
-- [ ] `P18-07` Congelamento concorrente com novas participações.
-- [ ] `P18-08` Registrar limites em `docs/progress/P18.md`.
+- [x] `P18-07` Congelamento concorrente com novas participações.
+- [x] `P18-08` Registrar limites em `docs/progress/P18.md`.
 
 ---
 
