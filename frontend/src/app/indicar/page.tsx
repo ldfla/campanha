@@ -7,7 +7,9 @@ export default function IndicarPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const referralLink = "https://acao.exemplo.com/r/abc123";
+  const referrerId = phone.replace(/\D/g, "").slice(-4) || "0000";
+  const referralCode = `ref_${phone.replace(/\D/g, "")}`;
+  const referralLink = `https://acao.exemplo.com/r/${referralCode}`;
   const stats = { clicks: 47, sales: 12, earnings: 0 };
 
   function handleLookup() {
@@ -74,7 +76,7 @@ export default function IndicarPage() {
                 Seu link de indicação
               </h1>
               <p className="text-sm text-[var(--color-charcoal)]/55 mb-8">
-                Compartilhe para subir no ranking e ganhar prêmios.
+                Compartilhe para subir no ranking e ganhar prêmios. Seu ID: <strong>*{referrerId}</strong>
               </p>
 
               {/* Link to share */}
@@ -98,7 +100,7 @@ export default function IndicarPage() {
                 {/* Share buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <a
-                    href={`https://wa.me/?text=${encodeURIComponent("Participe da Ação entre Amigos! Concorra a R$ 18.500 em prêmios: " + referralLink)}`}
+                    href={`https://wa.me/?text=${encodeURIComponent(`Fala! 🎉 Participe da Ação entre Amigos e concorra a R$ 18.500 em prêmios!\n\n📎 Use meu link: ${referralLink}\n🆔 Indicado por: *${referrerId}\n\nSó R$ 0,56 por número. Sorteio pela Loteria Federal!`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366]/10 text-[#25D366] font-semibold text-sm hover:bg-[#25D366]/15 transition-colors"
@@ -167,6 +169,16 @@ export default function IndicarPage() {
           )}
         </div>
       </main>
+
+      <footer className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-6">
+        <div className="max-w-3xl mx-auto flex items-center justify-between text-sm text-[var(--color-cream)]/40">
+          <span className="font-[family-name:var(--font-heading)] text-base text-[var(--color-cream)]/60">Ação entre Amigos</span>
+          <nav className="flex gap-4 text-xs">
+            <a href="/regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
+            <a href="/rankings" className="hover:text-[var(--color-cream)]/70 transition-colors">Rankings</a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -263,6 +263,15 @@ export default function ParticiparPage() {
               </p>
             </div>
           )}
+
+          {/* Footer links */}
+          <div className="mt-12 pt-6 border-t border-[var(--color-charcoal)]/8 flex items-center justify-center gap-4 text-xs text-[var(--color-charcoal)]/35">
+            <a href="/regulamento" className="hover:text-[var(--color-charcoal)]/60 transition-colors">Regulamento</a>
+            <span aria-hidden="true">·</span>
+            <a href="/meus-numeros" className="hover:text-[var(--color-charcoal)]/60 transition-colors">Meus números</a>
+            <span aria-hidden="true">·</span>
+            <a href="/indicar" className="hover:text-[var(--color-charcoal)]/60 transition-colors">Indicar amigos</a>
+          </div>
         </div>
       </div>
     </>

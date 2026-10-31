@@ -156,9 +156,9 @@ export default function Home() {
             Ação entre Amigos
           </span>
           <nav className="flex gap-6">
-            <a href="#regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
-            <a href="#premios" className="hover:text-[var(--color-cream)]/70 transition-colors">Prêmios</a>
-            <a href="#contato" className="hover:text-[var(--color-cream)]/70 transition-colors">Contato</a>
+            <a href="/regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
+            <a href="/rankings" className="hover:text-[var(--color-cream)]/70 transition-colors">Rankings</a>
+            <a href="/meus-numeros" className="hover:text-[var(--color-cream)]/70 transition-colors">Meus números</a>
           </nav>
         </div>
       </footer>

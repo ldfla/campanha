@@ -173,6 +173,16 @@ export default function RankingsPage() {
           </div>
         </div>
       </main>
+
+      <footer className="bg-[var(--color-charcoal)] px-4 md:px-8 lg:px-16 py-6">
+        <div className="max-w-4xl mx-auto flex items-center justify-between text-sm text-[var(--color-cream)]/40">
+          <span className="font-[family-name:var(--font-heading)] text-base text-[var(--color-cream)]/60">Ação entre Amigos</span>
+          <nav className="flex gap-4 text-xs">
+            <a href="/regulamento" className="hover:text-[var(--color-cream)]/70 transition-colors">Regulamento</a>
+            <a href="/indicar" className="hover:text-[var(--color-cream)]/70 transition-colors">Indicar</a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
