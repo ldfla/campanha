@@ -179,12 +179,14 @@ Estes são os valores configurados no frontend (`campaign-config.ts`) que o back
 
 ### Combos de números
 
-| Combo | Qtd | Unitário | Total | Badge |
-|-------|-----|----------|-------|-------|
-| Curioso | 10 | R$ 0,65 | R$ 6,50 | — |
-| Torcida | 100 | R$ 0,50 | R$ 50,00 | Mais Popular |
-| Campeão | 1.000 | R$ 0,46 | R$ 460,00 | Máximo Desconto |
-| Anjo | 5.000 | R$ 0,44 | R$ 2.200,00 | Apoiador |
+Preço base **R$ 1,00 por número**, com desconto por combo:
+
+| Combo | Qtd | Desconto | Unitário | Total | Badge |
+|-------|-----|----------|----------|-------|-------|
+| Combo 10 | 10 | 5% | R$ 0,95 | R$ 9,50 | — |
+| Combo 100 | 100 | 13% | R$ 0,87 | R$ 87,00 | Mais Popular |
+| Combo 1.000 | 1.000 | 26% | R$ 0,74 | R$ 740,00 | Máximo Desconto |
+| Combo 5.000 | 5.000 | 31% | R$ 0,69 | R$ 3.450,00 | Apoiador |
 
 ### Prêmios principais (5 posições)
 
@@ -262,15 +264,15 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch sugerida:** `feature/p12-drawing-engine`
 
-- [ ] `P12-01` Entidade `FederalLotteryResult` com data, identificador, evidência e hash.
-- [ ] `P12-02` Importação manual com dupla aprovação (dois verificadores independentes).
-- [ ] `P12-03` `DrawRule` versionada: fórmula declarativa vinculada ao regulamento.
-- [ ] `P12-04` Congelamento: hash público das participações elegíveis antes da apuração.
-- [ ] `P12-05` Motor puro: (DrawRule + participações congeladas + resultado Federal) → `DrawOutcome` imutável.
-- [ ] `P12-06` Tratamento: ausências, 00000, adiamento, divergência — conforme regulamento.
-- [ ] `P12-07` Dupla revisão antes de publicação.
-- [ ] `P12-08` Pacote de transparência: JSON com inputs, regra, hash, resultado.
-- [ ] `P12-09` Testes com vetores fixos: mesmas entradas → mesmos vencedores.
+- [x] `P12-01` Entidade `FederalLotteryResult` com data, identificador, evidência e hash.
+- [x] `P12-02` Importação manual com dupla aprovação (dois verificadores independentes).
+- [x] `P12-03` `DrawRule` versionada: fórmula declarativa vinculada ao regulamento.
+- [x] `P12-04` Congelamento: hash público das participações elegíveis antes da apuração.
+- [x] `P12-05` Motor puro: (DrawRule + participações congeladas + resultado Federal) → `DrawOutcome` imutável.
+- [x] `P12-06` Tratamento: ausências, 00000, adiamento, divergência — conforme regulamento.
+- [x] `P12-07` Dupla revisão antes de publicação.
+- [x] `P12-08` Pacote de transparência: JSON com inputs, regra, hash, resultado.
+- [x] `P12-09` Testes com vetores fixos: mesmas entradas → mesmos vencedores.
 
 ### Bloco D — Completar P13 (PR #13 em draft)
 
