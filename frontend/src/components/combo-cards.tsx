@@ -16,6 +16,11 @@ const VISUAL = [
     tint: "rgba(185, 242, 255, 0.28)",
     metal: "linear-gradient(135deg, #eafcff 0%, #b9f2ff 100%)",
   },
+  {
+    accent: "#C084FC",
+    tint: "rgba(192, 132, 252, 0.14)",
+    metal: "linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%)",
+  },
 ] as const;
 
 export function ComboCards() {
@@ -31,7 +36,7 @@ export function ComboCards() {
           Quanto maior o combo, menor o valor por número
         </p>
 
-        <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-3 md:mt-12 lg:gap-5">
+        <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:mt-12 lg:grid-cols-4 lg:gap-5">
           {COMBOS.map((combo, i) => {
             const vis = VISUAL[i] ?? VISUAL[0];
             return (

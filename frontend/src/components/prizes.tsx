@@ -1,6 +1,6 @@
 import { CTAButton } from "@/components/cta-button";
 import { Section } from "@/components/section";
-import { PRIZES, SURPRISE_PRIZES, formatBRL } from "@/lib/campaign-config";
+import { PRIZES, SURPRISE_PRIZES, RANKING_REWARDS, formatBRL } from "@/lib/campaign-config";
 
 const prizeStyles = [
   {
@@ -67,9 +67,14 @@ const prizeStyles = [
 ] as const;
 
 const totalSurpriseCount = SURPRISE_PRIZES.reduce((sum, t) => sum + t.count, 0);
+const totalRankingCents = RANKING_REWARDS.reduce(
+  (sum, r) => sum + r.positions.reduce((s, p) => s + p.valueCents, 0),
+  0,
+);
 const totalPrizesCents =
   PRIZES.reduce((sum, p) => sum + p.valueCents, 0) +
-  SURPRISE_PRIZES.reduce((sum, t) => sum + t.count * t.valueCentsEach, 0);
+  SURPRISE_PRIZES.reduce((sum, t) => sum + t.count * t.valueCentsEach, 0) +
+  totalRankingCents;
 
 export function Prizes() {
   return (
@@ -152,6 +157,48 @@ export function Prizes() {
             <span className="shrink-0 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--color-iris)]">
               {formatBRL(tier.count * tier.valueCentsEach)}
             </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 flex w-full flex-col gap-3">
+        {RANKING_REWARDS.map((reward) => (
+          <div
+            key={reward.scope}
+            className="w-full rounded-2xl border border-[var(--color-gold)]/20 bg-gradient-to-r from-[var(--color-gold)]/[0.04] to-transparent px-5 py-4"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs font-semibold text-[var(--color-gold-ink)]">
+                Ranking
+              </span>
+              <h3 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-ink)] sm:text-base">
+                {reward.title}
+              </h3>
+            </div>
+            <p className="mb-3 text-xs text-[var(--color-ink-soft)]">
+              {reward.subtitle} · Desempate: {reward.tiebreaker.toLowerCase()}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {reward.positions.map((pos) => (
+                <div
+                  key={pos.rank}
+                  className="flex items-center gap-2 rounded-xl bg-white/80 px-3 py-2"
+                >
+                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                    pos.rank === 1
+                      ? "bg-[var(--color-gold)] text-amber-900"
+                      : pos.rank === 2
+                      ? "bg-gray-300 text-gray-700"
+                      : "bg-orange-200 text-orange-800"
+                  }`}>
+                    {pos.rank}º
+                  </span>
+                  <span className="font-[family-name:var(--font-heading)] text-sm font-bold tabular-nums text-[var(--color-ink)]">
+                    {formatBRL(pos.valueCents)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

@@ -3,21 +3,21 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { rankings, type RankingSnapshot, type RankingPosition, ApiError } from "@/lib/api-client";
-import { isDemoMode } from "@/lib/campaign-config";
+import { isDemoMode, RANKING_REWARDS, formatBRL } from "@/lib/campaign-config";
 
 const DEMO_CAMPAIGN_ID = "demo";
 
 const SCOPES = [
-  { id: "BUYERS", title: "Quem mais comprou", subtitle: "Premiação para os 3 primeiros", accent: "text-[var(--color-gold)] bg-[var(--color-gold)]/10", metricLabel: "números" },
-  { id: "REFERRERS", title: "Quem mais indicou", subtitle: "Vendas concluídas entre amigos", accent: "text-[var(--color-iris)] bg-[var(--color-iris)]/10", metricLabel: "vendas" },
-  { id: "INFLUENCERS", title: "Divulgadores", subtitle: "Links mais ativos (Instagram/TikTok)", accent: "text-[var(--color-ember)] bg-[var(--color-ember)]/10", metricLabel: "cliques" },
+  { id: "BUYERS", title: "Maiores apoiadores", subtitle: "Quem mais comprou números · Desempate: data da primeira cota", accent: "text-[var(--color-gold)] bg-[var(--color-gold)]/10", metricLabel: "números" },
+  { id: "INFLUENCERS", title: "Maiores divulgadores", subtitle: "Mais indicações convertidas pelo link · Desempate: data da primeira cota", accent: "text-[var(--color-ember)] bg-[var(--color-ember)]/10", metricLabel: "indicações" },
 ] as const;
 
-const PRIZE_MAP: Record<string, Record<number, string>> = {
-  BUYERS: { 1: "R$ 2.000", 2: "R$ 1.000", 3: "R$ 750" },
-  REFERRERS: { 1: "R$ 1.000", 2: "R$ 750", 3: "R$ 500" },
-  INFLUENCERS: { 1: "R$ 2.000", 2: "R$ 1.000", 3: "R$ 500" },
-};
+const PRIZE_MAP: Record<string, Record<number, string>> = Object.fromEntries(
+  RANKING_REWARDS.map((r) => [
+    r.scope,
+    Object.fromEntries(r.positions.map((p) => [p.rank, formatBRL(p.valueCents)])),
+  ]),
+);
 
 function RankingTable({
   title,
@@ -102,11 +102,9 @@ function RankingTable({
 
 export default function RankingsPage() {
   const demoMode = isDemoMode();
-  const [data, setData] = useState<Record<string, { positions: RankingPosition[]; loading: boolean; error: string | null }>>({
-    BUYERS: { positions: [], loading: true, error: null },
-    REFERRERS: { positions: [], loading: true, error: null },
-    INFLUENCERS: { positions: [], loading: true, error: null },
-  });
+  const [data, setData] = useState<Record<string, { positions: RankingPosition[]; loading: boolean; error: string | null }>>(
+    Object.fromEntries(SCOPES.map((s) => [s.id, { positions: [], loading: true, error: null }])),
+  );
 
   useEffect(() => {
     for (const scope of SCOPES) {
