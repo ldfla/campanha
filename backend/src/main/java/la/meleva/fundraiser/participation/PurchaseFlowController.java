@@ -79,7 +79,7 @@ public class PurchaseFlowController {
     public record CheckoutRequest(
             @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$") String idempotencyKey,
             @NotBlank @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") String offerId,
-            @Nullable @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") String entityId,
+            @NotBlank @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") String entityId,
             @Nullable @Size(max = 20) String referralCode) { }
 
     public record CheckoutResponse(String requestPublicId, Instant expiresAt, List<String> numbers,

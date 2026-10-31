@@ -54,6 +54,8 @@ class BeneficiaryParticipationIntegrationTest {
         String campaignId = campaign.getPublicId();
         String key = UUID.randomUUID().toString();
         String referralCode = referrals.link(campaign.getId(), promoter.getId()).getCode();
+        // O divulgador precisa ter ao menos 1 cota comprada para indicar.
+        service.request(promoter.getId(), campaignId, UUID.randomUUID().toString(), 1, beneficiary.getPublicId());
 
         var allocation = service.request(user.getId(), campaignId, key, 2, beneficiary.getPublicId(), referralCode);
         assertThat(service.request(user.getId(), campaignId, key, 2, beneficiary.getPublicId(), referralCode)).isEqualTo(allocation);
@@ -74,6 +76,6 @@ class BeneficiaryParticipationIntegrationTest {
                 .extracting(exception -> ((ErrorCode.BusinessException) exception).errorCode()).isEqualTo(ErrorCode.REFERRAL_SELF_REFERRAL);
         service.request(user.getId(), campaignId, UUID.randomUUID().toString(), 1, beneficiary.getPublicId(), "codigo-invalido");
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(2);
-        assertThat(service.availableCount(campaignId)).isEqualTo(2);
+        assertThat(service.availableCount(campaignId)).isEqualTo(1);
     }
 }

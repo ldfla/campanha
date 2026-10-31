@@ -137,10 +137,10 @@ public class AuthService {
     }
 
     private String normalizePhone(String phone) {
-        String digits = phone.replaceAll("[^\\d+]", "");
-        if (!digits.startsWith("+")) {
-            digits = "+55" + digits;
+        try {
+            return la.meleva.fundraiser.shared.PhoneNumbers.toE164(phone);
+        } catch (RuntimeException exception) {
+            throw ErrorCode.VALIDATION_ERROR.toException();
         }
-        return digits;
     }
 }

@@ -3,6 +3,7 @@ package la.meleva.fundraiser.referral;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import la.meleva.fundraiser.participation.ParticipationEntry;
@@ -54,16 +55,36 @@ public class ReferralService {
         Objects.requireNonNull(entryId, "entryId");
         return linkRepository.findByCode(code).filter(ReferralLink::isActive)
                 .filter(link -> link.getCampaignId().equals(campaignId))
+                .filter(link -> promoterHasQuota(campaignId, link.getPromoterUserId()))
                 .map(link -> attributeKnownLink(campaignId, link, entryId));
     }
 
+    /** O divulgador só pode indicar se já tiver ao menos uma cota comprada (entrada elegível) na campanha. */
     @Transactional(readOnly = true)
-    public Optional<String> validCodeForUser(Long campaignId, String code, Long userId) {
-        Objects.requireNonNull(campaignId, "campaignId"); Objects.requireNonNull(code, "code"); Objects.requireNonNull(userId, "userId");
+    public boolean promoterHasQuota(Long campaignId, Long promoterUserId) {
+        Objects.requireNonNull(campaignId, "campaignId");
+        Objects.requireNonNull(promoterUserId, "promoterUserId");
+        return entryRepository.countByCampaignIdAndUserIdAndStatusIn(campaignId, promoterUserId,
+                List.of(ParticipationStatus.ASSIGNED, ParticipationStatus.FROZEN)) > 0;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> validCodeForUser(Long campaignId, String code, Long userId) {        Objects.requireNonNull(campaignId, "campaignId"); Objects.requireNonNull(code, "code"); Objects.requireNonNull(userId, "userId");
         var link = linkRepository.findByCode(code).filter(ReferralLink::isActive)
                 .filter(candidate -> candidate.getCampaignId().equals(campaignId));
         if (link.isPresent() && link.get().getPromoterUserId().equals(userId)) throw ErrorCode.REFERRAL_SELF_REFERRAL.toException();
         return link.map(ReferralLink::getCode);
+    }
+
+    /** Id do divulgador para um código ativo da campanha; vazio se inexistente/inativo/outra campanha/sem cota. */
+    @Transactional(readOnly = true)
+    public Optional<Long> promoterUserIdForActiveCode(Long campaignId, String code) {
+        Objects.requireNonNull(campaignId, "campaignId");
+        Objects.requireNonNull(code, "code");
+        return linkRepository.findByCode(code).filter(ReferralLink::isActive)
+                .filter(link -> link.getCampaignId().equals(campaignId))
+                .filter(link -> promoterHasQuota(campaignId, link.getPromoterUserId()))
+                .map(ReferralLink::getPromoterUserId);
     }
 
     private ReferralAttribution attributeKnownLink(Long campaignId, ReferralLink link, Long entryId) {

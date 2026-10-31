@@ -234,6 +234,17 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 - [x] Testes de integração para os 3 fluxos corrigidos
 - [x] Atualizar OpenAPI/contratos (`docs/api/purchase-flow.md`)
 
+### Bloco A2 — Carga inicial de prêmios nos números
+
+**Branch:** `feature/p07-initial-prize-load` (empilhada em `feature/p07-purchase-flow-gaps`).
+
+- [x] Gerar a tabela de números 00000–99999 como índice (uma linha por número).
+- [x] `SecureRandom` define 10 números de R$ 100 e 100 de R$ 10, sem colisão (sorteia outro ao encontrar número premiado), com `prize_defined_at`.
+- [x] Exportar (número, prêmio, timestamp) para arquivo canônico e gerar SHA-256; conferir a qualquer momento via `/numbers/prize-load/verify`.
+- [x] Colunas de operação atualizáveis (comprador/caridade/indicador/modalidade/`correlation_id`/`purchased_at`) fora do hash.
+- [x] Caridade obrigatória quando vendido; divulgador precisa de ≥ 1 cota comprada para indicar.
+- [x] Telefones em E.164; PII do comprador isolada em `campaign_number_buyers` com pseudônimo.
+
 ### Bloco B — Completar P11 (PR #12 em draft)
 
 **Branch existente:** `feature/p11-completion`

@@ -37,6 +37,7 @@ public enum ErrorCode {
 
     // Indicação
     REFERRAL_SELF_REFERRAL("Autoindicação não permitida", 409),
+    REFERRAL_PROMOTER_NOT_ELIGIBLE("Divulgador precisa ter ao menos uma cota comprada para indicar", 409),
     REFERRAL_ALREADY_ATTRIBUTED("Participação já atribuída a outra indicação", 409),
 
     // Ranking

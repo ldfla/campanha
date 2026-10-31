@@ -37,6 +37,12 @@ class ParticipationConcurrencyIntegrationTest {
     @Autowired private CampaignNumberRepository numberRepository;
     @Autowired private AuditEventRepository auditEventRepository;
     @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired private la.meleva.fundraiser.participation.beneficiary.BeneficiaryRepository beneficiaryRepository;
+    private final java.util.Map<Long, la.meleva.fundraiser.participation.beneficiary.BeneficiaryEntity> beneficiariesByCampaign = new java.util.HashMap<>();
+
+    private String entityIdFor(Campaign campaign) {
+        return beneficiariesByCampaign.get(campaign.getId()).getPublicId();
+    }
 
     @Test
     void allocatesOneHundredConcurrentRequestsWithoutDuplicateNumbers() throws Exception {
@@ -50,7 +56,7 @@ class ParticipationConcurrencyIntegrationTest {
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             List<Callable<ParticipationAllocation>> tasks = users.stream()
                     .<Callable<ParticipationAllocation>>map(user -> () -> participationService.request(user.getId(),
-                            campaign.getPublicId(), UUID.randomUUID().toString(), 1))
+                            campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign)))
                     .toList();
             List<Future<ParticipationAllocation>> results = executor.invokeAll(tasks);
             Set<Integer> numbers = results.stream().map(this::get).map(result -> result.numbers().getFirst().numberValue())
@@ -68,8 +74,8 @@ class ParticipationConcurrencyIntegrationTest {
         User user = userRepository.save(new User("Pessoa", "Idempotente", "+5511987999999"));
         String key = UUID.randomUUID().toString();
 
-        ParticipationAllocation first = participationService.request(user.getId(), campaign.getPublicId(), key, 1);
-        ParticipationAllocation repeated = participationService.request(user.getId(), campaign.getPublicId(), key, 1);
+        ParticipationAllocation first = participationService.request(user.getId(), campaign.getPublicId(), key, 1, entityIdFor(campaign));
+        ParticipationAllocation repeated = participationService.request(user.getId(), campaign.getPublicId(), key, 1, entityIdFor(campaign));
 
         assertThat(repeated.numbers()).isEqualTo(first.numbers());
         assertThat(participationService.availableCount(campaign.getPublicId())).isEqualTo(2);
@@ -92,7 +98,7 @@ class ParticipationConcurrencyIntegrationTest {
         Campaign campaign = openCampaign("congelamento", 0, 1);
         participationService.initializeSeries(campaign.getPublicId());
         User user = userRepository.save(new User("Pessoa", "Congelamento", "+5511987888888"));
-        participationService.request(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1);
+        participationService.request(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
         campaign.transitionTo(CampaignStatus.LOCKED);
         campaignRepository.save(campaign);
 
@@ -111,10 +117,10 @@ class ParticipationConcurrencyIntegrationTest {
         User first = userRepository.save(new User("Pessoa", "Um", "+5511987111111"));
         User second = userRepository.save(new User("Pessoa", "Dois", "+5511987222222"));
         User third = userRepository.save(new User("Pessoa", "Três", "+5511987333333"));
-        participationService.request(first.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1);
-        ParticipationAllocation secondAllocation = participationService.request(second.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1);
+        participationService.request(first.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
+        ParticipationAllocation secondAllocation = participationService.request(second.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
         assertThat(secondAllocation.numbers().getFirst().formattedNumber()).isEqualTo("00001");
-        assertThatThrownBy(() -> participationService.request(third.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1))
+        assertThatThrownBy(() -> participationService.request(third.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign)))
                 .isInstanceOf(BusinessException.class);
     }
 
@@ -126,7 +132,10 @@ class ParticipationConcurrencyIntegrationTest {
         campaign.transitionTo(CampaignStatus.AUTHORIZED);
         campaign.transitionTo(CampaignStatus.SCHEDULED);
         campaign.transitionTo(CampaignStatus.OPEN);
-        return campaignRepository.save(campaign);
+        Campaign saved = campaignRepository.save(campaign);
+        beneficiariesByCampaign.put(saved.getId(), beneficiaryRepository.save(
+                new la.meleva.fundraiser.participation.beneficiary.BeneficiaryEntity(saved.getId(), "Entidade " + slug)));
+        return saved;
     }
 
     private ParticipationAllocation get(Future<ParticipationAllocation> future) {

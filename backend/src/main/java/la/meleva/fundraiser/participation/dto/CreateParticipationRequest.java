@@ -10,5 +10,5 @@ import org.jspecify.annotations.Nullable;
 public record CreateParticipationRequest(
         @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$") String idempotencyKey,
         @Min(1) @Max(100) int count,
-        @Nullable @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") String entityId,
+        @NotBlank @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") String entityId,
         @Nullable @Size(max = 20) String referralCode) {}
