@@ -12,5 +12,5 @@ public class ReconciliationWorker {
     private final OutboxEventRepository outbox; private final OrderService orders;
     public ReconciliationWorker(OutboxEventRepository outbox,OrderService orders){this.outbox=outbox;this.orders=orders;}
     @Scheduled(fixedDelayString="${fundraiser.payment.reconciliation-delay-ms:300000}") @Transactional
-    public void reconcilePending(){outbox.lockAvailableBatch(Instant.now(),100).stream().filter(e->e.getEventType().equals("PAYMENT_RECONCILIATION_REQUESTED")).forEach(e->{orders.reconcile(e.getAggregateId());e.processed();});}
+    public void reconcilePending(){outbox.lockAvailableBatchByEventType("PAYMENT_RECONCILIATION_REQUESTED",Instant.now(),100).forEach(e->{orders.reconcile(e.getAggregateId());e.processed();});}
 }
