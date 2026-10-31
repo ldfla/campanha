@@ -43,27 +43,32 @@ class DemoNotificationProcessorIntegrationTest {
         String sourceId = "outbox:" + event.getId();
         var transaction = new TransactionTemplate(transactions);
         transaction.executeWithoutResult(status -> {
-            assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isTrue();
+            assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
             status.setRollbackOnly();
         });
         assertThat(count(sourceId)).isZero();
         assertThat(status(event.getId())).isEqualTo("PENDING");
 
-        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isTrue();
+        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
         assertThat(count(sourceId)).isEqualTo(1L);
         assertThat(status(event.getId())).isEqualTo("PROCESSED");
         jdbc.update("UPDATE outbox_events SET status='PENDING', processed_at=NULL WHERE id=?", event.getId());
-        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isTrue();
+        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
         assertThat(count(sourceId)).isEqualTo(1L);
         assertThat(status(event.getId())).isEqualTo("PROCESSED");
 
         var invalid = outbox.saveAndFlush(new OutboxEvent("USER", Long.MAX_VALUE,
                 "NOTIFICATION_ACCOUNT_REGISTERED_V1", "{}"));
         jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP()) WHERE id=?", invalid.getId());
-        assertThatThrownBy(() -> processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED))
-                .isInstanceOf(IllegalStateException.class);
+        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.DEAD_LETTER);
         assertThat(count("outbox:" + invalid.getId())).isZero();
-        assertThat(status(invalid.getId())).isEqualTo("PENDING");
+        assertThat(status(invalid.getId())).isEqualTo("DEAD_LETTER");
+        var nextUser = users.save(new User("Outra", "Pessoa", "+55119999007993"));
+        var next = outbox.saveAndFlush(new OutboxEvent("USER", nextUser.getId(),
+                "NOTIFICATION_ACCOUNT_REGISTERED_V1", "{}"));
+        jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP()) WHERE id=?", next.getId());
+        assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
+        assertThat(count("outbox:" + next.getId())).isEqualTo(1L);
         assertThatThrownBy(() -> processor.processNext(NotificationTemplate.RESULT_AVAILABLE))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -79,7 +84,7 @@ class DemoNotificationProcessorIntegrationTest {
         var event = outbox.saveAndFlush(new OutboxEvent("PARTICIPATION_REQUEST", request.getId(),
                 "NOTIFICATION_PARTICIPATION_VALID_V1", "{}"));
         jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP()) WHERE id=?", event.getId());
-        assertThat(processor.processNext(NotificationTemplate.PARTICIPATION_VALID)).isTrue();
+        assertThat(processor.processNext(NotificationTemplate.PARTICIPATION_VALID)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
         assertThat(count("outbox:" + event.getId())).isEqualTo(1L);
 
         var commercial = campaigns.save(new Campaign(organization.getId(), "Não DEMO", "notification-non-demo", CampaignMode.COMMERCIAL_PROMOTION));
@@ -89,10 +94,9 @@ class DemoNotificationProcessorIntegrationTest {
         var blocked = outbox.saveAndFlush(new OutboxEvent("PARTICIPATION_REQUEST", nonDemoRequest.getId(),
                 "NOTIFICATION_PARTICIPATION_VALID_V1", "{}"));
         jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP()) WHERE id=?", blocked.getId());
-        assertThatThrownBy(() -> processor.processNext(NotificationTemplate.PARTICIPATION_VALID))
-                .isInstanceOf(IllegalStateException.class);
+        assertThat(processor.processNext(NotificationTemplate.PARTICIPATION_VALID)).isEqualTo(DemoNotificationProcessor.ProcessResult.DEAD_LETTER);
         assertThat(count("outbox:" + blocked.getId())).isZero();
-        assertThat(status(blocked.getId())).isEqualTo("PENDING");
+        assertThat(status(blocked.getId())).isEqualTo("DEAD_LETTER");
     }
 
     private long count(String sourceId) {

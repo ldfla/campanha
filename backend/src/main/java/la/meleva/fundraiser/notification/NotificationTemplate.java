@@ -13,7 +13,9 @@ public enum NotificationTemplate {
     RESULT_AVAILABLE(1, Category.ESSENTIAL, "Resultado disponível",
             "Há um resultado disponível para consulta na plataforma. Confira os detalhes e o regulamento aplicável."),
     DELIVERY_UPDATE(1, Category.ESSENTIAL, "Atualização de entrega",
-            "Há uma atualização de entrega para consulta. Acesse a plataforma pelo endereço que você já conhece.");
+            "Há uma atualização de entrega para consulta. Acesse a plataforma pelo endereço que você já conhece."),
+    CAMPAIGN_MARKETING(1, Category.MARKETING, "Novidades da campanha",
+            "Há novidades da campanha disponíveis na plataforma. Você pode desativar este tipo de mensagem nas preferências.");
 
     public enum Category { ESSENTIAL, MARKETING }
 

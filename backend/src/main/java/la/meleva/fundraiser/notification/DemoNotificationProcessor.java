@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 /** Registra somente uma simulação no banco; não encaminha mensagem a nenhum endereço. */
 @Service
 public class DemoNotificationProcessor {
+    public enum ProcessResult { EMPTY, SIMULATED, DEAD_LETTER }
     private final OutboxEventRepository outbox;
     private final JdbcTemplate jdbc;
 
@@ -21,7 +22,7 @@ public class DemoNotificationProcessor {
     }
 
     @Transactional
-    public boolean processNext(NotificationTemplate template) {
+    public ProcessResult processNext(NotificationTemplate template) {
         if (template == null) throw new IllegalArgumentException("Modelo obrigatório");
         String eventType = switch (template) {
             case ACCOUNT_REGISTERED -> "NOTIFICATION_ACCOUNT_REGISTERED_V1";
@@ -29,19 +30,22 @@ public class DemoNotificationProcessor {
             default -> throw new IllegalArgumentException("Modelo ainda não suportado");
         };
         var events = outbox.lockAvailableBatchByEventType(eventType, Instant.now(), 1);
-        if (events.isEmpty()) return false;
+        if (events.isEmpty()) return ProcessResult.EMPTY;
         var event = events.getFirst();
-        requireEligible(event, template);
+        if (!eligible(event, template)) {
+            event.deadLetterInvalidSource();
+            return ProcessResult.DEAD_LETTER;
+        }
         String sourceEventId = "outbox:" + event.getId();
         String hash = sha256(eventType + ":" + sourceEventId);
         jdbc.update("INSERT IGNORE INTO inbox_events (source,source_event_id,payload_hash,received_at,processed_at) "
                         + "VALUES ('NOTIFICATION_SIMULATION',?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
                 sourceEventId, hash);
         event.processed();
-        return true;
+        return ProcessResult.SIMULATED;
     }
 
-    private void requireEligible(OutboxEvent event, NotificationTemplate template) {
+    private boolean eligible(OutboxEvent event, NotificationTemplate template) {
         Integer count;
         if (template == NotificationTemplate.ACCOUNT_REGISTERED && "USER".equals(event.getAggregateType())) {
             count = jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id=? AND status='ACTIVE'", Integer.class,
@@ -53,9 +57,9 @@ public class DemoNotificationProcessor {
                             + "WHERE r.id=? AND r.status='ASSIGNED' AND c.mode='DEMO' AND u.status='ACTIVE'",
                     Integer.class, event.getAggregateId());
         } else {
-            throw new IllegalStateException("Tipo do agregado incompatível");
+            return false;
         }
-        if (count == null || count != 1) throw new IllegalStateException("Origem indisponível para simulação");
+        return count != null && count == 1;
     }
 
     private static String sha256(String input) {

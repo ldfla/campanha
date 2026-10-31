@@ -736,12 +736,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P04/P05/P07.  
 **Entregáveis:** comunicação transacional e trilha de atendimento.
 
-- [ ] `P15-01` Templates de e-mail em PT-BR com versionamento e anti-phishing.
-- [ ] `P15-02` Notificar cadastro/verificação, participação válida, mudanças administrativas relevantes, resultado e entrega.
-- [ ] `P15-03` Mensagens processadas por outbox, com retry, deduplicação e opt-out quando aplicável.
-- [ ] `P15-04` Criar canal/ticket de suporte com permissões e logging de alterações.
-- [ ] `P15-05` Diferenciar comunicação essencial, consentimento de marketing e bases legais.
-- [ ] `P15-06` Simular envios em DEMO via Mailpit/MailHog local; não enviar para contatos reais.
+- [x] `P15-01` Templates de e-mail em PT-BR com versionamento e anti-phishing. 5 essenciais + 1 marketing, sem links nem credenciais.
+- [ ] `P15-02` Notificar cadastro/verificação, participação válida, mudanças administrativas relevantes, resultado e entrega. **PARCIAL**: cadastro e participação enfileiram evento; os demais têm template, sem emissão (resultado depende da P12).
+- [ ] `P15-03` Mensagens processadas por outbox, com retry, deduplicação e opt-out quando aplicável. **PARCIAL**: outbox, deduplicação por inbox e opt-out de marketing implementados; política de retry de falha transitória pendente.
+- [x] `P15-04` Criar canal/ticket de suporte com permissões e logging de alterações. `POST/GET /support/requests`; listagem restrita a `SUPPORT`/`SYSTEM_ADMIN`; abertura auditada.
+- [x] `P15-05` Diferenciar comunicação essencial, consentimento de marketing e bases legais. `NotificationPreferenceService.mayDispatch`; essencial inextinguível, marketing sob opt-out (base legal pendente de `G-LEGAL`).
+- [ ] `P15-06` Simular envios em DEMO via Mailpit/MailHog local; não enviar para contatos reais. **PARCIAL**: Mailpit disponível no `infrastructure/compose.yaml`; nenhum transporte envia mensagem (o processador DEMO só registra simulação no banco).
 
 **Aceite:** nenhuma notificação duplicada crítica e nenhuma campanha de marketing sem base/legalidade.
 

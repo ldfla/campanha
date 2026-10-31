@@ -37,4 +37,9 @@ public class OutboxEvent {
     public Long getAggregateId() { return aggregateId; }
     public String getEventType() { return eventType; }
     public void processed() { this.status = "PROCESSED"; this.processedAt = Instant.now(); }
+    public void deadLetterInvalidSource() {
+        this.status = "DEAD_LETTER";
+        this.attemptCount++;
+        this.errorMessage = "Origem inválida ou indisponível para simulação";
+    }
 }

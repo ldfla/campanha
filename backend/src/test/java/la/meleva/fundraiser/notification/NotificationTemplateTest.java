@@ -5,13 +5,17 @@ import org.junit.jupiter.api.Test;
 
 class NotificationTemplateTest {
     @Test
-    void essentialTemplatesAreVersionedAndAvoidLinksAndSensitiveCredentials() {
-        assertThat(NotificationTemplate.values()).hasSize(5);
+    void templatesAreVersionedAndAvoidLinksAndSensitiveCredentials() {
+        assertThat(NotificationTemplate.values()).hasSize(6);
         for (var template : NotificationTemplate.values()) {
             assertThat(template.version()).isPositive();
-            assertThat(template.category()).isEqualTo(NotificationTemplate.Category.ESSENTIAL);
             assertThat(template.subject()).isNotBlank();
             assertThat(template.body()).isNotBlank().doesNotContain("http://", "https://", "senha", "token");
         }
+        assertThat(NotificationTemplate.values())
+                .filteredOn(template -> template.category() == NotificationTemplate.Category.ESSENTIAL)
+                .hasSize(5);
+        assertThat(NotificationTemplate.CAMPAIGN_MARKETING.category())
+                .isEqualTo(NotificationTemplate.Category.MARKETING);
     }
 }
