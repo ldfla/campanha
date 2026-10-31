@@ -4,6 +4,8 @@ import la.meleva.fundraiser.identity.dto.LoginRequest;
 import la.meleva.fundraiser.identity.dto.RegisterRequest;
 import la.meleva.fundraiser.identity.dto.UserResponse;
 import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.notification.OutboxEvent;
+import la.meleva.fundraiser.notification.OutboxEventRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -19,15 +21,17 @@ public class AuthService {
     private final ContactVerificationProvider contactVerificationProvider;
     private final MfaService mfaService;
     private final LoginAttemptTracker loginAttemptTracker;
+    private final OutboxEventRepository outbox;
 
     public AuthService(UserRepository userRepository, MembershipRepository membershipRepository,
                        ContactVerificationProvider contactVerificationProvider, MfaService mfaService,
-                       LoginAttemptTracker loginAttemptTracker) {
+                       LoginAttemptTracker loginAttemptTracker, OutboxEventRepository outbox) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
         this.contactVerificationProvider = contactVerificationProvider;
         this.mfaService = mfaService;
         this.loginAttemptTracker = loginAttemptTracker;
+        this.outbox = outbox;
     }
 
     @Transactional
@@ -41,6 +45,7 @@ public class AuthService {
         var user = new User(request.firstName(), request.surname(), normalizedPhone);
         user = userRepository.save(user);
         contactVerificationProvider.sendVerification(normalizedPhone);
+        outbox.save(new OutboxEvent("USER", user.getId(), "NOTIFICATION_ACCOUNT_REGISTERED_V1", "{}"));
 
         var details = buildUserDetails(user);
         setAuthentication(details);

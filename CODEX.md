@@ -289,11 +289,11 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch existente:** `feature/p15-notifications`
 
-- [ ] `P15-01` Templates de e-mail em PT-BR com versionamento.
+- [x] `P15-01` Templates de e-mail em PT-BR com versionamento.
 - [ ] `P15-02` Eventos: cadastro, participação, mudança administrativa, resultado, entrega.
 - [ ] `P15-03` Processamento via outbox, retry, deduplicação, opt-out.
-- [ ] `P15-04` Canal de suporte com permissões e logging.
-- [ ] `P15-05` Diferenciar comunicação essencial de marketing.
+- [x] `P15-04` Canal de suporte com permissões e logging.
+- [x] `P15-05` Diferenciar comunicação essencial de marketing.
 - [ ] `P15-06` Em DEMO: Mailpit local, nunca contatos reais.
 
 ### Bloco G — Segurança e LGPD (P16)

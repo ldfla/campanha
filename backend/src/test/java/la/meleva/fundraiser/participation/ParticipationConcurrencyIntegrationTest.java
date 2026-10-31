@@ -36,6 +36,7 @@ class ParticipationConcurrencyIntegrationTest {
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private CampaignNumberRepository numberRepository;
     @Autowired private AuditEventRepository auditEventRepository;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @Test
     void allocatesOneHundredConcurrentRequestsWithoutDuplicateNumbers() throws Exception {
@@ -72,6 +73,8 @@ class ParticipationConcurrencyIntegrationTest {
 
         assertThat(repeated.numbers()).isEqualTo(first.numbers());
         assertThat(participationService.availableCount(campaign.getPublicId())).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM outbox_events WHERE aggregate_type='PARTICIPATION_REQUEST' AND event_type='NOTIFICATION_PARTICIPATION_VALID_V1' AND payload_json=JSON_OBJECT() AND aggregate_id=(SELECT id FROM participation_requests WHERE public_id=?)",
+                Long.class, first.requestPublicId())).isEqualTo(1L);
     }
 
     @Test

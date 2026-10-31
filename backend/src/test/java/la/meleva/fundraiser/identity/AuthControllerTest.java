@@ -28,6 +28,9 @@ class AuthControllerTest {
     @Autowired private UserRepository userRepository;
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private MembershipRepository membershipRepository;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired private AuthService authService;
+    @Autowired private org.springframework.transaction.PlatformTransactionManager transactions;
 
     private Cookie[] performRegister(String phone) throws Exception {
         MvcResult result = mockMvc.perform(post("/auth/register")
@@ -72,6 +75,10 @@ class AuthControllerTest {
                         """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("AUTH_DUPLICATE_CREDENTIAL"));
+        var user = userRepository.findByPhoneNumber("+5511999990002").orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM outbox_events WHERE aggregate_type='USER' AND aggregate_id=? AND event_type='NOTIFICATION_ACCOUNT_REGISTERED_V1' AND payload_json=JSON_OBJECT()",
+                Long.class, user.getId())).isEqualTo(1L);
     }
 
     @Test
@@ -83,6 +90,24 @@ class AuthControllerTest {
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void registrationAndNotificationEventRollbackTogether() {
+        var userId = new java.util.concurrent.atomic.AtomicReference<Long>();
+        try {
+            new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(status -> {
+                authService.register(new la.meleva.fundraiser.identity.dto.RegisterRequest("Pessoa", "Teste", "+5511999990098"));
+                userId.set(userRepository.findByPhoneNumber("+5511999990098").orElseThrow().getId());
+                status.setRollbackOnly();
+            });
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        org.assertj.core.api.Assertions.assertThat(userRepository.findByPhoneNumber("+5511999990098")).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM outbox_events WHERE aggregate_type='USER' AND aggregate_id=? AND event_type='NOTIFICATION_ACCOUNT_REGISTERED_V1'",
+                Long.class, userId.get())).isZero();
     }
 
     @Test

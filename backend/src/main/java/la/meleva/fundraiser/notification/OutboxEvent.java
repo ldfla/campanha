@@ -33,7 +33,13 @@ public class OutboxEvent {
         this.status = "PENDING"; this.availableAt = Instant.now(); this.attemptCount = 0; this.maxAttempts = 5; this.createdAt = Instant.now();
     }
     public Long getId() { return id; }
+    public String getAggregateType() { return aggregateType; }
     public Long getAggregateId() { return aggregateId; }
     public String getEventType() { return eventType; }
     public void processed() { this.status = "PROCESSED"; this.processedAt = Instant.now(); }
+    public void deadLetterInvalidSource() {
+        this.status = "DEAD_LETTER";
+        this.attemptCount++;
+        this.errorMessage = "Origem inválida ou indisponível para simulação";
+    }
 }
