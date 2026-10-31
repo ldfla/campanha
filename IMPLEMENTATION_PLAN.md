@@ -619,6 +619,26 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 **Aceite:** zero duplicidades em carga concorrente; atribuição reproduzível nos testes, dados congeláveis e elegíveis.
 
+## P07-A — Carga inicial de prêmios nos números e auditoria do comprador
+
+**Dependências:** P07/P11.  
+**Entregáveis:** números 00000–99999 com prêmios definidos na inicialização, hash auditável das colunas de inicialização e snapshot do comprador isolado.
+
+Modelo de duas camadas em `campaign_numbers`:
+- **Inicialização** (hashed, imutável): `number_value` (índice 00000–99999), `prize_cents`, `prize_defined_at`.
+- **Operação** (atualizável, fora do hash): `purchased_at`, `purchase_modality`, `correlation_id`, `charity_institution` (obrigatória quando vendido), `referrer_phone` (opcional). PII do comprador (nome, telefone, pseudônimo) fica em `campaign_number_buyers` (1:1).
+
+- [x] `P07A-01` Gerar a tabela de números 00000–99999 como índice (uma linha por número).
+- [x] `P07A-02` Rotina aleatória (`SecureRandom`) define 10 números de R$ 100 e 100 de R$ 10; sem colisão — ao encontrar número já premiado, sorteia outro — e grava `prize_defined_at`.
+- [x] `P07A-03` Consulta/exportação das colunas de inicialização (número, prêmio, timestamp) com hash SHA-256 e endpoint de conferência a qualquer momento (`/numbers/prize-load/verify`).
+- [x] `P07A-04` Colunas de operação atualizáveis fora do hash (comprador, caridade, indicador, modalidade, `correlation_id`, `purchased_at`).
+- [x] `P07A-05` Caridade obrigatória quando o número é vendido (CHECK por `status`); divulgador precisa de ao menos 1 cota comprada para indicar.
+- [x] `P07A-06` Telefones normalizados/validados em E.164 (ITU-T E.164).
+- [x] `P07A-07` PII do comprador isolada em `campaign_number_buyers` com pseudônimo (iniciais + 4 últimos dígitos).
+- [x] `P07A-08` Testes: 2 tiers sem colisão, idempotência, detecção de adulteração do prêmio, colunas de operação fora do hash, E.164 inválido e cota do divulgador.
+
+**Aceite:** hash reproduzível das colunas de inicialização; nenhum número com dois prêmios; PII do comprador isolada e pseudonimizada.
+
 ## P08 — Links de indicação, atribuição e antifraude
 
 **Dependências:** P04/P07.  

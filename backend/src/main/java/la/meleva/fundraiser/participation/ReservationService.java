@@ -89,16 +89,16 @@ public class ReservationService {
             if (!Objects.equals(priorEntity, entityId)) throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
             return view(prior.get());
         }
-        var beneficiary = entityId == null ? java.util.Optional.<BeneficiaryEntity>empty()
-                : java.util.Optional.of(beneficiaries.findByPublicIdAndCampaignIdAndActiveTrue(entityId, campaign.getId())
-                        .orElseThrow(ErrorCode.VALIDATION_ERROR::toException));
+        if (entityId == null || entityId.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
+        var beneficiary = beneficiaries.findByPublicIdAndCampaignIdAndActiveTrue(entityId, campaign.getId())
+                .orElseThrow(ErrorCode.VALIDATION_ERROR::toException);
         long current = entries.countByCampaignIdAndUserIdAndStatusNotIn(campaign.getId(), userId,
                 List.of(ParticipationStatus.REJECTED, ParticipationStatus.INVALIDATED));
         if (current + count > campaign.getMaxEntriesPerUser()) throw ErrorCode.PARTICIPATION_LIMIT_EXCEEDED.toException();
         var available = numbers.lockAvailableByCampaignId(campaign.getId(), PageRequest.of(0, count));
         if (available.size() != count) throw ErrorCode.NUMBER_POOL_EXHAUSTED.toException();
         var request = requests.saveAndFlush(new ParticipationRequest(campaign.getId(), userId, key, count));
-        beneficiary.ifPresent(entity -> selections.save(new BeneficiarySelection(request.getId(), entity.getId())));
+        selections.save(new BeneficiarySelection(request.getId(), beneficiary.getId()));
         Instant expiresAt = now.plus(TTL);
         for (var number : available) {
             var entry = entries.save(new ParticipationEntry(campaign.getId(), userId, request.getId(), "DEMO_RESERVATION"));
@@ -133,6 +133,14 @@ public class ReservationService {
         }
         request.rejectReservation();
         return true;
+    }
+
+    @Transactional(readOnly = true)
+    public String charityForRequest(Long requestId) {
+        return selections.findByRequestId(requestId)
+                .flatMap(selection -> beneficiaries.findById(selection.getBeneficiaryId()))
+                .map(BeneficiaryEntity::getName)
+                .orElseThrow(ErrorCode.VALIDATION_ERROR::toException);
     }
 
     private ReservationView view(ParticipationRequest request) {

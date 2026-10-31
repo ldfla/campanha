@@ -18,6 +18,7 @@ import la.meleva.fundraiser.payment.PaymentStatus;
 import la.meleva.fundraiser.shared.ErrorCode;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.referral.ReferralService;
+import la.meleva.fundraiser.shared.PhoneNumbers;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class ReservationCheckoutService {
     private final Clock clock;
     private final UserRepository users;
     private final ReferralService referrals;
+    private final CampaignNumberBuyerRepository buyers;
 
     @Autowired
     public ReservationCheckoutService(ReservationService reservations, CampaignRepository campaigns,
@@ -51,12 +53,13 @@ public class ReservationCheckoutService {
             OrderRepository orders, OrderService orderService, PaymentRepository payments, PaymentProvider provider,
             ReservationLeaseRepository leases, CampaignNumberRepository numbers, ParticipationEntryRepository entries,
             EntryNumberAssignmentRepository assignments, EligibilityEventRepository eligibility, EntityManager entityManager,
-            UserRepository users, ReferralService referrals) {
+            UserRepository users, ReferralService referrals, CampaignNumberBuyerRepository buyers) {
         this.reservations=reservations; this.campaigns=campaigns; this.offers=offers; this.requests=requests;
         this.links=links; this.orders=orders; this.orderService=orderService; this.payments=payments; this.provider=provider;
         this.leases=leases; this.numbers=numbers; this.entries=entries; this.assignments=assignments;
         this.eligibility=eligibility; this.entityManager=entityManager; this.clock=Clock.systemUTC();
         this.users=Objects.requireNonNull(users, "users"); this.referrals=Objects.requireNonNull(referrals, "referrals");
+        this.buyers=Objects.requireNonNull(buyers, "buyers");
     }
 
     @Transactional
@@ -125,6 +128,15 @@ public class ReservationCheckoutService {
         if (active.size()!=request.getRequestedCount()) throw new IllegalStateException("reservation.lease_count_invalid");
         Instant now = Instant.now(clock);
         if (active.stream().anyMatch(lease -> lease.isExpiredAt(now))) throw ErrorCode.PAYMENT_ORDER_EXPIRED.toException();
+        String charity = reservations.charityForRequest(request.getId());
+        var buyer = users.findById(userId).orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
+        String referrerPhone = link.referralCode()
+                .flatMap(code -> referrals.promoterUserIdForActiveCode(campaign.getId(), code))
+                .filter(promoterId -> !promoterId.equals(userId))
+                .flatMap(users::findById)
+                .map(la.meleva.fundraiser.identity.User::getPhoneNumber)
+                .map(ReservationCheckoutService::e164OrNull).orElse(null);
+        String modality = ParticipationService.modality(request.getRequestedCount());
         for (var lease : active) {
             var number = numbers.findById(lease.getNumberId()).orElseThrow(ErrorCode.NUMBER_NOT_AVAILABLE::toException);
             Long entryId = Objects.requireNonNull(number.getEntryId(), "reservation.entryId");
@@ -132,11 +144,24 @@ public class ReservationCheckoutService {
             if (!request.getId().equals(entry.getRequestId()) || !campaign.getId().equals(number.getCampaignId())
                     || entry.getStatus()!=ParticipationStatus.REQUESTED) throw new IllegalStateException("reservation.entry_mismatch");
             number.assignReservation(entryId); entry.markAssigned(); lease.consume(now);
+            number.recordSale(now, modality, request.getPublicId(), charity, referrerPhone);
+            buyers.save(new CampaignNumberBuyer(number.getId(), campaign.getId(), userId,
+                    e164OrFail(buyer.getPhoneNumber()), buyer.getDisplayName(), buyer.getSurname()));
             assignments.save(new EntryNumberAssignment(entryId, number.getId()));
             eligibility.save(new EligibilityEvent(entryId, 1, "ELIGIBLE", "DEMO_PAYMENT_CONFIRMED"));
             link.referralCode().ifPresent(code -> referrals.attributeIfValid(campaign.getId(), code, entryId));
         }
         request.markAssigned();
+    }
+
+    private static String e164OrFail(String phone) {
+        try { return PhoneNumbers.toE164(phone); }
+        catch (RuntimeException exception) { throw ErrorCode.VALIDATION_ERROR.toException(); }
+    }
+
+    private static String e164OrNull(String phone) {
+        try { return PhoneNumbers.optionalE164(phone); }
+        catch (RuntimeException exception) { return null; }
     }
 
     public record CheckoutView(ReservationService.ReservationView reservation, String orderPublicId,

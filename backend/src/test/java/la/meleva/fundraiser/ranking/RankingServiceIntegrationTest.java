@@ -19,6 +19,8 @@ import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.participation.ParticipationEntry;
 import la.meleva.fundraiser.participation.ParticipationEntryRepository;
 import la.meleva.fundraiser.participation.ParticipationService;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiaryEntity;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiaryRepository;
 import la.meleva.fundraiser.ranking.dto.CreateSnapshotRequest;
 import la.meleva.fundraiser.ranking.dto.RankingRuleRequest;
 import la.meleva.fundraiser.ranking.dto.RankingView;
@@ -47,6 +49,7 @@ class RankingServiceIntegrationTest {
     @Autowired UserRepository users;
     @Autowired CampaignRepository campaigns;
     @Autowired ParticipationEntryRepository entries;
+    @Autowired BeneficiaryRepository beneficiaries;
     @Autowired RankingSnapshotRepository snapshots;
     @Autowired RankingPositionRepository positions;
     @Autowired JdbcTemplate jdbc;
@@ -224,7 +227,8 @@ class RankingServiceIntegrationTest {
         campaignService.transition(draft.manager().getId(), draft.campaign().getPublicId(), CampaignStatus.OPEN);
         Campaign campaign = campaigns.findByPublicId(draft.campaign().getPublicId()).orElseThrow();
         participation.initializeSeries(campaign.getPublicId());
-        return new Fixture(campaign, draft.organization(), draft.manager());
+        var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade " + slug));
+        return new Fixture(campaign, draft.organization(), draft.manager(), beneficiary);
     }
 
     private Fixture draftFixture(String slug) {
@@ -234,7 +238,7 @@ class RankingServiceIntegrationTest {
         Campaign campaign = campaigns.save(new Campaign(organization.getId(), "Campanha " + slug, slug, CampaignMode.DEMO));
         campaign.setNumberRange(0, 49);
         Campaign saved = campaigns.save(campaign);
-        return new Fixture(saved, organization, manager);
+        return new Fixture(saved, organization, manager, null);
     }
 
     private User user(String name, String surname, String phone) {
@@ -242,7 +246,8 @@ class RankingServiceIntegrationTest {
     }
 
     private ParticipationEntry entry(Fixture fixture, User user) {
-        participation.request(user.getId(), fixture.campaign().getPublicId(), UUID.randomUUID().toString(), 1);
+        participation.request(user.getId(), fixture.campaign().getPublicId(), UUID.randomUUID().toString(), 1,
+                fixture.beneficiary().getPublicId());
         return entryOf(fixture, user);
     }
 
@@ -256,5 +261,5 @@ class RankingServiceIntegrationTest {
         referrals.attribute(fixture.campaign().getId(), link.getCode(), entry.getId());
     }
 
-    private record Fixture(Campaign campaign, Organization organization, User manager) {}
+    private record Fixture(Campaign campaign, Organization organization, User manager, BeneficiaryEntity beneficiary) {}
 }

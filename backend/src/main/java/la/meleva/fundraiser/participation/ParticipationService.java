@@ -19,6 +19,7 @@ import la.meleva.fundraiser.participation.beneficiary.BeneficiarySelection;
 import la.meleva.fundraiser.participation.beneficiary.BeneficiarySelectionRepository;
 import org.jspecify.annotations.Nullable;
 import la.meleva.fundraiser.referral.ReferralService;
+import la.meleva.fundraiser.shared.PhoneNumbers;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -39,13 +40,15 @@ public class ParticipationService {
     private final BeneficiaryRepository beneficiaries;
     private final BeneficiarySelectionRepository selections;
     private final ReferralService referrals;
+    private final CampaignNumberBuyerRepository buyers;
 
     ParticipationService(CampaignRepository campaignRepository, CampaignNumberRepository numberRepository,
                          ParticipationRequestRepository requestRepository, ParticipationEntryRepository entryRepository,
                          EntryNumberAssignmentRepository assignmentRepository, EligibilityEventRepository eligibilityEventRepository,
                          UserRepository userRepository, AuditEventRepository auditEventRepository,
                          OutboxEventRepository outbox, BeneficiaryRepository beneficiaries,
-                         BeneficiarySelectionRepository selections, ReferralService referrals) {
+                         BeneficiarySelectionRepository selections, ReferralService referrals,
+                         CampaignNumberBuyerRepository buyers) {
         this.campaignRepository = campaignRepository;
         this.numberRepository = numberRepository;
         this.requestRepository = requestRepository;
@@ -58,6 +61,7 @@ public class ParticipationService {
         this.beneficiaries = beneficiaries;
         this.selections = selections;
         this.referrals = referrals;
+        this.buyers = buyers;
     }
 
     @Transactional
@@ -111,9 +115,16 @@ public class ParticipationService {
             }
             return allocationFor(prior);
         }
-        var beneficiary = entityId == null ? java.util.Optional.<BeneficiaryEntity>empty()
-                : java.util.Optional.of(beneficiaries.findByPublicIdAndCampaignIdAndActiveTrue(entityId, campaign.getId())
-                        .orElseThrow(ErrorCode.VALIDATION_ERROR::toException));
+        if (entityId == null || entityId.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
+        var beneficiary = beneficiaries.findByPublicIdAndCampaignIdAndActiveTrue(entityId, campaign.getId())
+                .orElseThrow(ErrorCode.VALIDATION_ERROR::toException);
+        var buyer = userRepository.findById(userId).orElseThrow(ErrorCode.PARTICIPATION_NOT_ELIGIBLE::toException);
+        String referrerPhone = referralCode == null || referralCode.isBlank() ? null
+                : referrals.promoterUserIdForActiveCode(campaign.getId(), referralCode)
+                        .filter(promoterId -> !promoterId.equals(userId))
+                        .flatMap(userRepository::findById)
+                        .map(la.meleva.fundraiser.identity.User::getPhoneNumber)
+                        .map(ParticipationService::e164OrNull).orElse(null);
         if (entryRepository.countByCampaignIdAndUserIdAndStatusNotIn(campaign.getId(), userId,
                 List.of(ParticipationStatus.REJECTED, ParticipationStatus.INVALIDATED)) + count > campaign.getMaxEntriesPerUser()) {
             throw ErrorCode.PARTICIPATION_LIMIT_EXCEEDED.toException();
@@ -127,11 +138,15 @@ public class ParticipationService {
         }
         List<CampaignNumber> available = numberRepository.lockAvailableByCampaignId(campaign.getId(), PageRequest.of(0, count));
         if (available.size() != count) throw ErrorCode.NUMBER_POOL_EXHAUSTED.toException();
+        String modality = modality(count);
         List<ParticipationAllocation.AssignedNumber> assigned = new ArrayList<>(count);
         for (CampaignNumber number : available) {
             ParticipationEntry entry = entryRepository.save(new ParticipationEntry(campaign.getId(), userId, request.getId(), "DEMO_SIMULATION"));
             entry.markAssigned();
             number.assignTo(entry.getId());
+            number.recordSale(now, modality, request.getPublicId(), beneficiary.getName(), referrerPhone);
+            buyers.save(new CampaignNumberBuyer(number.getId(), campaign.getId(), userId,
+                    e164OrFail(buyer.getPhoneNumber()), buyer.getDisplayName(), buyer.getSurname()));
             assignmentRepository.save(new EntryNumberAssignment(entry.getId(), number.getId()));
             eligibilityEventRepository.save(new EligibilityEvent(entry.getId(), 1, "ELIGIBLE", "DEMO_SIMULATION"));
             if (referralCode != null && !referralCode.isBlank()) {
@@ -144,9 +159,31 @@ public class ParticipationService {
             outbox.save(new OutboxEvent("PARTICIPATION_REQUEST", request.getId(),
                     "NOTIFICATION_PARTICIPATION_VALID_V1", "{}"));
         }
-        beneficiary.ifPresent(entity -> selections.save(new BeneficiarySelection(request.getId(),
-                java.util.Objects.requireNonNull(entity.getId(), "beneficiary.id"))));
+        selections.save(new BeneficiarySelection(request.getId(),
+                java.util.Objects.requireNonNull(beneficiary.getId(), "beneficiary.id")));
         return new ParticipationAllocation(request.getPublicId(), assigned);
+    }
+
+    private static String e164OrFail(String phone) {
+        try { return PhoneNumbers.toE164(phone); }
+        catch (RuntimeException exception) { throw ErrorCode.VALIDATION_ERROR.toException(); }
+    }
+
+    private static String e164OrNull(String phone) {
+        try { return PhoneNumbers.optionalE164(phone); }
+        catch (RuntimeException exception) { return null; }
+    }
+
+    /** Modalidade de compra derivada da quantidade, para auditoria. */
+    static String modality(int count) {
+        return switch (count) {
+            case 1 -> "UNIT";
+            case 10 -> "COMBO_10";
+            case 100 -> "COMBO_100";
+            case 1000 -> "COMBO_1000";
+            case 5000 -> "COMBO_5000";
+            default -> "CUSTOM";
+        };
     }
 
     @Transactional(readOnly = true)
