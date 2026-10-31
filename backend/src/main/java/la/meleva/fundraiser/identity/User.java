@@ -35,6 +35,12 @@ public class User {
     @Column(name = "email_normalized", length = 320)
     private String emailNormalized;
 
+    @Column(name = "cpf_encrypted", length = 512)
+    private String cpfEncrypted;
+
+    @Column(name = "cpf_hmac", length = 64)
+    private String cpfHmac;
+
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
@@ -99,6 +105,25 @@ public class User {
 
     public Instant getPhoneVerifiedAt() { return phoneVerifiedAt; }
 
+    public String getCpfEncrypted() { return cpfEncrypted; }
+
+    public String getCpfHmac() { return cpfHmac; }
+
+    public boolean hasCpf() { return cpfEncrypted != null; }
+
+    /** Guarda o CPF cifrado e o índice HMAC (usado apenas para recebimento de prêmio). */
+    public void setCpf(String encrypted, String hmac) {
+        this.cpfEncrypted = java.util.Objects.requireNonNull(encrypted, "encrypted");
+        this.cpfHmac = java.util.Objects.requireNonNull(hmac, "hmac");
+        this.updatedAt = Instant.now();
+    }
+
+    public void clearCpf() {
+        this.cpfEncrypted = null;
+        this.cpfHmac = null;
+        this.updatedAt = Instant.now();
+    }
+
     public void markPhoneVerified() {
         this.phoneVerifiedAt = Instant.now();
         this.updatedAt = this.phoneVerifiedAt;
@@ -121,6 +146,8 @@ public class User {
         this.emailNormalized = null;
         this.emailVerifiedAt = null;
         this.phoneVerifiedAt = null;
+        this.cpfEncrypted = null;
+        this.cpfHmac = null;
         this.status = UserStatus.DEACTIVATED;
         this.updatedAt = Instant.now();
     }

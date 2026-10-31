@@ -19,11 +19,13 @@ public class PrivacyService {
 
     private final UserRepository users;
     private final AuditEventRepository audits;
+    private final CpfService cpfs;
     private final JdbcTemplate jdbc;
 
-    PrivacyService(UserRepository users, AuditEventRepository audits, JdbcTemplate jdbc) {
+    PrivacyService(UserRepository users, AuditEventRepository audits, CpfService cpfs, JdbcTemplate jdbc) {
         this.users = users;
         this.audits = audits;
+        this.cpfs = cpfs;
         this.jdbc = jdbc;
     }
 
@@ -36,8 +38,9 @@ public class PrivacyService {
         List<String> memberships = jdbc.query("SELECT organization_id, role FROM memberships WHERE user_id=? AND status='ACTIVE'",
                 (rs, rowNum) -> rs.getLong(1) + ":" + rs.getString(2), userId);
         String email = user.getEmailNormalized();
+        String cpf = cpfs.masked(userId).orElse(null);
         return new ExportView(user.getPublicId(), user.getDisplayName(), user.getSurname(), user.getPhoneNumber(),
-                email == null ? null : maskEmail(email), user.getStatus().name(), user.getCreatedAt(),
+                email == null ? null : maskEmail(email), cpf, user.getStatus().name(), user.getCreatedAt(),
                 participations, referrals, memberships);
     }
 
@@ -74,7 +77,7 @@ public class PrivacyService {
     }
 
     public record ExportView(String publicId, String displayName, String surname, String phoneNumber, String email,
-                             String status, Instant createdAt, long participations, long referrals,
+                             String cpf, String status, Instant createdAt, long participations, long referrals,
                              List<String> memberships) {
         public ExportView { memberships = List.copyOf(memberships); }
     }

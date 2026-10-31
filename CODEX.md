@@ -314,7 +314,7 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 - [x] `P16-01` Threat model STRIDE com trust boundaries.
 - [x] `P16-02` Checklist OWASP ASVS 2 e API Top 10.
 - [x] `P16-03` Security headers (CSP, HSTS), CORS estrito, rate limits aprimorados.
-- [ ] `P16-04` PII cifrada: CPF via criptografia de campo, índice HMAC para busca. **PARCIAL/N/A**: domínio atual não tem CPF (identidade por telefone E.164); e-mail mascarado na exportação LGPD; cifra de campo/HMAC pendentes se o CPF for adotado.
+- [x] `P16-04` PII cifrada: CPF via criptografia de campo, índice HMAC para busca. CPF coletado só no recebimento do prêmio; AES-GCM + HMAC; máscara na leitura.
 - [x] `P16-05` Portal LGPD: acesso, correção, exclusão, exportação.
 - [x] `P16-06` SAST, SCA, secrets scan, SBOM em CI.
 - [x] `P16-07` Red-team local: `docs/security/red-team-report.md`.

@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findLockedById(Long id);
+
+    Optional<User> findByCpfHmac(String cpfHmac);
 }
