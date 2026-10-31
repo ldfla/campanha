@@ -33,6 +33,7 @@ public enum ErrorCode {
     // Prêmio
     PRIZE_CASH_NOT_ALLOWED("Prêmio em dinheiro não permitido para promoção comercial", 403),
     PRIZE_NOT_FOUND("Prêmio não encontrado", 404),
+    AWARD_INVALID_TRANSITION("Transição de entrega de prêmio inválida", 409),
 
     // Indicação
     REFERRAL_SELF_REFERRAL("Autoindicação não permitida", 409),

@@ -706,12 +706,12 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P12.  
 **Entregáveis:** gestão de contemplados e entrega.
 
-- [ ] `P13-01` Criar verificação de beneficiário e contato minimamente necessário.
-- [ ] `P13-02` Gerenciar estados do prêmio: `PENDING_VERIFICATION`, `VALIDATED`, `SCHEDULED`, `DELIVERED`, `DISPUTED`.
-- [ ] `P13-03` Armazenar evidência de entrega com acesso restrito e hash.
-- [ ] `P13-04` Tratar não localização, recusas, contestações e prazo conforme regulamento.
-- [ ] `P13-05` Não gerar instruções de transferência Pix de prêmio quando modalidade proibir dinheiro.
-- [ ] `P13-06` Gerar relatório final de prêmio entregue/pendente, com minimização de PII.
+- [x] `P13-01` Criar verificação de beneficiário e contato minimamente necessário. Telefone no formato do cadastro ou e-mail Jakarta válido, com timestamp e conta ativa, sob lock de leitura.
+- [x] `P13-02` Gerenciar estados do prêmio: `PENDING_VERIFICATION`, `VALIDATED`, `SCHEDULED`, `DELIVERED`, `DISPUTED`. Entrega exige `SCHEDULED`; contestação a partir de `VALIDATED`/`SCHEDULED`/`DELIVERED`.
+- [x] `P13-03` Armazenar evidência de entrega com acesso restrito e hash. URI + SHA-256 em `delivery_evidence_uri`/`delivery_evidence_sha256`; leitura restrita por vínculo de organização (upload binário ainda não integrado).
+- [x] `P13-04` Tratar não localização, recusas, contestações e prazo conforme regulamento. `dispute` com motivo auditado; desfecho final segue o regulamento (pendente de `G-LEGAL`).
+- [x] `P13-05` Não gerar instruções de transferência Pix de prêmio quando modalidade proibir dinheiro. `AwardTransferPolicy` recusa `CASH` com `PRIZE_CASH_NOT_ALLOWED`; nenhuma instrução de pagamento é criada.
+- [x] `P13-06` Gerar relatório final de prêmio entregue/pendente, com minimização de PII. `summary` retorna contagem por status, sem nome, telefone ou e-mail.
 
 **Aceite:** toda premiação possui cadeia de evidência; sem exposição pública de dados privados.
 

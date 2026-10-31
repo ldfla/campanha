@@ -265,12 +265,12 @@ Pseudônimos: iniciais do nome + últimos 4 dígitos do telefone.
 
 **Branch existente:** `feature/p13-award-delivery`
 
-- [ ] `P13-01` Verificação de beneficiário: contato mínimo validado.
-- [ ] `P13-02` Estados: `PENDING_VERIFICATION` → `VALIDATED` → `SCHEDULED` → `DELIVERED` → `DISPUTED`.
-- [ ] `P13-03` Evidência de entrega: armazenamento com hash, acesso restrito.
-- [ ] `P13-04` Tratamento: não localização, recusa, contestação, prazo.
-- [ ] `P13-05` Pix bloqueado quando modalidade proibir dinheiro.
-- [ ] `P13-06` Relatório final com minimização de PII.
+- [x] `P13-01` Verificação de beneficiário: contato mínimo validado.
+- [x] `P13-02` Estados: `PENDING_VERIFICATION` → `VALIDATED` → `SCHEDULED` → `DELIVERED` → `DISPUTED`.
+- [x] `P13-03` Evidência de entrega: armazenamento com hash, acesso restrito.
+- [x] `P13-04` Tratamento: não localização, recusa, contestação, prazo.
+- [x] `P13-05` Pix bloqueado quando modalidade proibir dinheiro.
+- [x] `P13-06` Relatório final com minimização de PII.
 
 ### Bloco E — Completar P14 (PR #14 em draft)
 
