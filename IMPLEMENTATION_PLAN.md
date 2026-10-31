@@ -638,15 +638,15 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P05/P07.  
 **Entregáveis:** fluxo financeiro completo em DEMO/sandbox, não ativável indevidamente em produção.
 
-- [ ] `P09-01` Criar interface `PaymentProvider` (`createCharge`, `getCharge`, `refund`, `verifyWebhook`).
-- [ ] `P09-02` Implementar `MockPaymentProvider` com cenários: pago, expirado, duplicado, atrasado, falha, estorno.
-- [ ] `P09-03` Implementar `OrderService` com dinheiro em centavos, `txid` idempotente e máquina de estados.
-- [ ] `P09-04` Criar inbox webhook com validação do provedor, replay protection e unicidade de evento.
-- [ ] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
-- [ ] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
-- [ ] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
+- [x] `P09-01` Criar interface `PaymentProvider` (`createCharge`, `getCharge`, `refund`, `verifyWebhook`).
+- [x] `P09-02` Implementar `MockPaymentProvider` com cenários: pago, expirado, duplicado, atrasado, falha, estorno.
+- [x] `P09-03` Implementar `OrderService` com dinheiro em centavos, `txid` idempotente e máquina de estados.
+- [x] `P09-04` Criar inbox webhook com validação do provedor, replay protection e unicidade de evento.
+- [x] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
+- [x] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
+- [x] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
 - [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação.
-- [ ] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
+- [x] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
 
 **Aceite:** 100% dos efeitos são idempotentes; não existe rota para cobrança real sem `G-LEGAL`, `G-PSP`, `G-FINANCE` e live gate.
 
