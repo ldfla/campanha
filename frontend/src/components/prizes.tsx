@@ -74,11 +74,11 @@ export function Prizes() {
   return (
     <Section tone="white">
       <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-[var(--color-ink)]">
-        O que você pode ganhar
+        Como você é retribuído
       </h2>
       <p className="mt-2 text-center text-sm text-[var(--color-ink-soft)]">
-        {PRIZES.length} prêmios principais + {SURPRISE_PRIZES.count}{" "}
-        prêmios-surpresa
+        {PRIZES.length} retribuições principais + {SURPRISE_PRIZES.count}{" "}
+        surpresas
       </p>
 
       <div className="mt-8 flex w-full max-w-lg items-center justify-center gap-3 rounded-2xl border border-[var(--color-gold)]/35 bg-[var(--color-gold)]/[0.08] px-5 py-3">
@@ -152,7 +152,7 @@ export function Prizes() {
       <div className="mt-14 flex w-full flex-col items-center gap-4">
         <CTAButton showPrice />
         <p className="text-xs text-[var(--color-ink-soft)] sm:text-sm">
-          Quanto mais números, mais chances
+          Quanto mais você contribui, mais chances de retribuição
         </p>
       </div>
     </Section>

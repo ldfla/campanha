@@ -44,9 +44,9 @@ export default function Home() {
             Cada tijolinho importa
           </h1>
 
-          <p className="mx-auto mt-4 max-w-md text-center text-base text-white/75">
-            Ajude a construir esse sonho e concorra a prêmios.
-            R$&nbsp;18.500 em premiações, sorteio pela Loteria Federal.
+          <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-white/75">
+            Eu não estou pedindo um favor.
+            Estou dividindo um sonho com quem quer construir junto.
           </p>
 
           <div className="my-10 flex w-full justify-center md:my-12">
@@ -74,7 +74,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Combos */}
+      {/* 2. A história */}
+      <Section tone="white">
+        <div className="mx-auto max-w-xl">
+          <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
+            Todo negócio começa com alguém acreditando antes de existir
+          </h2>
+          <p className="mt-2 text-center text-base text-[var(--color-ink-soft)]">
+            Hoje, esse alguém pode ser você.
+          </p>
+
+          <div className="mt-8 space-y-5 text-base leading-relaxed text-[var(--color-ink-soft)]">
+            <p>
+              Estou vendendo o que tenho, abrindo o que posso e devolvendo o que consigo.
+              Porque sonho bom é sonho dividido.
+            </p>
+            <p>
+              Cada contribuição vira um tijolo real: o computador que vai rodar o projeto.
+              O site que vai me apresentar ao mundo. O designer que vai dar rosto à ideia.
+              O jurídico que vai me proteger. A marca que vai me tornar real.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      {/* 3. A troca */}
+      <Section tone="snow">
+        <div className="mx-auto max-w-xl">
+          <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
+            Eu não venho de mãos vazias
+          </h2>
+
+          <div className="mt-8 space-y-5 text-base leading-relaxed text-[var(--color-ink-soft)]">
+            <p>
+              Devolvo com o que tenho: minhas câmeras, meu computador atual, retribuições
+              em dinheiro e participação no que vamos construir juntos.
+            </p>
+            <p>
+              São 120 chances de ser retribuído de verdade. Não é esmola.
+              É troca justa, com o coração no meio.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      {/* 4. Combos */}
       <ComboCards />
 
       {/* 3. Prêmios */}
@@ -86,15 +130,39 @@ export default function Home() {
       {/* 5. Feed da comunidade */}
       <LiveFeed />
 
-      {/* 6. CTA final + contagem regressiva */}
+      {/* 7. Impacto social */}
+      <Section tone="snow">
+        <div className="mx-auto max-w-xl">
+          <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
+            Seu apoio vai além
+          </h2>
+          <p className="mt-4 text-center text-base leading-relaxed text-[var(--color-ink-soft)]">
+            Parte da sua contribuição você escolhe para onde vai.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            {["GRAAC", "Casa Hope", "AACD", "TUCCA", "ITACI", "AACC"].map((org) => (
+              <span
+                key={org}
+                className="rounded-full border border-[var(--color-jade)]/20 bg-[var(--color-jade)]/[0.06] px-5 py-2.5 text-sm font-semibold text-[var(--color-jade)]"
+              >
+                {org}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-sm text-[var(--color-ink-soft)]">
+            Seu apoio ao meu sonho também vira apoio a quem mais precisa.
+          </p>
+        </div>
+      </Section>
+
+      {/* 8. CTA final + contagem regressiva */}
       <Section tone="forest" spacing="tall">
         <div className="mx-auto flex max-w-lg flex-col items-center">
-          <h2 className="font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.5rem)] font-bold leading-tight text-white">
-            Falta pouco pra fechar
-          </h2>
-          <p className="mt-4 max-w-sm text-base text-white/70">
-            Cada número que sai é um a menos disponível. Entre agora e faça
-            parte dessa comunidade.
+          <p className="max-w-sm text-center text-base leading-relaxed text-white/70">
+            Eu queria pedir mais. Mas estou sendo honesto com o que preciso agora:
+            o suficiente para começar, e justo o bastante para que muita gente ganhe junto.
           </p>
 
           <div className="my-10 w-full">

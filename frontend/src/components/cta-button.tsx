@@ -40,13 +40,13 @@ export function CTAButton({
       >
         {showPrice ? (
           <>
-            Garantir meu número
+            Construir junto
             <span className="rounded-md bg-white/25 px-2.5 py-1 text-[11px] font-extrabold tabular-nums tracking-wide text-white">
               {formatBRL(PRICE_UNIT_CENTS)}
             </span>
           </>
         ) : (
-          "Garantir meu número"
+          "Construir junto"
         )}
       </a>
       {demo && (

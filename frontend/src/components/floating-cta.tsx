@@ -42,7 +42,7 @@ export function FloatingCTA() {
             href="/participar"
             className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-orange)] px-6 py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.97]"
           >
-            Participar
+            Construir junto
             <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
               {formatBRL(PRICE_UNIT_CENTS)}
             </span>
