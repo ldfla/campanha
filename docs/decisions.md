@@ -10,6 +10,7 @@
 | D-002 | MySQL 8.4 + outbox pattern, sem Redis/Kafka | ADR-0002 | 2026-10-30 |
 | D-003 | Três modos operacionais com gates humanos | ADR-0003 | 2026-10-30 |
 | D-004 | Money como long centavos (padrão Stripe) | ADR-0004 | 2026-10-30 |
+| D-005 | Rankings por escopo, desempate fixo e snapshots com hash | ADR-0006 | 2026-10-31 |
 
 ## Decisões Pendentes (OPEN — BLOCKING LIVE)
 

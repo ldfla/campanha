@@ -655,14 +655,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P07/P08/P09.  
 **Entregáveis:** rankings governados por regras aprovadas.
 
-- [ ] `P10-01` Criar regra configurável de ranking e validação legal de métrica.
-- [ ] `P10-02` Calcular ranking de divulgadores por participações atribuídas e elegíveis.
-- [ ] `P10-03` Implementar ranking de participantes somente como SIMULAÇÃO até modalidade/regulamento legalmente aprovados.
-- [ ] `P10-04` Especificar desempate determinístico e estável antes da abertura.
-- [ ] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
-- [ ] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
-- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings.
-- [ ] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
+- [x] `P10-01` Criar regra configurável de ranking e validação legal de métrica.
+- [x] `P10-02` Calcular ranking de divulgadores por participações atribuídas e elegíveis.
+- [x] `P10-03` Implementar ranking de participantes somente como SIMULAÇÃO até modalidade/regulamento legalmente aprovados.
+- [x] `P10-04` Especificar desempate determinístico e estável antes da abertura.
+- [x] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
+- [x] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
+- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. **PARCIAL**: invalidação/congelamento cobertos; estornos de pagamento só terão efeito quando `orders`/`payments` forem ligados a `participation_entries` (P17).
+- [x] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
 
 **Aceite:** rankings reproduzíveis com mesma massa de eventos; impossibilidade de mudar desempate após abertura.
 
