@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { rankings, type RankingSnapshot, type RankingPosition, ApiError } from "@/lib/api-client";
+import { rankings, type RankingView, type RankingRow, type RankingScope, ApiError } from "@/lib/api-client";
 import { isDemoMode, RANKING_REWARDS, formatBRL } from "@/lib/campaign-config";
 
 const DEMO_CAMPAIGN_ID = "demo";
 
-const SCOPES = [
-  { id: "BUYERS", title: "Maiores apoiadores", subtitle: "Quem mais comprou números · Desempate: data da primeira cota", accent: "text-[var(--color-gold)] bg-[var(--color-gold)]/10", metricLabel: "números" },
-  { id: "INFLUENCERS", title: "Maiores divulgadores", subtitle: "Mais indicações convertidas pelo link · Desempate: data da primeira cota", accent: "text-[var(--color-ember)] bg-[var(--color-ember)]/10", metricLabel: "indicações" },
-] as const;
+const SCOPES: readonly { id: RankingScope; title: string; subtitle: string; accent: string; metricLabel: string }[] = [
+  { id: "PARTICIPANT", title: "Maiores apoiadores", subtitle: "Quem mais comprou números · Desempate: data da primeira cota", accent: "text-[var(--color-gold)] bg-[var(--color-gold)]/10", metricLabel: "números" },
+  { id: "PROMOTER", title: "Maiores divulgadores", subtitle: "Mais indicações convertidas pelo link · Desempate: data da primeira cota", accent: "text-[var(--color-ember)] bg-[var(--color-ember)]/10", metricLabel: "indicações" },
+];
 
 const PRIZE_MAP: Record<string, Record<number, string>> = Object.fromEntries(
   RANKING_REWARDS.map((r) => [
@@ -31,7 +31,7 @@ function RankingTable({
 }: {
   title: string;
   subtitle: string;
-  entries: RankingPosition[];
+  entries: RankingRow[];
   accent: string;
   metricLabel: string;
   prizes: Record<number, string>;
@@ -61,22 +61,22 @@ function RankingTable({
       ) : (
         <div className="divide-y divide-black/[0.03]">
           {entries.map((entry) => {
-            const prize = prizes[entry.rank] ?? "";
+            const prize = prizes[entry.position] ?? "";
             return (
               <div
-                key={`${entry.rank}-${entry.pseudonym}`}
-                className={`flex items-center gap-4 px-5 py-3.5 md:px-6 md:py-4 ${entry.rank <= 3 ? "bg-[var(--color-snow)]" : ""}`}
+                key={`${entry.position}-${entry.pseudonym}`}
+                className={`flex items-center gap-4 px-5 py-3.5 md:px-6 md:py-4 ${entry.position <= 3 ? "bg-[var(--color-snow)]" : ""}`}
               >
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                  entry.rank === 1
+                  entry.position === 1
                     ? "bg-[var(--color-gold)] text-amber-900 animate-gold-glow"
-                    : entry.rank === 2
+                    : entry.position === 2
                     ? "bg-gray-300 text-gray-700"
-                    : entry.rank === 3
+                    : entry.position === 3
                     ? "bg-orange-300 text-orange-800"
                     : "bg-[var(--color-midnight)]/[0.06] text-[var(--color-midnight)]/40"
                 }`}>
-                  {entry.rank}
+                  {entry.position}
                 </span>
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-[var(--color-midnight)] tabular-nums">
@@ -84,7 +84,7 @@ function RankingTable({
                   </span>
                 </div>
                 <span className="text-sm text-[var(--color-midnight)]/45 tabular-nums shrink-0">
-                  {entry.metricValue.toLocaleString("pt-BR")} {metricLabel}
+                  {entry.score.toLocaleString("pt-BR")} {metricLabel}
                 </span>
                 {prize && (
                   <span className={`text-xs font-bold ${accent} px-2.5 py-1 rounded-full shrink-0`}>
@@ -102,25 +102,25 @@ function RankingTable({
 
 export default function RankingsPage() {
   const demoMode = isDemoMode();
-  const [data, setData] = useState<Record<string, { positions: RankingPosition[]; loading: boolean; error: string | null }>>(
-    Object.fromEntries(SCOPES.map((s) => [s.id, { positions: [], loading: true, error: null }])),
+  const [data, setData] = useState<Record<string, { entries: RankingRow[]; loading: boolean; error: string | null }>>(
+    Object.fromEntries(SCOPES.map((s) => [s.id, { entries: [], loading: true, error: null }])),
   );
 
   useEffect(() => {
     for (const scope of SCOPES) {
       rankings
-        .getByScope(DEMO_CAMPAIGN_ID, scope.id)
-        .then((snapshot: RankingSnapshot) => {
+        .current(DEMO_CAMPAIGN_ID, scope.id)
+        .then((view: RankingView) => {
           setData((prev) => ({
             ...prev,
-            [scope.id]: { positions: snapshot.positions, loading: false, error: null },
+            [scope.id]: { entries: view.entries, loading: false, error: null },
           }));
         })
         .catch((err: unknown) => {
           const message = err instanceof ApiError ? err.detail : "Não foi possível carregar";
           setData((prev) => ({
             ...prev,
-            [scope.id]: { positions: [], loading: false, error: message },
+            [scope.id]: { entries: [], loading: false, error: message },
           }));
         });
     }
@@ -164,7 +164,7 @@ export default function RankingsPage() {
                   key={scope.id}
                   title={scope.title}
                   subtitle={scope.subtitle}
-                  entries={d?.positions ?? []}
+                  entries={d?.entries ?? []}
                   accent={scope.accent}
                   metricLabel={scope.metricLabel}
                   prizes={PRIZE_MAP[scope.id] ?? {}}

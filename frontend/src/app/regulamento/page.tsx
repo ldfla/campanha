@@ -37,7 +37,7 @@ Os prêmios em espécie (equipamentos) serão entregues conforme disponibilidade
   },
   {
     title: "3. Dos números e participação",
-    content: `Os números disponíveis vão de 00000 a 99999, totalizando 100.000 (cem mil) posições. Cada número custa R$ 0,65 (sessenta e cinco centavos). O participante pode adquirir quantos números desejar, dentro dos combos disponíveis.
+    content: `Os números disponíveis vão de 00000 a 99999, totalizando 100.000 (cem mil) posições. Cada número custa R$ 1,00 (um real). O participante pode adquirir quantos números desejar, dentro dos combos disponíveis.
 
 A atribuição dos números é aleatória e será feita pelo sistema após confirmação do pagamento. Para participar, é necessário informar: nome, sobrenome e número de WhatsApp (usado como identificador pessoal).
 

@@ -1,3 +1,4 @@
+import { BeneficiaryRanking } from "@/components/beneficiary-ranking";
 import { CommunityRing } from "@/components/community-ring";
 import { ComboCards } from "@/components/combo-cards";
 import { Countdown } from "@/components/countdown";
@@ -7,6 +8,7 @@ import { HowItWorks } from "@/components/how-it-works";
 import { LiveFeed } from "@/components/live-feed";
 import { Prizes } from "@/components/prizes";
 import { Section } from "@/components/section";
+import { SponsorSpaces } from "@/components/sponsor-spaces";
 import { UrgencyBar } from "@/components/urgency-bar";
 
 export default function Home() {
@@ -124,48 +126,17 @@ export default function Home() {
       {/* 3. Prêmios */}
       <Prizes />
 
-      {/* 5. Quem você deseja ajudar */}
-      <Section tone="snow">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="text-center font-[family-name:var(--font-heading)] text-[clamp(1.5rem,4vw,2.25rem)] font-bold leading-tight text-[var(--color-ink)]">
-            Quem você deseja ajudar
-          </h2>
-          <p className="mt-3 text-center text-base leading-relaxed text-[var(--color-ink-soft)]">
-            Parte da sua contribuição você escolhe para onde vai.
-            Seu apoio ao meu sonho também vira apoio a quem mais precisa.
-          </p>
-
-          <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-6">
-            {[
-              { name: "GRAAC", color: "#E4002B", initials: "G" },
-              { name: "Casa Hope", color: "#00A651", initials: "CH" },
-              { name: "AACD", color: "#0072BC", initials: "A" },
-              { name: "TUCCA", color: "#8B5CF6", initials: "T" },
-              { name: "ITACI", color: "#F59E0B", initials: "I" },
-              { name: "AACC", color: "#EC4899", initials: "A" },
-            ].map((org) => (
-              <div key={org.name} className="flex flex-col items-center gap-2.5">
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-sm"
-                  style={{ backgroundColor: org.color }}
-                  aria-hidden="true"
-                >
-                  {org.initials}
-                </div>
-                <span className="text-center text-xs font-semibold text-[var(--color-ink)]">
-                  {org.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
+      {/* 5. Ranking de instituições apoiadas */}
+      <BeneficiaryRanking />
 
       {/* 6. Como participar */}
       <HowItWorks />
 
       {/* 7. Feed da comunidade */}
       <LiveFeed />
+
+      {/* 8. Espaços publicitários */}
+      <SponsorSpaces />
 
       {/* 8. CTA final + contagem regressiva */}
       <Section tone="forest" spacing="tall">
@@ -205,6 +176,12 @@ export default function Home() {
             </a>
             <a href="/numeros" className="transition-colors hover:text-white/80">
               Números
+            </a>
+            <a href="/transparencia" className="transition-colors hover:text-white/80">
+              Transparência
+            </a>
+            <a href="/apuracao" className="transition-colors hover:text-white/80">
+              Apuração
             </a>
             <a href="/meus-numeros" className="transition-colors hover:text-white/80">
               Meus números

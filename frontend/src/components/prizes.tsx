@@ -1,6 +1,6 @@
 import { CTAButton } from "@/components/cta-button";
 import { Section } from "@/components/section";
-import { PRIZES, SURPRISE_PRIZES, RANKING_REWARDS, formatBRL } from "@/lib/campaign-config";
+import { PRIZES, SURPRISE_PRIZES, RANKING_REWARDS, PRODUCT_LINKS, formatBRL } from "@/lib/campaign-config";
 
 const prizeStyles = [
   {
@@ -132,6 +132,19 @@ export function Prizes() {
               >
                 {formatBRL(prize.valueCents)}
               </span>
+              {PRODUCT_LINKS[`${i + 1}-premio`] && (
+                <a
+                  href={PRODUCT_LINKS[`${i + 1}-premio`]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--color-iris)] hover:underline underline-offset-2"
+                >
+                  Ver produto
+                  <svg viewBox="0 0 16 16" fill="none" className="h-3 w-3" aria-hidden="true">
+                    <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              )}
             </article>
           );
         })}

@@ -2,7 +2,7 @@ export const CAMPAIGN_MODE = "DEMO" as const;
 
 export const CAMPAIGN_STATUS: "ACTIVE" | "SOLD_OUT" | "SUSPENDED" = "ACTIVE";
 
-export const PRICE_UNIT_CENTS = 65;
+export const PRICE_UNIT_CENTS = 100;
 
 export const TOTAL_NUMBERS = 100_000;
 
@@ -17,10 +17,10 @@ export const ORGANIZER = {
 export const DRAWING_DATE = "2026-12-20" as const;
 
 export const COMBOS = [
-  { id: "curioso", qty: 10, totalCents: 650, label: "Curioso", unitCents: 65, badge: null, popular: false },
-  { id: "torcida", qty: 100, totalCents: 5000, label: "Torcida", unitCents: 50, badge: "Mais Popular", popular: true },
-  { id: "campeao", qty: 1000, totalCents: 46000, label: "Campeão", unitCents: 46, badge: "Máximo Desconto", popular: false },
-  { id: "anjo", qty: 5000, totalCents: 220_000, label: "Anjo", unitCents: 44, badge: "Apoiador", popular: false },
+  { id: "combo10", qty: 10, totalCents: 950, label: "Combo 10", unitCents: 95, discountPct: 5, badge: null, popular: false },
+  { id: "combo100", qty: 100, totalCents: 8_700, label: "Combo 100", unitCents: 87, discountPct: 13, badge: "Mais Popular", popular: true },
+  { id: "combo1000", qty: 1_000, totalCents: 74_000, label: "Combo 1.000", unitCents: 74, discountPct: 26, badge: "Máximo Desconto", popular: false },
+  { id: "combo5000", qty: 5_000, totalCents: 345_000, label: "Combo 5.000", unitCents: 69, discountPct: 31, badge: "Apoiador", popular: false },
 ] as const;
 
 export const PRIZES = [
@@ -58,7 +58,7 @@ export const PRIZES = [
 
 export const RANKING_REWARDS = [
   {
-    scope: "BUYERS" as const,
+    scope: "PARTICIPANT" as const,
     title: "Maiores apoiadores",
     subtitle: "Quem mais comprou números",
     tiebreaker: "Data da primeira cota apoiada",
@@ -69,7 +69,7 @@ export const RANKING_REWARDS = [
     ],
   },
   {
-    scope: "INFLUENCERS" as const,
+    scope: "PROMOTER" as const,
     title: "Maiores divulgadores",
     subtitle: "Mais indicações convertidas pelo link",
     tiebreaker: "Data da primeira cota apoiada",
@@ -85,6 +85,23 @@ export const SURPRISE_PRIZES = [
   { count: 10, valueCentsEach: 10_000, label: "10 prêmios-surpresa", unitLabel: "R$ 100,00 cada" },
   { count: 100, valueCentsEach: 1_000, label: "100 prêmios-surpresa", unitLabel: "R$ 10,00 cada" },
 ] as const;
+
+export const BENEFICIARY_ENTITIES = [
+  { id: "graac", name: "GRAAC", color: "#E4002B" },
+  { id: "casa-hope", name: "Casa Hope", color: "#00A651" },
+  { id: "aacd", name: "AACD", color: "#0072BC" },
+  { id: "tucca", name: "TUCCA", color: "#8B5CF6" },
+  { id: "aacc", name: "AACC", color: "#EC4899" },
+] as const;
+
+export const BENEFICIARY_POOL_CENTS = 1_000_000;
+
+export const PRODUCT_LINKS: Record<string, string> = {
+  "1-premio": "https://meli.la/13N8mXA",
+  "2-premio": "https://meli.la/2Tpgeiy",
+};
+
+export const DEMO_CAMPAIGN_ID = "demo";
 
 export function formatBRL(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {

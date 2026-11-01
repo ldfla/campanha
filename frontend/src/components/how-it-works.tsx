@@ -3,7 +3,7 @@ import { Section } from "@/components/section";
 const steps = [
   {
     title: "Escolha quantos números quer",
-    text: "A partir de R$ 0,65 por número. Sem limite.",
+    text: "A partir de R$ 1,00 por número. Sem limite.",
     icon: (
       <svg viewBox="0 0 40 40" fill="none" className="h-10 w-10" aria-hidden="true">
         <rect x="6" y="6" width="28" height="28" rx="8" stroke="var(--color-green)" strokeWidth="2" />
