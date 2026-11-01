@@ -84,7 +84,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/surprises/campaigns/*/commitment").permitAll()
                 .requestMatchers(HttpMethod.GET, "/participations/campaigns/*/numbers/prize-load", "/participations/campaigns/*/numbers/prize-load/export", "/participations/campaigns/*/numbers/prize-load/verify").permitAll()
                 .requestMatchers(HttpMethod.GET, "/drawings/campaigns/*/draws/*/transparency").permitAll()
-                .requestMatchers("/admin/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
+                .requestMatchers("/_cx/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
                 .requestMatchers("/auth/me", "/auth/logout").authenticated()
                 .anyRequest().authenticated()
             )
