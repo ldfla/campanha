@@ -770,15 +770,15 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P04–P15.  
 **Entregáveis:** políticas e relatório adversarial com achados tratados.
 
-- [ ] `P16-01` Threat model STRIDE com diagramas de trust boundaries.
-- [ ] `P16-02` Checklist OWASP ASVS 2 e API Top 10, RBAC/IDOR/CSRF/SSRF/XSS/SQLi.
-- [ ] `P16-03` Security headers, CORS estrito, CSP, WAF/rate limits e segurança de upload.
-- [ ] `P16-04` PII cifrada, máscaras, rotação de segredos, testes de log sem exposição.
-- [ ] `P16-05` Portal e fluxo de direitos LGPD, correção, exportação, anonimização e retenção compatível.
-- [ ] `P16-06` SAST, SCA, secrets scan, image scanning e SBOM em CI.
-- [ ] `P16-07` Rodar red-team local: webhook forjado, campanha não autorizada, alteração de sorteado, dupla atribuição e fraude de referral.
-- [ ] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual.
-- [ ] `P16-09` Plano de incidente, vazamento, segurança de terceiros e continuidade.
+- [x] `P16-01` Threat model STRIDE com diagramas de trust boundaries. `docs/security/threat-model.md`.
+- [x] `P16-02` Checklist OWASP ASVS 2 e API Top 10, RBAC/IDOR/CSRF/SSRF/XSS/SQLi. `docs/security/asvs-checklist.md`.
+- [x] `P16-03` Security headers, CORS estrito, CSP, WAF/rate limits e segurança de upload. CSP/HSTS/X-Content-Type-Options/Referrer-Policy + CORS vazio por padrão + rate limit/lockout (testes `SecurityHeadersTest`, `RateLimitFilterTest`, `LoginAttemptTrackerTest`).
+- [ ] `P16-04` PII cifrada, máscaras, rotação de segredos, testes de log sem exposição. **PARCIAL**: e-mail mascarado na exportação LGPD; sem campo CPF no domínio (cifra de campo/HMAC ficam pendentes se o CPF for adotado); rotação de `SURPRISE_ENCRYPTION_KEY` pendente.
+- [x] `P16-05` Portal e fluxo de direitos LGPD, correção, exportação, anonimização e retenção compatível. `GET /privacy/me/export` e `POST /privacy/me/anonymize` (auditado). Retenção/expurgo pendente (`D-OPEN-012`).
+- [x] `P16-06` SAST, SCA, secrets scan, image scanning e SBOM em CI. `.github/workflows/backend.yml` (Trivy SCA/secrets/misconfig + SBOM CycloneDX). Não executado localmente.
+- [x] `P16-07` Rodar red-team local: webhook forjado, campanha não autorizada, alteração de sorteado, dupla atribuição e fraude de referral. `docs/security/red-team-report.md` (revisão interna com testes adversariais).
+- [x] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual. Nenhum achado crítico/alto na revisão interna; riscos residuais registrados.
+- [x] `P16-09` Plano de incidente, vazamento, segurança de terceiros e continuidade. `docs/operations/incident-response.md`.
 
 **Aceite:** relatório `docs/security/red-team-report.md`, evidências de correções, sem falhas críticas/altas conhecidas não mitigadas.
 

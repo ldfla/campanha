@@ -113,6 +113,18 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    /** Remove PII do titular (LGPD): mantém o registro e a trilha, substitui os dados pessoais. */
+    public void anonymize(String anonymizedPhone) {
+        this.displayName = "Titular";
+        this.surname = "Anonimizado";
+        this.phoneNumber = anonymizedPhone;
+        this.emailNormalized = null;
+        this.emailVerifiedAt = null;
+        this.phoneVerifiedAt = null;
+        this.status = UserStatus.DEACTIVATED;
+        this.updatedAt = Instant.now();
+    }
+
     public Instant getCreatedAt() { return createdAt; }
 
     public Instant getUpdatedAt() { return updatedAt; }
