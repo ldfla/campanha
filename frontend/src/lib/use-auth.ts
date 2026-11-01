@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { auth, type UserResponse } from "./api-client";
+import { auth, type CodeChallengeResponse, type UserResponse } from "./api-client";
 
 interface AuthState {
   user: UserResponse | null;
@@ -10,8 +10,12 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  register: (firstName: string, surname: string, phoneNumber: string) => Promise<UserResponse>;
-  login: (phoneNumber: string) => Promise<UserResponse>;
+  /** Cadastra e solicita código; não autentica. */
+  register: (firstName: string, surname: string, phoneNumber: string) => Promise<CodeChallengeResponse>;
+  /** Solicita código de acesso; não autentica nem revela se o telefone existe. */
+  requestCode: (phoneNumber: string) => Promise<CodeChallengeResponse>;
+  /** Verifica o código recebido e só então cria a sessão. */
+  verifyCode: (phoneNumber: string, code: string) => Promise<UserResponse>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -60,31 +64,25 @@ export function useAuthProvider(): AuthContextValue {
   }, []);
 
   const register = useCallback(
-    async (firstName: string, surname: string, phoneNumber: string) => {
-      setState((s) => ({ ...s, loading: true, error: null }));
-      try {
-        const user = await auth.register({ firstName, surname, phoneNumber });
-        setState({ user, loading: false, error: null });
-        return user;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Erro ao registrar";
-        setState((s) => ({ ...s, loading: false, error: message }));
-        throw err;
-      }
-    },
+    (firstName: string, surname: string, phoneNumber: string) =>
+      auth.register({ firstName, surname, phoneNumber }),
     [],
   );
 
-  const login = useCallback(async (phoneNumber: string) => {
+  const requestCode = useCallback(
+    (phoneNumber: string) => auth.login({ phoneNumber }),
+    [],
+  );
+
+  const verifyCode = useCallback(async (phoneNumber: string, code: string) => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const user = await auth.login({ phoneNumber });
+      const user = await auth.verifyLogin(phoneNumber, code);
       setState({ user, loading: false, error: null });
       return user;
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao entrar";
+        err instanceof Error ? err.message : "Erro ao verificar o código";
       setState((s) => ({ ...s, loading: false, error: message }));
       throw err;
     }
@@ -102,7 +100,8 @@ export function useAuthProvider(): AuthContextValue {
   return {
     ...state,
     register,
-    login,
+    requestCode,
+    verifyCode,
     logout: doLogout,
     refresh,
   };

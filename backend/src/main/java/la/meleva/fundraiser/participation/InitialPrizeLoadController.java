@@ -46,7 +46,7 @@ public class InitialPrizeLoadController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=numeros-premiados.csv")
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
-                .body(service.exportCsv(campaignId));
+                .body(service.exportPublicCsv(campaignId));
     }
 
     @GetMapping("/verify")

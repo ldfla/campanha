@@ -68,15 +68,16 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(csrfHandler)
-                .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/logout", "/auth/verify-contact", "/auth/mfa/verify")
+                .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/login/verify", "/auth/logout", "/auth/verify-contact", "/auth/mfa/verify")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(3)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login", "/auth/verify-contact", "/auth/mfa/verify").permitAll()
-                .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login", "/auth/login/verify", "/auth/verify-contact", "/auth/mfa/verify").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/campaigns/public/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/slug/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/*/prizes").permitAll()
@@ -91,13 +92,13 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, authEx) -> {
                     res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    res.setContentType("application/problem+json");
+                    res.setContentType("application/problem+json;charset=UTF-8");
                     res.getWriter().write("""
                         {"type":"about:blank","title":"Não autenticado","status":401,"detail":"Sessão inválida ou expirada"}""");
                 })
                 .accessDeniedHandler((req, res, accessEx) -> {
                     res.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    res.setContentType("application/problem+json");
+                    res.setContentType("application/problem+json;charset=UTF-8");
                     res.getWriter().write("""
                         {"type":"about:blank","title":"Acesso negado","status":403,"detail":"Permissão insuficiente para este recurso"}""");
                 })

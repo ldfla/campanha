@@ -23,10 +23,18 @@ class PaymentControllerTest {
     @Autowired MockMvc mvc; @Autowired OrganizationRepository organizations; @Autowired UserRepository users; @Autowired CampaignRepository campaigns;
     @Test void createsSandboxOrderWithCsrfAndBlocksCommercialCharge() throws Exception {
         var org=organizations.save(new Organization("Org controller payment","ASSOCIATION")); var user=users.save(new User("Api","Test","+5511989000111"));
-        var auth=new UsernamePasswordAuthenticationToken(new AppUserDetails(user.getId(),user.getPublicId(),user.getPhoneNumber(),java.util.List.of(UserRole.PARTICIPANT)),null,java.util.List.of(()->"ROLE_PARTICIPANT"));
+        var auth=new UsernamePasswordAuthenticationToken(new AppUserDetails(user.getId(),user.getPublicId(),user.getPhoneNumber(),java.util.List.of(UserRole.SYSTEM_ADMIN)),null,java.util.List.of(()->"ROLE_SYSTEM_ADMIN"));
         var demo=campaigns.save(new Campaign(org.getId(),"Demo","payment-controller-demo",CampaignMode.DEMO));
         mvc.perform(post("/payments/orders").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"campaignId\":"+demo.getId()+",\"amountCents\":5600,\"idempotencyKey\":\"controller-idemp-001\"}" )).andExpect(status().isCreated());
         var commercial=campaigns.save(new Campaign(org.getId(),"Commercial","payment-controller-commercial",CampaignMode.COMMERCIAL_PROMOTION));
         mvc.perform(post("/payments/orders").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"campaignId\":"+commercial.getId()+",\"amountCents\":5600,\"idempotencyKey\":\"controller-idemp-002\"}" )).andExpect(status().isForbidden());
+    }
+
+    /** P20-F03: participante não cria pedido com valor escolhido no cliente. */
+    @Test void participantCannotCreateOrderWithClientDefinedAmount() throws Exception {
+        var org=organizations.save(new Organization("Org valor cliente","ASSOCIATION")); var user=users.save(new User("Api","Cliente","+5511989000112"));
+        var auth=new UsernamePasswordAuthenticationToken(new AppUserDetails(user.getId(),user.getPublicId(),user.getPhoneNumber(),java.util.List.of(UserRole.PARTICIPANT)),null,java.util.List.of(()->"ROLE_PARTICIPANT"));
+        var demo=campaigns.save(new Campaign(org.getId(),"Demo","payment-controller-client-amount",CampaignMode.DEMO));
+        mvc.perform(post("/payments/orders").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"campaignId\":"+demo.getId()+",\"amountCents\":1,\"idempotencyKey\":\"controller-idemp-003\"}" )).andExpect(status().isForbidden());
     }
 }

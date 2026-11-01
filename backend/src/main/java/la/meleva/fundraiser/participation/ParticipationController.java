@@ -21,8 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/participations/campaigns/{campaignId}")
 public class ParticipationController {
     private final ParticipationService service;
+    private final MyNumbersService myNumbers;
 
-    ParticipationController(ParticipationService service) { this.service = service; }
+    ParticipationController(ParticipationService service, MyNumbersService myNumbers) {
+        this.service = service;
+        this.myNumbers = myNumbers;
+    }
+
+    /** Somente os números do usuário da sessão; sem sessão, 401 sem nenhum dado. */
+    @GetMapping("/numbers/mine")
+    @PreAuthorize("isAuthenticated()")
+    public MyNumbersService.MyNumbersView mine(@AuthenticationPrincipal AppUserDetails principal,
+                                              @PathVariable String campaignId) {
+        return myNumbers.mine(principal.userId(), campaignId);
+    }
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")

@@ -40,7 +40,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (window.incrementAndGet() > MAX_ATTEMPTS) {
             response.setStatus(429);
-            response.setContentType("application/problem+json");
+            response.setContentType("application/problem+json;charset=UTF-8");
             response.getWriter().write("""
                 {"type":"about:blank","title":"Muitas tentativas","status":429,"detail":"Limite de requisições excedido. Tente novamente em breve."}""");
             return;
@@ -50,14 +50,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private boolean isRateLimited(String path) {
-        return path.startsWith("/auth/login") || path.startsWith("/auth/register");
+        return path.startsWith("/auth/login") || path.startsWith("/auth/register")
+                || path.startsWith("/auth/mfa") || path.startsWith("/auth/verify-contact");
     }
 
+    /**
+     * Usa somente o endereço remoto: {@code X-Forwarded-For} é controlado pelo cliente e permitia
+     * contornar o limite. Atrás de proxy confiável, configurar {@code server.forward-headers-strategy}.
+     */
     private String clientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 

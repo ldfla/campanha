@@ -3,35 +3,30 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/use-auth";
-import {
-  participations,
-  type NumberAvailability,
-  type PagedResponse,
-  ApiError,
-} from "@/lib/api-client";
-import { isDemoMode, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
-
-const DEMO_CAMPAIGN_ID = "demo";
+import { participations, type MyNumbersView } from "@/lib/api-client";
+import { isDemoMode, formatBRL, DEMO_CAMPAIGN_ID } from "@/lib/campaign-config";
+import { CodeLoginForm } from "@/components/code-login-form";
 
 export default function MeusNumerosPage() {
-  const { user, loading: authLoading, login, logout } = useAuth();
-  const [phone, setPhone] = useState("");
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [numbers, setNumbers] = useState<NumberAvailability[]>([]);
+  const { user, loading: authLoading, logout } = useAuth();
+  const [view, setView] = useState<MyNumbersView | null>(null);
   const [loadingNumbers, setLoadingNumbers] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const demoMode = isDemoMode();
 
+  // Sem sessão nenhuma chamada é feita; o backend também responde 401 sem dados.
   useEffect(() => {
     if (!user) return;
     let active = true;
     participations
-      .numbers(DEMO_CAMPAIGN_ID)
-      .then((res: PagedResponse<NumberAvailability>) => {
-        if (active) setNumbers(res.content);
+      .mine(DEMO_CAMPAIGN_ID)
+      .then((mine) => {
+        if (active) setView(mine);
       })
       .catch(() => {
-        if (active) setNumbers([]);
+        if (!active) return;
+        setView(null);
+        setLoadError("Não foi possível carregar seus números agora.");
       })
       .finally(() => {
         if (active) setLoadingNumbers(false);
@@ -41,36 +36,14 @@ export default function MeusNumerosPage() {
     };
   }, [user]);
 
-  async function handleLogin() {
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return;
-    setLoggingIn(true);
-    setLoginError(null);
-    try {
-      const phoneFormatted = phone.replace(/\D/g, "");
-      const phoneWithCountry = phoneFormatted.startsWith("55")
-        ? phoneFormatted
-        : `55${phoneFormatted}`;
-      await login(phoneWithCountry);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setLoginError(err.detail);
-      } else {
-        setLoginError("Não foi possível entrar. Verifique seus dados.");
-      }
-    } finally {
-      setLoggingIn(false);
-    }
-  }
-
-  const confirmed = numbers.filter((n) => n.status === "CONFIRMED").length;
-  const pending = numbers.filter((n) => n.status === "PENDING" || n.status === "RESERVED").length;
-  const totalPaidCents = confirmed * PRICE_UNIT_CENTS;
+  const numbers = view?.numbers ?? [];
+  const confirmed = view?.confirmedCount ?? 0;
+  const pending = view?.pendingCount ?? 0;
+  const totalPaidCents = view?.confirmedAmountCents ?? 0;
 
   const statusLabel: Record<string, { text: string; color: string }> = {
     CONFIRMED: { text: "Confirmado", color: "bg-[var(--color-jade)]/10 text-[var(--color-jade)]" },
-    PENDING: { text: "Aguardando Pix", color: "bg-[var(--color-gold)]/10 text-amber-700" },
-    RESERVED: { text: "Reservado", color: "bg-[var(--color-iris)]/10 text-[var(--color-iris)]" },
-    AVAILABLE: { text: "Disponível", color: "bg-black/5 text-black/40" },
+    PENDING: { text: "Aguardando confirmação", color: "bg-[var(--color-gold)]/10 text-amber-700" },
   };
 
   return (
@@ -101,42 +74,7 @@ export default function MeusNumerosPage() {
                 Informe seu WhatsApp para consultar seus números.
               </p>
 
-              <div className="bg-white rounded-2xl border border-black/[0.06] p-6 md:p-8">
-                {loginError && (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {loginError}
-                  </div>
-                )}
-                <div className="space-y-4 mb-5">
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-[var(--color-midnight)] mb-2">
-                      Número de WhatsApp
-                    </label>
-                    <input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="(11) 99999-9999"
-                      autoComplete="tel"
-                      onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                      className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-[var(--color-snow)] text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all text-lg"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogin}
-                  disabled={phone.replace(/\D/g, "").length < 10 || loggingIn}
-                  className="w-full py-4 rounded-xl font-bold text-base bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white shadow-[0_4px_24px_rgba(255,99,71,0.3)] hover:shadow-[0_8px_32px_rgba(255,99,71,0.45)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {loggingIn ? "Entrando..." : "Consultar meus números"}
-                </button>
-                {demoMode && (
-                  <p className="mt-3 text-xs text-[var(--color-midnight)]/30 text-center">
-                    Modo demonstração — em produção, um código de verificação será enviado
-                  </p>
-                )}
-              </div>
+              <CodeLoginForm submitLabel="Consultar meus números" />
 
               <div className="mt-8 rounded-xl border border-[var(--color-midnight)]/8 bg-[var(--color-midnight)]/[0.02] px-5 py-4">
                 <p className="text-xs text-[var(--color-midnight)]/40 text-center">
@@ -158,8 +96,7 @@ export default function MeusNumerosPage() {
                 <button
                   onClick={() => {
                     logout();
-                    setPhone("");
-                    setNumbers([]);
+                    setView(null);
                   }}
                   className="text-sm text-[var(--color-iris)] hover:underline"
                 >
@@ -178,13 +115,17 @@ export default function MeusNumerosPage() {
                 </div>
                 <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
                   <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-ember)] tabular-nums">{formatBRL(totalPaidCents)}</p>
-                  <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Investido</p>
+                  <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">{view?.simulation ? "Pago (simulação)" : "Pago"}</p>
                 </div>
               </div>
 
               {loadingNumbers ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-[var(--color-iris)]/20 border-t-[var(--color-iris)] rounded-full animate-spin" />
+                </div>
+              ) : loadError ? (
+                <div role="alert" className="bg-white rounded-2xl border border-red-200 p-8 text-center text-sm text-red-700">
+                  {loadError}
                 </div>
               ) : numbers.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-black/[0.06] p-8 text-center">
@@ -211,9 +152,9 @@ export default function MeusNumerosPage() {
                         color: "bg-black/5 text-black/40",
                       };
                       return (
-                        <div key={n.numberValue} className="flex items-center justify-between px-5 py-3.5 hover:bg-black/[0.01] transition-colors">
+                        <div key={n.formattedNumber} className="flex items-center justify-between px-5 py-3.5 hover:bg-black/[0.01] transition-colors">
                           <span className="font-mono text-lg font-bold text-[var(--color-midnight)] tabular-nums tracking-wider">
-                            {String(n.numberValue).padStart(5, "0")}
+                            {n.formattedNumber}
                           </span>
                           <span className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full ${status.color}`}>
                             {status.text}

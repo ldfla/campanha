@@ -661,7 +661,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P06-05` Produzir seção FAQ e regras sem termos enganosos. `app/faq/page.tsx`.
 - [x] `P06-06` Criar telas e tratamento de loading/error/empty/campanha suspensa. `ApiError` (`lib/api-client.ts`), estados em `use-auth.ts` e `CAMPAIGN_STATUS` inclui `SUSPENDED`.
 - [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela. **PENDENTE**: sem testes automatizados de 360/390/768/1280, teclado ou leitor de tela.
-- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso.
+- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso. P20: `participar` agora bloqueia a compra sem ofertas do servidor (P20-F10); restante em P20-F16.
 
 **Aceite:** experiência usável em celular, com informação honesta e bloqueio de participação real indevida.
 
@@ -713,7 +713,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
 - [x] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
 - [x] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile. QR + Web Share + Telegram (PR #19): `components/qr-code.tsx` e `app/indicar`.
-- [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios. **PARCIAL**: self-referral/atribuição única/reatribuição cobertos; faltam cookie stuffing, replay, contas vinculadas e manipulação de relatório.
+- [x] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios. Evidência: `ReferralFraudIntegrationTest` (8), P20-F21/F24 — `docs/progress/P20-fase1.md`.
 - [x] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
 
 **Aceite:** só atividades válidas entram no ranking; testes de autindicação passam.
@@ -730,7 +730,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
 - [x] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
 - [x] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
-- [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação. **PARCIAL**: coberto tardio/expirado/fora de ordem/replay (`OrderServiceIntegrationTest`); pendente timeout de transporte e falha parcial entre PSP e banco.
+- [x] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação. Evidência: `OrderServiceIntegrationTest` + `PaymentFailureRecoveryIntegrationTest` (5), P20-F22/F23 — `docs/progress/P20-fase1.md`.
 - [x] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
 
 **Aceite:** 100% dos efeitos são idempotentes; não existe rota para cobrança real sem `G-LEGAL`, `G-PSP`, `G-FINANCE` e live gate.
@@ -746,7 +746,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P10-04` Especificar desempate determinístico e estável antes da abertura.
 - [x] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
 - [x] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
-- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. **PARCIAL**: invalidação/congelamento cobertos; estornos de pagamento só terão efeito quando `orders`/`payments` forem ligados a `participation_entries` (P17).
+- [x] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. Evidência: `RefundRankingIntegrationTest` (2), D-010 — `docs/progress/P20-fase1.md`.
 - [x] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
 
 **Aceite:** rankings reproduzíveis com mesma massa de eventos; impossibilidade de mudar desempate após abertura.
@@ -840,7 +840,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P16-05` Portal e fluxo de direitos LGPD, correção, exportação, anonimização e retenção compatível. `GET /privacy/me/export` e `POST /privacy/me/anonymize` (auditado). Retenção/expurgo pendente (`D-OPEN-012`).
 - [x] `P16-06` SAST, SCA, secrets scan, image scanning e SBOM em CI. `.github/workflows/backend.yml` (Trivy SCA/secrets/misconfig + SBOM CycloneDX). Não executado localmente.
 - [x] `P16-07` Rodar red-team local: webhook forjado, campanha não autorizada, alteração de sorteado, dupla atribuição e fraude de referral. `docs/security/red-team-report.md` (revisão interna com testes adversariais).
-- [x] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual. Nenhum achado crítico/alto na revisão interna; riscos residuais registrados.
+- [x] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual. Nenhum achado crítico/alto na revisão interna; riscos residuais registrados. **Revisão P20 (2026-11-01) contestou este resultado:** 1 crítico + 4 altos encontrados, corrigidos e re-testados (`docs/security/red-team/P20-findings.md`).
 - [x] `P16-09` Plano de incidente, vazamento, segurança de terceiros e continuidade. `docs/operations/incident-response.md`.
 
 **Aceite:** relatório `docs/security/red-team-report.md`, evidências de correções, sem falhas críticas/altas conhecidas não mitigadas.
@@ -867,11 +867,11 @@ Modelo de duas camadas em `campaign_numbers`:
 **Entregáveis:** relatórios de performance e recuperação.
 
 - [x] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação. Série de 100.000 gerada em ~33 s; 250 participações em ~38 s.
-- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. **PARCIAL**: 100 e 250 concorrentes sem duplicidade; alto volume sustentou **≈22.780 transações/hora** (meta 10.000/h); 500 e deadlock explícito não executados (limite de pool).
+- [x] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. Evidência: `ConcurrencyLimitsIntegrationTest` (500 para 400 números, 0 duplicatas, 0 deadlocks; controle positivo) — `docs/progress/P20-fase1.md`.
 - [x] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa. Coberto por `OrderServiceIntegrationTest` (replay, atraso, fora de ordem).
 - [x] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery. `OutboxRecoveryIntegrationTest` + `OutboxEvent.recordFailure`.
 - [x] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`. p50≈18,8 s / p95≈36,3 s / p99≈37,7 s; `EXPLAIN` confirma índice.
-- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. **PARCIAL**: `scripts/backup-mysql.sh` + procedimento; ensaio em CI pendente.
+- [x] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. Evidência MySQL: `BackupRestoreDrillIntegrationTest` (58 tabelas idênticas por `CHECKSUM TABLE`). **Objetos privados não ensaiados** (storage `memory` no MVP) — `docs/progress/P20-fase1.md`.
 - [x] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter. Congelamento idempotente e participação tardia bloqueada após `LOCKED`.
 - [x] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números. `docs/progress/P18.md` (gargalo do lock de campanha).
 
@@ -902,9 +902,9 @@ Modelo de duas camadas em `campaign_numbers`:
 - [ ] `P20-02` Gerar OpenAPI final, diagramas C4, ERD, ADRs e matriz de rastreabilidade.
 - [ ] `P20-03` Criar README com instalação testada, modo DEMO e comandos operacionais.
 - [ ] `P20-04` Revisar LGPD, políticas de retenção, banners, acessibilidade e privacidade.
-- [ ] `P20-05` Revalidar que cobrança Pix e publicações reais seguem desativadas sem gates.
+- [ ] `P20-05` Revalidar que cobrança Pix e publicações reais seguem desativadas sem gates. **PARCIAL (P20)**: participação gratuita fora de DEMO → 403 e pedido com valor do cliente → 403 (re-teste ao vivo), adaptadores DEMO recusam `LIVE_OPERATIONS_ENABLED=true`; falta o teste de configuração alterada (P19-06) e publicações.
 - [ ] `P20-06` Verificar entrega do kit e fotos como dados reais somente com documentação legítima.
-- [ ] `P20-07` Publicar checklist das aprovações humanas pendentes (`G-LEGAL`, etc.).
+- [x] `P20-07` Publicar checklist das aprovações humanas pendentes (`G-LEGAL`, etc.). `docs/compliance/gates-checklist.md` (nenhum gate marcado; evidência em `docs/progress/P20.md`).
 - [ ] `P20-08` Entregar relatório final de cobertura, performance, segurança, pendências e limitações.
 
 **Aceite:** release candidate técnico testável em DEMO; nenhum lançamento ao público ou movimentação de dinheiro presumidos.

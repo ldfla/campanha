@@ -31,13 +31,6 @@ public class ReferralController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/attributions/{code}/{entryId}")
-    @PreAuthorize("isAuthenticated()")
-    ResponseEntity<Void> attribute(@PathVariable Long campaignId, @PathVariable String code, @PathVariable Long entryId) {
-        service.attribute(campaignId, code, entryId);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
     @GetMapping("/metrics")
     @PreAuthorize("hasRole('PROMOTER')")
     ResponseEntity<ReferralService.ReferralMetrics> metrics(@AuthenticationPrincipal AppUserDetails principal, @PathVariable Long campaignId) {

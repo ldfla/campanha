@@ -62,6 +62,11 @@ public class OutboxEvent {
         }
     }
 
+    /** Reagenda sem consumir tentativa: o processamento funcionou, mas o agregado ainda não chegou a estado final. */
+    public void reschedule(Instant nextAttemptAt) {
+        this.availableAt = java.util.Objects.requireNonNull(nextAttemptAt, "nextAttemptAt");
+    }
+
     public boolean isExhausted() { return attemptCount >= maxAttempts; }
     public int getAttemptCount() { return attemptCount; }
     public int getMaxAttempts() { return maxAttempts; }

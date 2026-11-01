@@ -8,7 +8,6 @@ import { Countdown } from "@/components/countdown";
 import { useAuth } from "@/lib/use-auth";
 import {
   participations,
-  payments,
   mockPayments,
   type OfferResponse,
   type BeneficiaryResponse,
@@ -17,24 +16,19 @@ import {
 } from "@/lib/api-client";
 import {
   COMBOS,
-  PRICE_UNIT_CENTS,
   isSoldOut,
   isSuspended,
   isDemoMode,
   formatBRL,
+  toE164,
   DEMO_CAMPAIGN_ID,
 } from "@/lib/campaign-config";
 
 type Step = "choose" | "beneficiary" | "register" | "payment";
 
-/** Expiração do pedido (30 min) — fora do render para respeitar a pureza de componentes. */
-function checkoutExpiresAt(): string {
-  return new Date(Date.now() + 30 * 60_000).toISOString();
-}
-
 function ParticiparContent() {
   const searchParams = useSearchParams();
-  const { user, register } = useAuth();
+  const { user, register, verifyCode } = useAuth();
   const soldOut = isSoldOut();
   const suspended = isSuspended();
   const demoMode = isDemoMode();
@@ -50,8 +44,9 @@ function ParticiparContent() {
   const [beneficiariesLoading, setBeneficiariesLoading] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
-  // Custom qty
-  const [customQty, setCustomQty] = useState<number | null>(null);
+  // Código de verificação do WhatsApp (a sessão só nasce após o código)
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
 
   // Registration
   const [name, setName] = useState("");
@@ -103,51 +98,32 @@ function ParticiparContent() {
     }
   }, []);
 
-  // Pre-select combo from URL if present
-  const useServerOffers = serverOffers.length > 0;
-
-  const displayOffers = useServerOffers
-    ? serverOffers.map((o) => {
-        const configMatch = COMBOS.find((c) => c.qty === o.quantity);
-        const unitCents = o.quantity > 0 ? Math.round(o.totalCents / o.quantity) : o.totalCents;
-        const discountPct = configMatch ? configMatch.discountPct : 0;
-        return {
-          id: o.id,
-          qty: o.quantity,
-          totalCents: o.totalCents,
-          unitCents,
-          label: configMatch?.label ?? `${o.quantity.toLocaleString("pt-BR")} números`,
-          badge: configMatch?.badge ?? null,
-          popular: configMatch?.popular ?? false,
-          discountPct,
-        };
-      })
-    : COMBOS.map((c) => ({
-        id: c.id,
-        qty: c.qty,
-        totalCents: c.totalCents,
-        unitCents: c.unitCents,
-        label: c.label,
-        badge: c.badge,
-        popular: c.popular,
-        discountPct: c.discountPct,
-      }));
+  // Preço e quantidade vêm somente das ofertas do servidor (P20-F10); rótulos são cosméticos.
+  const displayOffers = serverOffers.map((o) => {
+    const configMatch = COMBOS.find((c) => c.qty === o.quantity);
+    return {
+      id: o.id,
+      qty: o.quantity,
+      totalCents: o.totalCents,
+      label: configMatch?.label ?? `${o.quantity.toLocaleString("pt-BR")} números`,
+      badge: configMatch?.badge ?? null,
+      popular: configMatch?.popular ?? false,
+    };
+  });
 
   const selectedOffer = displayOffers.find((o) => o.id === selectedOfferId);
-  const isCustom = customQty !== null;
-  const qty = isCustom ? customQty : (selectedOffer?.qty ?? 1);
-  const total = isCustom ? customQty * PRICE_UNIT_CENTS : (selectedOffer?.totalCents ?? PRICE_UNIT_CENTS);
-  const unitPrice = isCustom ? PRICE_UNIT_CENTS : (selectedOffer?.unitCents ?? PRICE_UNIT_CENTS);
+  const qty = selectedOffer?.qty ?? 0;
+  const total = checkoutResult?.amountCents ?? selectedOffer?.totalCents ?? 0;
+  const noOffers = !offersLoading && displayOffers.length === 0;
 
   function selectOffer(id: string) {
     setSelectedOfferId(id);
-    setCustomQty(null);
   }
 
   async function handleNext() {
     setError(null);
 
-    if (step === "choose" && qty > 0 && !blocked) {
+    if (step === "choose" && selectedOffer && !blocked) {
       await loadBeneficiaries();
       setStep("beneficiary");
       return;
@@ -162,47 +138,30 @@ function ParticiparContent() {
       return;
     }
 
-    if (step === "register" && name.trim() && surname.trim() && whatsapp.trim()) {
+    if (step === "register" && (user || (name.trim() && surname.trim() && whatsapp.trim()))) {
       setSubmitting(true);
       try {
-        const phoneFormatted = whatsapp.replace(/\D/g, "");
-        const phoneWithCountry = phoneFormatted.startsWith("55")
-          ? phoneFormatted
-          : `55${phoneFormatted}`;
-
+        const phone = toE164(whatsapp);
         if (!user) {
-          await register(name.trim(), surname.trim(), phoneWithCountry);
+          if (!codeSent) {
+            await register(name.trim(), surname.trim(), phone);
+            setCodeSent(true);
+            return;
+          }
+          await verifyCode(phone, code);
         }
 
-        const idempotencyKey = crypto.randomUUID();
-
-        if (useServerOffers && selectedOfferId && selectedEntityId) {
-          const checkout = await participations.checkout(DEMO_CAMPAIGN_ID, {
-            idempotencyKey,
-            offerId: selectedOfferId,
-            entityId: selectedEntityId,
-            referralCode,
-          });
-          setCheckoutResult(checkout);
-        } else {
-          const allocation = await participations.request(
-            DEMO_CAMPAIGN_ID,
-            idempotencyKey,
-            qty,
-          );
-
-          const order = await payments.createOrder(1, total, crypto.randomUUID());
-          setCheckoutResult({
-            requestPublicId: allocation.requestPublicId,
-            expiresAt: checkoutExpiresAt(),
-            numbers: allocation.numbers.map((n) => n.formattedNumber),
-            orderPublicId: order.orderPublicId,
-            amountCents: total,
-            currency: "BRL",
-            simulation: true,
-          });
+        if (!selectedOfferId || !selectedEntityId) {
+          setError("Escolha uma oferta e uma instituição para continuar.");
+          return;
         }
-
+        const checkout = await participations.checkout(DEMO_CAMPAIGN_ID, {
+          idempotencyKey: crypto.randomUUID(),
+          offerId: selectedOfferId,
+          entityId: selectedEntityId,
+          ...(referralCode ? { referralCode } : {}),
+        });
+        setCheckoutResult(checkout);
         setStep("payment");
       } catch (err) {
         if (err instanceof ApiError) {
@@ -309,11 +268,15 @@ function ParticiparContent() {
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-[var(--color-iris)]/20 border-t-[var(--color-iris)] rounded-full animate-spin" />
                 </div>
+              ) : noOffers ? (
+                <div role="status" className="mb-6 rounded-2xl border border-black/[0.06] bg-white p-6 text-center text-sm text-[var(--color-midnight)]/60">
+                  Nenhuma oferta disponível no momento. A venda só é liberada quando o servidor publica ofertas para esta campanha.
+                </div>
               ) : (
                 <>
                   <div className="space-y-3 mb-6">
                     {displayOffers.map((c) => {
-                      const isSelected = selectedOfferId === c.id && !isCustom;
+                      const isSelected = selectedOfferId === c.id;
                       return (
                         <button
                           key={c.id}
@@ -342,18 +305,13 @@ function ParticiparContent() {
                                 {c.label}
                               </h3>
                               <p className="text-sm text-[var(--color-midnight)]/40">
-                                {c.qty.toLocaleString("pt-BR")} números · {formatBRL(c.unitCents)}/cada
+                                {c.qty.toLocaleString("pt-BR")} números
                               </p>
                             </div>
                             <div className="text-right">
                               <p className="font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--color-midnight)] tabular-nums">
                                 {formatBRL(c.totalCents)}
                               </p>
-                              {c.discountPct > 0 && (
-                                <span className="text-[10px] font-semibold text-[var(--color-jade)]">
-                                  -{c.discountPct}% por número
-                                </span>
-                              )}
                             </div>
                           </div>
                           {isSelected && (
@@ -370,32 +328,6 @@ function ParticiparContent() {
                     })}
                   </div>
 
-                  {/* Custom qty */}
-                  {!blocked && (
-                    <div className="mb-6">
-                      <button
-                        onClick={() => setCustomQty(customQty === null ? 1 : null)}
-                        className="text-sm text-[var(--color-iris)] font-medium hover:underline"
-                      >
-                        {isCustom ? "Voltar para combos" : "Escolher quantidade personalizada"}
-                      </button>
-                      {isCustom && (
-                        <div className="flex items-center gap-3 bg-white rounded-xl border border-black/[0.06] px-4 py-3 mt-3">
-                          <label htmlFor="qty" className="text-sm text-[var(--color-midnight)]/50 shrink-0">Quantidade:</label>
-                          <input
-                            id="qty"
-                            type="number"
-                            min={1}
-                            max={10000}
-                            value={customQty}
-                            onChange={(e) => setCustomQty(Math.max(1, Math.min(10000, parseInt(e.target.value) || 1)))}
-                            className="flex-1 text-right text-lg font-bold text-[var(--color-midnight)] bg-transparent outline-none tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <span className="text-sm text-[var(--color-midnight)]/40">nºs</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
 
@@ -406,7 +338,7 @@ function ParticiparContent() {
                   {formatBRL(total)}
                 </p>
                 <p className="text-xs text-white/25 mt-1 tabular-nums">
-                  {qty.toLocaleString("pt-BR")} {qty === 1 ? "número" : "números"} &times; {formatBRL(unitPrice)}
+                  {qty.toLocaleString("pt-BR")} {qty === 1 ? "número" : "números"} · valor definido pelo servidor
                 </p>
               </div>
 
@@ -547,6 +479,18 @@ function ParticiparContent() {
                     className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-white text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all" />
                   <p className="mt-1.5 text-xs text-[var(--color-midnight)]/35">Usado para confirmar seus números e enviar resultados</p>
                 </div>
+                {codeSent && !user && (
+                  <div>
+                    <p role="status" className="mb-2 text-xs text-[var(--color-midnight)]/50">
+                      Se o número puder receber mensagens, enviamos um código de verificação.
+                      {demoMode ? " Modo demonstração: nenhuma mensagem é enviada; use o código 000000." : ""}
+                    </p>
+                    <label htmlFor="code" className="block text-sm font-medium text-[var(--color-midnight)] mb-1.5">Código de verificação</label>
+                    <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                      className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-white text-center font-mono tracking-[0.4em] text-[var(--color-midnight)] outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all" />
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between bg-[var(--color-snow-warm)] rounded-xl px-4 py-3 mb-6 text-sm">
@@ -559,9 +503,9 @@ function ParticiparContent() {
                   className="px-6 py-4 rounded-xl font-semibold text-base border border-black/[0.08] text-[var(--color-midnight)]/60 hover:bg-black/[0.02] transition-colors">
                   Voltar
                 </button>
-                <button onClick={handleNext} disabled={!name.trim() || !surname.trim() || !whatsapp.trim() || submitting}
+                <button onClick={handleNext} disabled={(!user && (!name.trim() || !surname.trim() || !whatsapp.trim() || (codeSent && code.length !== 6))) || submitting}
                   className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white animate-cta-beacon hover:scale-[1.02] active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none">
-                  {submitting ? "Processando..." : "Ir para pagamento"}
+                  {submitting ? "Processando..." : !user && !codeSent ? "Receber código" : "Ir para pagamento"}
                 </button>
               </div>
             </div>

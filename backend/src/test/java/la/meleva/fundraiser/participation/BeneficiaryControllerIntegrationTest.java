@@ -41,16 +41,11 @@ class BeneficiaryControllerIntegrationTest {
     @Test
     void managerRegistersEntityAndParticipantSelectsItUsingSession() throws Exception {
         String phone = "+55119999001239";
-        mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"Pessoa\",\"surname\":\"Teste\",\"phoneNumber\":\"" + phone + "\"}"))
-                .andExpect(status().isCreated());
+        la.meleva.fundraiser.identity.AuthTestSupport.register(mvc, "Pessoa", "Teste", phone);
         var user = users.findByPhoneNumber(phone).orElseThrow();
         var organization = organizations.save(new Organization("Organização sessão", "ASSOCIATION"));
         memberships.save(new Membership(organization, user, UserRole.CAMPAIGN_MANAGER));
-        var login = mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"" + phone + "\"}"))
-                .andExpect(status().isOk()).andReturn();
-        var session = java.util.Objects.requireNonNull(login.getResponse().getCookie("SESSION"));
+        var session = la.meleva.fundraiser.identity.AuthTestSupport.verify(mvc, phone);
         var campaign = campaigns.save(new Campaign(organization.getId(), "Campanha sessão", "beneficiary-session", CampaignMode.DEMO));
         String endpoint = "/participations/campaigns/{campaignId}/beneficiaries";
         var created = mvc.perform(post(endpoint, campaign.getPublicId()).cookie(session).with(csrf())

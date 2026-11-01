@@ -171,17 +171,12 @@ class PurchaseFlowControllerIntegrationTest {
     private record Registered(String phone) { }
 
     private Registered register(String firstName, String phone) throws Exception {
-        mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"" + firstName + "\",\"surname\":\"Teste\",\"phoneNumber\":\"" + phone + "\"}"))
-                .andExpect(status().isCreated());
+        la.meleva.fundraiser.identity.AuthTestSupport.register(mvc, firstName, "Teste", phone);
         return new Registered(phone);
     }
 
     private Cookie login(String phone) throws Exception {
-        var result = mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"" + phone + "\"}"))
-                .andExpect(status().isOk()).andReturn();
-        return Objects.requireNonNull(result.getResponse().getCookie("SESSION"));
+        return la.meleva.fundraiser.identity.AuthTestSupport.verify(mvc, phone);
     }
 
     private Campaign draftCampaign(Organization organization, String slug, int capacity) {

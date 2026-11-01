@@ -15,6 +15,8 @@
 | D-006 | Modalidade: Promoção Comercial (Sorteio) via **título de capitalização premiável** (ViaCap / SUSEP 15414.657358/2026-61) | ADR-0007 | 2026-11-01 |
 | D-007 | Retenção de CPF (5 anos) e rotação anual de chaves | ADR-0008 | 2026-11-01 |
 | D-008 | Segurança validada por Red Team interno segregado (OWASP/PTES) + Termo de Aceitação de Risco da Diretoria | ADR-0009 | 2026-11-01 |
+| D-009 | Login por código de verificação do WhatsApp; MFA vinculado à sessão do 1º fator; adaptadores DEMO falham fechados com operação real | ADR-0010 | 2026-11-01 |
+| D-010 | Removido `POST /referrals/campaigns/{id}/attributions/{code}/{entryId}` (P20-F21): indicação só é atribuída no servidor, no checkout. Estorno integral invalida as entradas do pedido (inclusive congeladas, com `audit_events`) e o número **não volta ao estoque**; snapshots lacrados não mudam. Reversível: devolver números ao estoque exige procedimento aprovado | P20-findings (Fase 1) | 2026-11-01 |
 
 ## Decisões resolvidas pelos gates (2026-11-01)
 

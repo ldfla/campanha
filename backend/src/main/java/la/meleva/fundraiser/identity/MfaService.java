@@ -8,13 +8,16 @@ import org.springframework.transaction.annotation.Propagation;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/** MFA sandbox: o segredo é armazenado como bytes e o código fixo existe somente em DEMO. */
+/** MFA sandbox: o segredo é armazenado como bytes; o verificador é injetado e só existe em perfis DEMO. */
 @Service
 public class MfaService {
-    private static final String DEMO_CODE = "000000";
     private final MfaEnrollmentRepository enrollmentRepository;
+    private final MfaCodeVerifier verifier;
 
-    MfaService(MfaEnrollmentRepository enrollmentRepository) { this.enrollmentRepository = enrollmentRepository; }
+    MfaService(MfaEnrollmentRepository enrollmentRepository, MfaCodeVerifier verifier) {
+        this.enrollmentRepository = enrollmentRepository;
+        this.verifier = verifier;
+    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean ensureEnrollment(User user, List<UserRole> roles) {
@@ -28,7 +31,7 @@ public class MfaService {
     public void verify(Long userId, String code) {
         var enrollment = enrollmentRepository.findByUserId(userId)
                 .orElseThrow(ErrorCode.AUTH_MFA_REQUIRED::toException);
-        if (!DEMO_CODE.equals(code)) throw ErrorCode.AUTH_MFA_REQUIRED.toException();
+        if (!verifier.verify(enrollment, code)) throw ErrorCode.AUTH_MFA_REQUIRED.toException();
         if (!enrollment.isVerified()) { enrollment.verify(); enrollmentRepository.save(enrollment); }
     }
 

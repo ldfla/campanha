@@ -7,7 +7,6 @@ import { QRCode } from "@/components/qr-code";
 import {
   referrals,
   type ReferralMetrics,
-  ApiError,
 } from "@/lib/api-client";
 import {
   isDemoMode,
@@ -15,15 +14,13 @@ import {
   PRICE_UNIT_CENTS,
   TOTAL_PRIZES_CENTS,
   RANKING_REWARDS,
+  DEMO_CAMPAIGN_ID,
 } from "@/lib/campaign-config";
+import { CodeLoginForm } from "@/components/code-login-form";
 
-const DEMO_CAMPAIGN_ID = "demo";
 
 export default function IndicarPage() {
-  const { user, loading: authLoading, login } = useAuth();
-  const [phone, setPhone] = useState("");
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loggingIn, setLoggingIn] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<ReferralMetrics | null>(null);
@@ -47,27 +44,6 @@ export default function IndicarPage() {
       .then(setMetrics)
       .catch(() => {});
   }, [user]);
-
-  async function handleLogin() {
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return;
-    setLoggingIn(true);
-    setLoginError(null);
-    try {
-      const phoneFormatted = phone.replace(/\D/g, "");
-      const phoneWithCountry = phoneFormatted.startsWith("55")
-        ? phoneFormatted
-        : `55${phoneFormatted}`;
-      await login(phoneWithCountry);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setLoginError(err.detail);
-      } else {
-        setLoginError("Não foi possível entrar. Verifique seus dados.");
-      }
-    } finally {
-      setLoggingIn(false);
-    }
-  }
 
   const [showQR, setShowQR] = useState(false);
 
@@ -126,37 +102,7 @@ export default function IndicarPage() {
                 Compartilhe seu link e concorra a prêmios extras no ranking de indicações.
               </p>
 
-              <div className="bg-white rounded-2xl border border-black/[0.06] p-6 md:p-8">
-                {loginError && (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {loginError}
-                  </div>
-                )}
-                <label htmlFor="phone" className="block text-sm font-medium text-[var(--color-midnight)] mb-2">
-                  Seu WhatsApp
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                  className="w-full px-4 py-3.5 rounded-xl border border-black/[0.08] bg-[var(--color-snow)] text-[var(--color-midnight)] placeholder:text-[var(--color-midnight)]/25 outline-none focus:border-[var(--color-iris)]/40 focus:ring-2 focus:ring-[var(--color-iris)]/10 transition-all mb-4 text-lg"
-                />
-                <button
-                  onClick={handleLogin}
-                  disabled={phone.replace(/\D/g, "").length < 10 || loggingIn}
-                  className="w-full py-4 rounded-xl font-bold text-base bg-gradient-to-r from-[var(--color-ember)] to-[#FF8A65] text-white shadow-[0_4px_24px_rgba(255,99,71,0.3)] hover:shadow-[0_8px_32px_rgba(255,99,71,0.45)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {loggingIn ? "Entrando..." : "Ver meu link de indicação"}
-                </button>
-                {demoMode && (
-                  <p className="mt-3 text-xs text-[var(--color-midnight)]/30 text-center">
-                    Modo demonstração
-                  </p>
-                )}
-              </div>
+              <CodeLoginForm submitLabel="Ver meu link de indicação" />
             </div>
           ) : (
             <div className="animate-slide-in">

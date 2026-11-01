@@ -26,17 +26,7 @@ class RbacTest {
     private MockMvc mockMvc;
 
     private Cookie registerAndGetSessionCookie(String phone) throws Exception {
-        MvcResult result = mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"firstName": "Test", "surname": "User", "phoneNumber": "%s"}
-                        """.formatted(phone)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return Arrays.stream(result.getResponse().getCookies())
-                .filter(c -> "SESSION".equals(c.getName()))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("SESSION cookie not found"));
+        return AuthTestSupport.registerAndSignIn(mockMvc, "Test", "User", phone);
     }
 
     @Test
