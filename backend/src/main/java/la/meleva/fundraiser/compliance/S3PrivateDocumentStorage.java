@@ -13,20 +13,26 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador de bucket privado (MinIO/S3-compatível); nunca publica URLs de objeto.
- * Ativado apenas com `app.storage.provider=minio`.
+ * Adaptador de bucket privado para **qualquer object storage compatível com S3** (SeaweedFS,
+ * Garage, AWS S3, Cloudflare R2, Backblaze B2, etc.). Nunca publica URLs de objeto; o conteúdo é
+ * lido apenas pelo backend.
+ *
+ * <p>Ativado com {@code app.storage.provider=s3}. Dialeto S3 (path-style) com o cliente S3 já
+ * presente no projeto; trocar de provedor é só alterar endpoint/credenciais/região.
  */
 @Component
-@ConditionalOnProperty(name = "app.storage.provider", havingValue = "minio")
-class MinioPrivateDocumentStorage implements PrivateDocumentStorage {
+@ConditionalOnProperty(name = "app.storage.provider", havingValue = "s3")
+class S3PrivateDocumentStorage implements PrivateDocumentStorage {
     private final MinioClient client;
     private final String bucket;
 
-    MinioPrivateDocumentStorage(@Value("${app.storage.minio.endpoint:http://localhost:9000}") String endpoint,
-                                @Value("${app.storage.minio.access-key:${MINIO_ROOT_USER:minioadmin}}") String accessKey,
-                                @Value("${app.storage.minio.secret-key:${MINIO_ROOT_PASSWORD:minioadmin_dev}}") String secretKey,
-                                @Value("${app.storage.minio.bucket:fundraiser-private}") String bucket) {
-        this.client = MinioClient.builder().endpoint(endpoint).credentials(accessKey, secretKey).build();
+    S3PrivateDocumentStorage(
+            @Value("${app.storage.s3.endpoint:http://localhost:8333}") String endpoint,
+            @Value("${app.storage.s3.access-key:${APP_STORAGE_S3_ACCESS_KEY:any}}") String accessKey,
+            @Value("${app.storage.s3.secret-key:${APP_STORAGE_S3_SECRET_KEY:any}}") String secretKey,
+            @Value("${app.storage.s3.region:us-east-1}") String region,
+            @Value("${app.storage.s3.bucket:fundraiser-private}") String bucket) {
+        this.client = MinioClient.builder().endpoint(endpoint).region(region).credentials(accessKey, secretKey).build();
         this.bucket = bucket;
     }
 

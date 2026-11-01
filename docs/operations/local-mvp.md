@@ -10,9 +10,9 @@
 ```bash
 docker compose -f infrastructure/compose.yaml up -d   # MySQL 8.4 + Mailpit
 ```
-> **Object storage é opcional** no MVP: as imagens públicas do MinIO deixaram de existir, então o
-> armazenamento privado de documentos roda **em memória por padrão** (`APP_STORAGE_PROVIDER=memory`).
-> Para usar MinIO (ou espelho privado), veja `infrastructure/compose.minio.yaml`.
+> **Object storage é opcional** no MVP: o armazenamento privado de documentos roda **em memória por
+> padrão** (`APP_STORAGE_PROVIDER=memory`). Para um bucket compatível com S3, veja
+> `docs/operations/object-storage.md` (engine local free: **SeaweedFS**).
 
 ## 2. Backend (profile `local`)
 ```bash

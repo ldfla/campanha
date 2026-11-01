@@ -1,0 +1,31 @@
+# Object storage privado compatível com S3 (opcional) — engine local: SeaweedFS.
+#
+# Escolhido por ser **free/open-source** e ter imagem pública disponível (o MinIO removeu as suas).
+# Alternativas compatíveis com o mesmo adaptador (`app.storage.provider=s3`): Garage, AWS S3,
+# Cloudflare R2, Backblaze B2 — basta trocar endpoint/credenciais/região em `app.storage.s3.*`.
+#
+# Subir:
+#   APP_STORAGE_PROVIDER=s3 docker compose -f infrastructure/compose.yaml -f infrastructure/compose.s3.yaml up -d
+#
+# E rodar o backend com `APP_STORAGE_PROVIDER=s3` (endpoint http://localhost:8333).
+
+services:
+  s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: fundraiser-s3
+    # `server -s3` sobe master + volume + filer + S3 API em um único processo.
+    command: server -s3 -s3.port=8333 -master.port=9333 -volume.port=8080 -filer.port=8888
+    ports:
+      - "8333:8333"   # S3 API
+      - "9333:9333"   # master
+      - "8888:8888"   # filer (UI/HTTP)
+    volumes:
+      - s3_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8333/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  s3_data:
