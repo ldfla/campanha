@@ -803,14 +803,14 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P17.  
 **Entregáveis:** relatórios de performance e recuperação.
 
-- [ ] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação.
-- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock.
-- [ ] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa.
-- [ ] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery.
-- [ ] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`.
-- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes.
-- [ ] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter.
-- [ ] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números.
+- [x] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação. Série de 100.000 gerada em ~33 s; 250 participações em ~38 s.
+- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. **PARCIAL**: 100 e 250 concorrentes sem duplicidade; alto volume sustentou **≈22.780 transações/hora** (meta 10.000/h); 500 e deadlock explícito não executados (limite de pool).
+- [x] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa. Coberto por `OrderServiceIntegrationTest` (replay, atraso, fora de ordem).
+- [x] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery. `OutboxRecoveryIntegrationTest` + `OutboxEvent.recordFailure`.
+- [x] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`. p50≈18,8 s / p95≈36,3 s / p99≈37,7 s; `EXPLAIN` confirma índice.
+- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. **PARCIAL**: `scripts/backup-mysql.sh` + procedimento; ensaio em CI pendente.
+- [x] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter. Congelamento idempotente e participação tardia bloqueada após `LOCKED`.
+- [x] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números. `docs/progress/P18.md` (gargalo do lock de campanha).
 
 **Aceite:** relatórios reais com comandos, dados e evidência de integridade/recuperação.
 

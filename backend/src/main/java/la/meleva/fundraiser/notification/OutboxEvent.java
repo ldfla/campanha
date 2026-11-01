@@ -45,4 +45,26 @@ public class OutboxEvent {
         this.attemptCount++;
         this.errorMessage = "Origem inválida ou indisponível para simulação";
     }
+
+    /**
+     * Registra uma falha transitória: incrementa tentativas e reagenda; após {@code maxAttempts}
+     * vai para {@code DEAD_LETTER}. Permite recuperação de falhas entre persistência e notificação.
+     */
+    public void recordFailure(String error, Instant nextAttemptAt) {
+        java.util.Objects.requireNonNull(nextAttemptAt, "nextAttemptAt");
+        this.attemptCount++;
+        this.errorMessage = error;
+        if (this.attemptCount >= this.maxAttempts) {
+            this.status = "DEAD_LETTER";
+        } else {
+            this.status = "PENDING";
+            this.availableAt = nextAttemptAt;
+        }
+    }
+
+    public boolean isExhausted() { return attemptCount >= maxAttempts; }
+    public int getAttemptCount() { return attemptCount; }
+    public int getMaxAttempts() { return maxAttempts; }
+    public String getStatus() { return status; }
+    public Instant getAvailableAt() { return availableAt; }
 }
