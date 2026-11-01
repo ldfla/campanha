@@ -9,6 +9,7 @@ import { LiveFeed } from "@/components/live-feed";
 import { Prizes } from "@/components/prizes";
 import { Section } from "@/components/section";
 import { SponsorSpaces } from "@/components/sponsor-spaces";
+import { RandomNumberDemo } from "@/components/random-number-demo";
 import { UrgencyBar } from "@/components/urgency-bar";
 
 export default function Home() {
@@ -120,7 +121,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Combos */}
+      {/* 4. Gerador de números aleatórios — confiança */}
+      <RandomNumberDemo />
+
+      {/* 5. Combos */}
       <ComboCards />
 
       {/* 3. Prêmios */}

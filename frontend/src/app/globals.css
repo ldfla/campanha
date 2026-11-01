@@ -198,36 +198,34 @@
 }
 
 /* ── Contêiner padrão: centralizado, sem sobra lateral ── */
-@layer components {
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
   .section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding-inline: 1.25rem;
+    padding-inline: 2rem;
   }
+}
 
-  @media (min-width: 768px) {
-    .section {
-      padding-inline: 2rem;
-    }
+@media (min-width: 1024px) {
+  .section {
+    padding-inline: 2.5rem;
   }
+}
 
-  @media (min-width: 1024px) {
-    .section {
-      padding-inline: 2.5rem;
-    }
-  }
-
-  .section-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 1140px;
-    margin-inline: auto;
-  }
+.section-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1140px;
+  margin-inline: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

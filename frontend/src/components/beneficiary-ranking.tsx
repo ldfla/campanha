@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Section } from "@/components/section";
 import {
   BENEFICIARY_ENTITIES,
   BENEFICIARY_POOL_CENTS,
   formatBRL,
   isDemoMode,
-  DEMO_CAMPAIGN_ID,
 } from "@/lib/campaign-config";
 
 interface BeneficiaryStats {
@@ -24,11 +24,9 @@ export function BeneficiaryRanking() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In production, fetch from server: GET /api/campaigns/{id}/beneficiary-stats
-    // For DEMO, generate simulated distribution
     if (demoMode) {
+      const counts = [342, 287, 256, 198, 167, 145];
       const simulated: BeneficiaryStats[] = BENEFICIARY_ENTITIES.map((e, i) => {
-        const counts = [342, 287, 256, 198, 167];
         const count = counts[i] ?? 100;
         return { entityId: e.id, name: e.name, choiceCount: count, percentage: 0, amountCents: 0 };
       });
@@ -45,10 +43,9 @@ export function BeneficiaryRanking() {
     setLoading(false);
   }, [demoMode]);
 
-  const entityColors: Record<string, string> = {};
-  for (const e of BENEFICIARY_ENTITIES) {
-    entityColors[e.id] = e.color;
-  }
+  const entityMap = new Map<string, (typeof BENEFICIARY_ENTITIES)[number]>(
+    BENEFICIARY_ENTITIES.map((e) => [e.id, e]),
+  );
 
   if (loading) return null;
 
@@ -59,43 +56,58 @@ export function BeneficiaryRanking() {
           Para onde vai seu apoio
         </h2>
         <p className="mt-3 text-center text-base leading-relaxed text-[var(--color-ink-soft)]">
+          Instituições dedicadas ao tratamento do câncer infantojuvenil
+        </p>
+        <p className="mt-1 text-center text-sm text-[var(--color-ink-soft)]">
           {formatBRL(BENEFICIARY_POOL_CENTS)} distribuídos proporcionalmente às escolhas dos apoiadores
         </p>
 
         {demoMode && (
-          <p className="mt-2 text-center text-xs text-[var(--color-iris)] font-medium">
+          <p className="mt-2 text-center text-xs font-medium text-[var(--color-iris)]">
             Dados simulados · modo demonstração
           </p>
         )}
 
-        <div className="mt-8 space-y-4">
+        {/* Ranking cards */}
+        <div className="mt-8 space-y-3">
           {stats.map((entry, i) => {
-            const color = entityColors[entry.entityId] ?? "var(--color-iris)";
+            const entity = entityMap.get(entry.entityId);
+            const color = entity?.color ?? "var(--color-iris)";
             return (
-              <div key={entry.entityId} className="rounded-2xl border border-black/[0.06] bg-white p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ${
-                      i === 0 ? "ring-2 ring-offset-2" : ""
-                    }`}
-                    style={{ backgroundColor: color, ["--tw-ring-color" as string]: color }}
-                    >
-                      {i + 1}º
-                    </span>
-                    <span className="font-[family-name:var(--font-heading)] text-base font-semibold text-[var(--color-ink)]">
-                      {entry.name}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-[family-name:var(--font-heading)] text-lg font-bold tabular-nums text-[var(--color-ink)]">
-                      {formatBRL(entry.amountCents)}
-                    </span>
-                    <p className="text-xs text-[var(--color-ink-soft)] tabular-nums">
-                      {entry.choiceCount.toLocaleString("pt-BR")} escolhas · {entry.percentage}%
-                    </p>
-                  </div>
+              <div key={entry.entityId} className="rounded-2xl border border-black/[0.06] bg-white p-4 sm:p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <a
+                    href={entity?.url ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 transition-opacity hover:opacity-80"
+                  >
+                    {entity && (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
+                        <Image
+                          src={entity.logo}
+                          alt={entity.name}
+                          width={32}
+                          height={32}
+                          className="h-full w-full object-contain"
+                          unoptimized
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-ink)] sm:text-base">
+                        {entry.name}
+                      </span>
+                      <p className="text-xs text-[var(--color-ink-soft)] tabular-nums">
+                        {entry.choiceCount.toLocaleString("pt-BR")} escolhas · {entry.percentage}%
+                      </p>
+                    </div>
+                  </a>
+                  <span className="font-[family-name:var(--font-heading)] text-base font-bold tabular-nums text-[var(--color-ink)] sm:text-lg">
+                    {formatBRL(entry.amountCents)}
+                  </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-black/[0.04] overflow-hidden">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-black/[0.04]">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${entry.percentage}%`, backgroundColor: color }}
@@ -107,7 +119,7 @@ export function BeneficiaryRanking() {
         </div>
 
         <p className="mt-6 text-center text-xs text-[var(--color-ink-soft)]">
-          Atualizado em tempo real conforme os apoiadores escolhem suas instituições
+          Todas as instituições listadas são dedicadas ao combate ao câncer infantojuvenil
         </p>
       </div>
     </Section>

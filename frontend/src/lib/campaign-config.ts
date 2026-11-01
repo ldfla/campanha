@@ -87,11 +87,12 @@ export const SURPRISE_PRIZES = [
 ] as const;
 
 export const BENEFICIARY_ENTITIES = [
-  { id: "graac", name: "GRAAC", color: "#E4002B" },
-  { id: "casa-hope", name: "Casa Hope", color: "#00A651" },
-  { id: "aacd", name: "AACD", color: "#0072BC" },
-  { id: "tucca", name: "TUCCA", color: "#8B5CF6" },
-  { id: "aacc", name: "AACC", color: "#EC4899" },
+  { id: "graacc", name: "GRAACC", color: "#E4002B", logo: "/logos/graacc.svg", url: "https://graacc.org.br" },
+  { id: "aacd", name: "AACD", color: "#0072BC", logo: "/logos/aacd.png", url: "https://aacd.org.br" },
+  { id: "tucca", name: "TUCCA", color: "#8B5CF6", logo: "/logos/tucca.png", url: "https://tucca.org.br" },
+  { id: "aacc", name: "AACC", color: "#EC4899", logo: "/logos/aacc.png", url: "https://aacc.org.br" },
+  { id: "itaci", name: "ITACI", color: "#FF6B35", logo: "/logos/itaci.webp", url: "https://itaci.org.br" },
+  { id: "casa-hope", name: "Casa Hope", color: "#00A651", logo: "/logos/casa-hope.png", url: "https://hope.org.br" },
 ] as const;
 
 export const BENEFICIARY_POOL_CENTS = 1_000_000;
