@@ -703,7 +703,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
 - [x] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
 - [x] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile. QR + Web Share + Telegram (PR #19): `components/qr-code.tsx` e `app/indicar`.
-- [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios. **PARCIAL**: self-referral/atribuição única/reatribuição cobertos; faltam cookie stuffing, replay, contas vinculadas e manipulação de relatório.
+- [x] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios. Evidência: `ReferralFraudIntegrationTest` (8), P20-F21/F24 — `docs/progress/P20-fase1.md`.
 - [x] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
 
 **Aceite:** só atividades válidas entram no ranking; testes de autindicação passam.
@@ -720,7 +720,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
 - [x] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
 - [x] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
-- [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação. **PARCIAL**: coberto tardio/expirado/fora de ordem/replay (`OrderServiceIntegrationTest`); pendente timeout de transporte e falha parcial entre PSP e banco.
+- [x] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação. Evidência: `OrderServiceIntegrationTest` + `PaymentFailureRecoveryIntegrationTest` (5), P20-F22/F23 — `docs/progress/P20-fase1.md`.
 - [x] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
 
 **Aceite:** 100% dos efeitos são idempotentes; não existe rota para cobrança real sem `G-LEGAL`, `G-PSP`, `G-FINANCE` e live gate.
@@ -736,7 +736,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P10-04` Especificar desempate determinístico e estável antes da abertura.
 - [x] `P10-05` Criar agregações com reprocessamento idempotente e consistência eventual sinalizada.
 - [x] `P10-06` Criar snapshot congelado, hash e exportação para auditoria.
-- [ ] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. **PARCIAL**: invalidação/congelamento cobertos; estornos de pagamento só terão efeito quando `orders`/`payments` forem ligados a `participation_entries` (P17).
+- [x] `P10-07` Testar reversões/estornos/invalidações com efeitos consistentes nos rankings. Evidência: `RefundRankingIntegrationTest` (2), D-010 — `docs/progress/P20-fase1.md`.
 - [x] `P10-08` Exibir pseudônimos e política anti-exposição de nomes reais.
 
 **Aceite:** rankings reproduzíveis com mesma massa de eventos; impossibilidade de mudar desempate após abertura.
@@ -857,11 +857,11 @@ Modelo de duas camadas em `campaign_numbers`:
 **Entregáveis:** relatórios de performance e recuperação.
 
 - [x] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação. Série de 100.000 gerada em ~33 s; 250 participações em ~38 s.
-- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. **PARCIAL**: 100 e 250 concorrentes sem duplicidade; alto volume sustentou **≈22.780 transações/hora** (meta 10.000/h); 500 e deadlock explícito não executados (limite de pool).
+- [x] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. Evidência: `ConcurrencyLimitsIntegrationTest` (500 para 400 números, 0 duplicatas, 0 deadlocks; controle positivo) — `docs/progress/P20-fase1.md`.
 - [x] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa. Coberto por `OrderServiceIntegrationTest` (replay, atraso, fora de ordem).
 - [x] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery. `OutboxRecoveryIntegrationTest` + `OutboxEvent.recordFailure`.
 - [x] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`. p50≈18,8 s / p95≈36,3 s / p99≈37,7 s; `EXPLAIN` confirma índice.
-- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. **PARCIAL**: `scripts/backup-mysql.sh` + procedimento; ensaio em CI pendente.
+- [x] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. Evidência MySQL: `BackupRestoreDrillIntegrationTest` (58 tabelas idênticas por `CHECKSUM TABLE`). **Objetos privados não ensaiados** (storage `memory` no MVP) — `docs/progress/P20-fase1.md`.
 - [x] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter. Congelamento idempotente e participação tardia bloqueada após `LOCKED`.
 - [x] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números. `docs/progress/P18.md` (gargalo do lock de campanha).
 

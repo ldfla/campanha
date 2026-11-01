@@ -162,6 +162,39 @@ Achados médios/baixos remanescentes estão listados com risco residual.
 ### P20-F20 — BAIXO — ID interno exposto (OPEN)
 - `OrderReceipt.paymentId` é `BIGINT` sequencial. Endpoint agora só para admin (F03), risco baixo.
 
+## Achados da Fase 1 (2026-11-01, após a aprovação)
+
+Encontrados ao escrever os testes de P08-07/P09-08/P10-07. Corrigidos, com teste negativo; mesmo revisor
+que corrigiu (sem segregação, ADR-0009).
+
+### P20-F21 — ALTO — Atribuição manual de indicação de terceiros (CWE-639 / OWASP API1)
+- **PoC:** `POST /referrals/campaigns/{id}/attributions/{code}/{entryId}` aceitava qualquer sessão; `entryId`
+  é sequencial. Um divulgador atribuía a si as entradas ainda não atribuídas de outros compradores (sem
+  checar dono da entrada nem cota do divulgador) e subia no ranking `PROMOTER`, que tem premiação.
+- **Correção:** endpoint removido (e `referrals.attribute` do `api-client.ts`). A atribuição só ocorre no
+  servidor, no checkout/participação, com o código fixado na reserva.
+- **Re-teste:** `ReferralFraudIntegrationTest.manualAttributionOfSomeoneElsesEntryIsNotExposed` → 4xx, ranking vazio.
+
+### P20-F22 — ALTO — Reconciliação travada por um único pagamento (disponibilidade / integridade financeira)
+- **PoC:** `ReconciliationWorker` reconciliava até 100 pagamentos numa única transação; um timeout do PSP ou um
+  pagamento inconsistente fazia rollback do lote inteiro em todas as execuções. Pagamento ainda pendente era
+  marcado como processado e nunca mais reconciliado sem webhook.
+- **Correção:** cada pagamento em transação própria (`REQUIRES_NEW`), falha registra tentativa com backoff
+  exponencial (até 30 min, depois `DEAD_LETTER`), pendente é reagendado sem consumir tentativa.
+- **Re-teste:** `PaymentFailureRecoveryIntegrationTest.workerIsolatesAFailingPaymentRetriesTransientTimeoutsAndKeepsPendingOnesScheduled`.
+
+### P20-F23 — MÉDIO — Estorno repetido após resposta perdida (CWE-837)
+- **PoC:** se a resposta do estorno se perdia depois de o PSP estornar, a nova tentativa chamava o estorno no PSP
+  de novo (com PSP real, risco de estorno em dobro).
+- **Correção:** `OrderService.refund` consulta a fonte antes; se já estornado, converge sem nova chamada.
+- **Re-teste:** `lostRefundResponseIsRetriedWithoutRefundingTwice` → uma única chamada de estorno ao PSP.
+
+### P20-F24 — MÉDIO — Linhas de posição do snapshot fora da verificação
+- **PoC:** `ranking_positions` não entra no hash; a exportação só conferia a contagem. `UPDATE` direto de
+  pontuação ou posição passava como verificado.
+- **Correção:** exportação confere posição e pontuação de cada linha contra o payload lacrado.
+- **Re-teste:** `ReferralFraudIntegrationTest.directDatabaseEditOfSnapshotPositionsOrPayloadIsDetected`.
+
 ## Vetores atacados sem achado novo
 
 | Vetor | Evidência | Resultado |
@@ -182,7 +215,8 @@ Achados médios/baixos remanescentes estão listados com risco residual.
 | `NEXT_PUBLIC_*` | só `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_CAMPAIGN_ID` (públicos); bundle `.next/static` sem credenciais de dev | OK |
 
 ## Não executado (honestidade de evidência)
-- Cookie stuffing e replay de clique de indicação **não** foram exercitados dinamicamente (P08-07, Fase 1).
+- Cookie stuffing e replay de clique: cobertos na Fase 1 (`ReferralFraudIntegrationTest`), em nível de
+  serviço/MockMvc, não com navegador real.
 - Verificação visual do frontend no navegador: o preview foi recusado nesta sessão; só `typecheck` e `build`.
 - gitleaks/trufflehog, SAST/DAST, SBOM: ferramentas não instaladas; nada foi executado.
 - Revisor independente (segregação ADR-0009) não disponível.
