@@ -11,17 +11,31 @@ export class ApiError extends Error {
   }
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/** Token anti-CSRF emitido pelo backend no cookie `XSRF-TOKEN` (Spring Security). */
+function csrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const entry = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith("XSRF-TOKEN="));
+  return entry ? decodeURIComponent(entry.slice("XSRF-TOKEN=".length)) : null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
+  const method = (options.method ?? "GET").toUpperCase();
+  const token = SAFE_METHODS.has(method) ? null : csrfToken();
   const res = await fetch(url, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...(token ? { "X-XSRF-TOKEN": token } : {}),
       ...options.headers,
     },
   });
@@ -64,17 +78,31 @@ export interface LoginRequest {
   phoneNumber: string;
 }
 
+/** Resposta uniforme: não indica se o telefone está cadastrado. */
+export interface CodeChallengeResponse {
+  status: "CODE_SENT";
+  detail: string;
+}
+
 export const auth = {
+  /** Cadastro não cria sessão; a sessão nasce em `verifyLogin`. */
   register: (data: RegisterRequest) =>
-    request<UserResponse>("/auth/register", {
+    request<CodeChallengeResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
+  /** Solicita código de acesso por WhatsApp/SMS. */
   login: (data: LoginRequest) =>
-    request<UserResponse>("/auth/login", {
+    request<CodeChallengeResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+
+  verifyLogin: (phoneNumber: string, code: string) =>
+    request<UserResponse>("/auth/login/verify", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber, code }),
     }),
 
   logout: () =>
@@ -162,6 +190,24 @@ export interface ParticipationAllocation {
 export interface CreateParticipationRequest {
   idempotencyKey: string;
   count: number;
+  entityId: string;
+  referralCode?: string;
+}
+
+export interface MyNumber {
+  formattedNumber: string;
+  status: "CONFIRMED" | "PENDING";
+}
+
+/** Somente os números do titular da sessão; totais calculados no servidor. */
+export interface MyNumbersView {
+  campaignPublicId: string;
+  numbers: MyNumber[];
+  confirmedCount: number;
+  pendingCount: number;
+  confirmedAmountCents: number;
+  currency: "BRL";
+  simulation: boolean;
 }
 
 export interface NumberAvailability {
@@ -171,14 +217,17 @@ export interface NumberAvailability {
 }
 
 export const participations = {
-  request: (campaignId: string, idempotencyKey: string, count: number) =>
+  request: (campaignId: string, data: CreateParticipationRequest) =>
     request<ParticipationAllocation>(
       `/participations/campaigns/${campaignId}`,
       {
         method: "POST",
-        body: JSON.stringify({ idempotencyKey, count } satisfies CreateParticipationRequest),
+        body: JSON.stringify(data),
       },
     ),
+
+  mine: (campaignId: string) =>
+    request<MyNumbersView>(`/participations/campaigns/${campaignId}/numbers/mine`),
 
   availability: (campaignId: string) =>
     request<number>(`/participations/campaigns/${campaignId}/availability`),
@@ -256,31 +305,8 @@ export const mockPayments = {
 
 // ── Payment ──
 
-export interface CreatePaymentOrderRequest {
-  campaignId: number;
-  amountCents: number;
-  idempotencyKey: string;
-}
-
-export interface OrderReceipt {
-  orderPublicId: string;
-  paymentId: number;
-  chargeId: string;
-  txid: string;
-  status: string;
-}
-
-export type OrderStatus =
-  | "CREATED" | "AWAITING_PAYMENT" | "CONFIRMED" | "RECONCILED"
-  | "CANCELLED" | "EXPIRED" | "REFUND_PENDING" | "REFUNDED";
-
-export const payments = {
-  createOrder: (campaignId: number, amountCents: number, idempotencyKey: string) =>
-    request<OrderReceipt>("/payments/orders", {
-      method: "POST",
-      body: JSON.stringify({ campaignId, amountCents, idempotencyKey } satisfies CreatePaymentOrderRequest),
-    }),
-};
+// Pedidos com valor informado pelo cliente não existem no fluxo do participante (P20-F03):
+// o valor é sempre o da oferta, calculado no servidor durante o checkout.
 
 // ── Ranking ──
 

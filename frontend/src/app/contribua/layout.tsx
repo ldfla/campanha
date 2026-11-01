@@ -15,6 +15,11 @@ const NAV_ITEMS = [
   { href: "/contribua/relatorios", label: "Relatórios", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
 ] as const;
 
+const OPERATOR_ROLES = new Set([
+  "SYSTEM_ADMIN", "SECURITY_ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_REVIEWER",
+  "FINANCE", "DRAW_AUDITOR", "SUPPORT",
+]);
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
@@ -28,7 +33,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!user) {
+  // Barreira apenas de interface: a autorização real é do backend (`/_cx/**` responde 403).
+  const hasOperatorRole = user?.roles.some((role) => OPERATOR_ROLES.has(role)) ?? false;
+
+  if (!user || !hasOperatorRole) {
     return (
       <div className="flex items-center justify-center min-h-dvh bg-[var(--color-snow)]">
         <div className="max-w-md mx-auto text-center px-6">
@@ -36,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Acesso restrito
           </h1>
           <p className="text-sm text-[var(--color-midnight)]/50 mb-6">
-            Faça login para acessar o painel administrativo.
+            {user ? "Sua conta não tem papel operacional para esta área." : "Faça login para acessar o painel administrativo."}
           </p>
           <Link href="/participar" className="inline-flex px-6 py-3 rounded-xl font-semibold text-sm bg-[var(--color-iris)] text-white hover:bg-[var(--color-iris)]/90 transition-colors">
             Ir para o início

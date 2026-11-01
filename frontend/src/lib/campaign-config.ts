@@ -102,7 +102,15 @@ export const PRODUCT_LINKS: Record<string, string> = {
   "2-premio": "https://meli.la/2Tpgeiy",
 };
 
-export const DEMO_CAMPAIGN_ID = "demo";
+/** Identificador público (não secreto) da campanha exibida; padrão DEMO local. */
+export const DEMO_CAMPAIGN_ID = process.env.NEXT_PUBLIC_CAMPAIGN_ID ?? "demo";
+
+/** Normaliza o WhatsApp digitado para E.164 (+55…); a validação definitiva é do backend. */
+export function toE164(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  const withCountry = digits.startsWith("55") && digits.length >= 12 ? digits : `55${digits}`;
+  return `+${withCountry}`;
+}
 
 export function formatBRL(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
