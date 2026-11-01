@@ -51,7 +51,7 @@ import org.testcontainers.mysql.MySQLContainer;
  */
 @SpringBootTest(properties = {
         "spring.datasource.hikari.maximum-pool-size=50",
-        "spring.datasource.hikari.connection-timeout=240000"})
+        "spring.datasource.hikari.connection-timeout=60000"})
 @Import(TestcontainersConfiguration.class)
 class ConcurrencyLimitsIntegrationTest {
     private static final int CONTENDERS = 500;
