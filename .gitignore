@@ -40,3 +40,6 @@ logs/
 *.key
 *.p12
 *.jks
+
+# === Claude/IDE ===
+.claude/

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { campaigns, participations, type CampaignResponse, ApiError } from "@/lib/api-client";
-import { isDemoMode, formatBRL, DEMO_CAMPAIGN_ID } from "@/lib/campaign-config";
+import { isDemoMode, DEMO_CAMPAIGN_ID } from "@/lib/campaign-config";
 
 export default function AdminDashboard() {
   const demoMode = isDemoMode();
@@ -13,7 +13,6 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
       campaigns.getById(DEMO_CAMPAIGN_ID).catch(() => null),
       participations.availability(DEMO_CAMPAIGN_ID).catch(() => null),

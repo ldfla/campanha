@@ -21,11 +21,10 @@ services:
       --collation-server=utf8mb4_unicode_ci
       --default-time-zone=+00:00
 
-  # NOTA: o object storage MinIO não faz parte da stack base do MVP. As imagens
-  # públicas `minio/minio` deixaram de existir no registro (Docker Hub/Bitnami/Quay),
-  # então o armazenamento privado de documentos roda em memória por padrão
-  # (`APP_STORAGE_PROVIDER=memory`). Para habilitar MinIO (ou espelho privado),
-  # use `infrastructure/compose.minio.yaml` com `APP_STORAGE_PROVIDER=minio`.
+  # NOTA: o object storage não faz parte da stack base do MVP. O armazenamento privado de
+  # documentos roda em memória por padrão (`APP_STORAGE_PROVIDER=memory`). Para um bucket
+  # compatível com S3 (SeaweedFS free; ou AWS S3/R2/Garage), use `infrastructure/compose.s3.yaml`
+  # com `APP_STORAGE_PROVIDER=s3`. Ver `docs/operations/object-storage.md`.
 
   mailpit:
     image: axllent/mailpit:latest

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/use-auth";
 import { participations, type MyNumbersView } from "@/lib/api-client";
@@ -10,28 +10,31 @@ import { CodeLoginForm } from "@/components/code-login-form";
 export default function MeusNumerosPage() {
   const { user, loading: authLoading, logout } = useAuth();
   const [view, setView] = useState<MyNumbersView | null>(null);
-  const [loadingNumbers, setLoadingNumbers] = useState(false);
+  const [loadingNumbers, setLoadingNumbers] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const demoMode = isDemoMode();
 
   // Sem sessão nenhuma chamada é feita; o backend também responde 401 sem dados.
-  const fetchNumbers = useCallback(async () => {
-    if (!user) return;
-    setLoadingNumbers(true);
-    setLoadError(null);
-    try {
-      setView(await participations.mine(DEMO_CAMPAIGN_ID));
-    } catch {
-      setView(null);
-      setLoadError("Não foi possível carregar seus números agora.");
-    } finally {
-      setLoadingNumbers(false);
-    }
-  }, [user]);
-
   useEffect(() => {
-    if (user) fetchNumbers();
-  }, [user, fetchNumbers]);
+    if (!user) return;
+    let active = true;
+    participations
+      .mine(DEMO_CAMPAIGN_ID)
+      .then((mine) => {
+        if (active) setView(mine);
+      })
+      .catch(() => {
+        if (!active) return;
+        setView(null);
+        setLoadError("Não foi possível carregar seus números agora.");
+      })
+      .finally(() => {
+        if (active) setLoadingNumbers(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const numbers = view?.numbers ?? [];
   const confirmed = view?.confirmedCount ?? 0;

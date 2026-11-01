@@ -55,6 +55,16 @@ Uma tarefa só pode ser marcada concluída se tiver implementação funcional (n
 ### MVP local
 - Como rodar: `docs/operations/local-mvp.md` (Docker Compose + backend profile `local` + frontend).
 
+### Rodada de verificação (2026-11-01) — testes, storage e limpeza
+- **Backend:** `./mvnw -B verify` → **195 testes, 0 falhas** (MySQL 8.4 + Garage via Testcontainers).
+- **Frontend:** `npm run lint`, `npm run typecheck` e `npm run build` **verdes** (corrigidos: script de
+  typecheck com `next typegen`; regras novas `react-hooks@7` do Next 16). **Ainda sem testes unitários
+  ou E2E** (P17 não iniciado; P06-07 segue pendente).
+- **Object storage:** adaptador **S3 agnóstico de engine** (`app.storage.provider=s3`). Engine local:
+  **Garage** (benchmark: 88 MB/ISO, ~15 MB RAM, S3 ~1,4x mais rápido que SeaweedFS).
+  `docs/operations/object-storage.md`; init por `scripts/s3-init.sh`.
+- **Limpeza:** branches órfãos removidos; prompts `CODEX*.md` (obsoletos) e `.claude/` removidos.
+
 ---
 
 # 1. Visão do produto e especificação comercial de referência
@@ -181,7 +191,7 @@ O site público mostra apenas documentos autorizados para divulgação, identifi
 | Banco em testes | Testcontainers/MySQL e dados determinísticos |
 | Jobs/outbox | MySQL, polling transacional `FOR UPDATE SKIP LOCKED` para filas |
 | Webhooks | Endpoint autenticado + inbox/outbox + reconciliação periódica |
-| Armazenamento | API compatível com S3 (ex.: MinIO local), criptografia para objetos privados |
+| Armazenamento | API compatível com S3 (ex.: Garage/SeaweedFS local), criptografia para objetos privados |
 | Observabilidade | Actuator, Micrometer, OpenTelemetry, logs estruturados, alertas |
 | Deploy | Docker Compose em dev/staging; deploy Linux com TLS, reverse proxy e backups verificados |
 | Testes | JUnit 5, AssertJ, Spring Boot Test, Playwright, Vitest ou equivalente |
@@ -562,7 +572,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P02-02` Criar Next.js + React 19 + TS strict, configuração de lint, formatação e aliases.
 - [x] `P02-03` Configurar Docker Compose MySQL 8.4, MinIO local e healthchecks.
 - [x] `P02-04` Configurar `.env.example` e política de segredos; nunca versionar `.env`.
-- [ ] `P02-05` Criar workflow CI (build, typecheck, lint, testes backend/frontend, SCA, secret scan). **PARCIAL**: `backend.yml` (build+test+Trivy+SBOM); faltam typecheck/lint/testes do frontend no CI.
+- [ ] `P02-05` Criar workflow CI (build, typecheck, lint, testes backend/frontend, SCA, secret scan). **PARCIAL**: `backend.yml` (build+test+Trivy+SBOM); scripts do frontend (`lint`/`typecheck`/`build`) já verdes via `scripts/check-all.sh`, falta o workflow de CI do frontend.
 - [x] `P02-06` Ativar Actuator /health, readiness/liveness e correlação de requisição.
 - [x] `P02-07` Publicar documentação OpenAPI inicial e scripts `dev`, `test`, `check`.
 - [x] `P02-08` Criar rotas Next.js mínimas e layout responsivo com dark/light respeitando acessibilidade.

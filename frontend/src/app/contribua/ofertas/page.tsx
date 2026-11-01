@@ -16,7 +16,6 @@ export default function OfertasAdmin() {
   const [showForm, setShowForm] = useState(false);
 
   async function loadOffers() {
-    setLoading(true);
     try {
       const list = await participations.offers(DEMO_CAMPAIGN_ID);
       setOffers(list);
@@ -27,7 +26,13 @@ export default function OfertasAdmin() {
     }
   }
 
-  useEffect(() => { loadOffers(); }, []);
+  useEffect(() => {
+    participations
+      .offers(DEMO_CAMPAIGN_ID)
+      .then(setOffers)
+      .catch((err) => setError(err instanceof ApiError ? err.detail : "Falha ao carregar ofertas"))
+      .finally(() => setLoading(false));
+  }, []);
 
   async function handleCreate() {
     setCreating(true);

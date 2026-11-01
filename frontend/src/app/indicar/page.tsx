@@ -24,7 +24,7 @@ export default function IndicarPage() {
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<ReferralMetrics | null>(null);
-  const [loadingLink, setLoadingLink] = useState(false);
+  const [loadingLink, setLoadingLink] = useState(true);
   const demoMode = isDemoMode();
 
   const referralUrl = referralCode
@@ -33,7 +33,6 @@ export default function IndicarPage() {
 
   useEffect(() => {
     if (!user) return;
-    setLoadingLink(true);
     referrals
       .createLink(DEMO_CAMPAIGN_ID)
       .then((m) => setReferralCode(m.code))

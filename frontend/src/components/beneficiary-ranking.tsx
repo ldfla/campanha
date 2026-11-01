@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import { Section } from "@/components/section";
 import {
@@ -20,34 +20,28 @@ interface BeneficiaryStats {
 
 export function BeneficiaryRanking() {
   const demoMode = isDemoMode();
-  const [stats, setStats] = useState<BeneficiaryStats[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (demoMode) {
-      const counts = [342, 287, 256, 198, 167, 145];
-      const simulated: BeneficiaryStats[] = BENEFICIARY_ENTITIES.map((e, i) => {
-        const count = counts[i] ?? 100;
-        return { entityId: e.id, name: e.name, choiceCount: count, percentage: 0, amountCents: 0 };
-      });
-      const total = simulated.reduce((s, e) => s + e.choiceCount, 0);
-      for (const entry of simulated) {
-        entry.percentage = total > 0 ? Math.round((entry.choiceCount / total) * 100) : 0;
-        entry.amountCents = total > 0
-          ? Math.round((entry.choiceCount / total) * BENEFICIARY_POOL_CENTS)
-          : 0;
-      }
-      simulated.sort((a, b) => b.choiceCount - a.choiceCount);
-      setStats(simulated);
+  const stats = useMemo<BeneficiaryStats[]>(() => {
+    if (!demoMode) return [];
+    const counts = [342, 287, 256, 198, 167, 145];
+    const simulated: BeneficiaryStats[] = BENEFICIARY_ENTITIES.map((e, i) => {
+      const count = counts[i] ?? 100;
+      return { entityId: e.id, name: e.name, choiceCount: count, percentage: 0, amountCents: 0 };
+    });
+    const total = simulated.reduce((s, e) => s + e.choiceCount, 0);
+    for (const entry of simulated) {
+      entry.percentage = total > 0 ? Math.round((entry.choiceCount / total) * 100) : 0;
+      entry.amountCents = total > 0
+        ? Math.round((entry.choiceCount / total) * BENEFICIARY_POOL_CENTS)
+        : 0;
     }
-    setLoading(false);
+    simulated.sort((a, b) => b.choiceCount - a.choiceCount);
+    return simulated;
   }, [demoMode]);
 
   const entityMap = new Map<string, (typeof BENEFICIARY_ENTITIES)[number]>(
     BENEFICIARY_ENTITIES.map((e) => [e.id, e]),
   );
-
-  if (loading) return null;
 
   return (
     <Section tone="snow">
@@ -70,7 +64,7 @@ export function BeneficiaryRanking() {
 
         {/* Ranking cards */}
         <div className="mt-8 space-y-3">
-          {stats.map((entry, i) => {
+          {stats.map((entry) => {
             const entity = entityMap.get(entry.entityId);
             const color = entity?.color ?? "var(--color-iris)";
             return (

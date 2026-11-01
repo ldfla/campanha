@@ -64,14 +64,17 @@ function ParticiparContent() {
   // Referral code from URL
   const referralCode = searchParams.get("ref") ?? undefined;
 
-  // Load offers on mount
+  // Load offers on mount (pré-seleciona o combo da URL, se houver)
   useEffect(() => {
-    setOffersLoading(true);
+    const comboParam = searchParams.get("combo");
     participations
       .offers(DEMO_CAMPAIGN_ID)
       .then((offers) => {
         setServerOffers(offers);
-        if (offers.length > 0) {
+        const match = comboParam ? offers.find((o) => o.id === comboParam) : undefined;
+        if (match) {
+          setSelectedOfferId(match.id);
+        } else if (offers.length > 0) {
           const first = offers[0];
           setSelectedOfferId(first ? first.id : null);
         }
@@ -80,7 +83,7 @@ function ParticiparContent() {
         setServerOffers([]);
       })
       .finally(() => setOffersLoading(false));
-  }, []);
+  }, [searchParams]);
 
   // Load beneficiaries when entering beneficiary step
   const loadBeneficiaries = useCallback(async () => {
@@ -94,15 +97,6 @@ function ParticiparContent() {
       setBeneficiariesLoading(false);
     }
   }, []);
-
-  // Pre-select combo from URL if present
-  useEffect(() => {
-    const comboParam = searchParams.get("combo");
-    if (comboParam && serverOffers.length > 0) {
-      const match = serverOffers.find((o) => o.id === comboParam);
-      if (match) setSelectedOfferId(match.id);
-    }
-  }, [searchParams, serverOffers]);
 
   // Preço e quantidade vêm somente das ofertas do servidor (P20-F10); rótulos são cosméticos.
   const displayOffers = serverOffers.map((o) => {

@@ -1,0 +1,31 @@
+# Object storage privado compatível com S3 (opcional) — engine local: Garage.
+#
+# Escolhido em benchmark real por ser o **mais leve e mais rápido** entre as alternativas free:
+#   imagem 88 MB (1 layer) e ~15 MB de RAM em repouso, contra 665 MB / ~242 MB do SeaweedFS;
+#   throughput S3 ~1,4x maior (ver docs/operations/object-storage.md).
+#
+# Subir:
+#   docker compose -f infrastructure/compose.yaml -f infrastructure/compose.s3.yaml up -d
+#   ./scripts/s3-init.sh          # configura layout, chave e bucket (uma vez)
+#
+# E rodar o backend com `APP_STORAGE_PROVIDER=s3` (endpoint http://localhost:3900).
+
+services:
+  garage:
+    image: dxflrs/garage:v2.5.0
+    container_name: fundraiser-garage
+    command: /garage server
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_data:/var/lib/garage
+    ports:
+      - "3900:3900"   # S3 API
+      - "3903:3903"   # Admin API / métricas
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+volumes:
+  garage_data:
