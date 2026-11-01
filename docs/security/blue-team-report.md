@@ -45,10 +45,11 @@
 - **Sem verba para pentest externo.** A validação é feita por **Red Team interno segregado** do
   desenvolvimento, seguindo **OWASP Testing Guide / PTES**, com relatório de evidências
   (`docs/security/red-team-report.md`).
-- **Segregação:** quem executa o Red Team não é quem escreveu o código. Onde houver sobreposição,
-  declarar como limitação.
-- **Risco residual** assumido pela Diretoria via **Termo de Aceitação de Risco**
-  (`docs/compliance/risk-acceptance.md`), com compromisso de pentest externo futuro.
+- **Segregação:** quem executa o Red Team não é quem escreveu o código (registrar quem executou vs.
+  quem desenvolveu). Onde houver sobreposição, declarar como limitação.
+- **Risco residual** formalmente assumido pela Diretoria via **Termo de Aceitação de Risco**
+  (`docs/compliance/risk-acceptance.md`); compromisso de contratar pentest externo na primeira
+  oportunidade orçamentária.
 - **Não** se declara "pentest" nem homologação. `G-SECURITY` fica **condicional** (interno + aceitação).
 
 ## Lacunas conhecidas (a fechar)
