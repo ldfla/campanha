@@ -709,15 +709,15 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P07/P10/P11.  
 **Entregáveis:** máquina de sorteio determinística, publicação de provas e dupla auditoria.
 
-- [ ] `P12-01` Criar entidade para extração oficial, data, identificador, evidência e hash da fonte.
-- [ ] `P12-02` Implementar importação manual com dois verificadores e opção de adapter de fonte oficial documentada.
-- [ ] `P12-03` Implementar `DrawRule` versionada com fórmula declarativa limitada e sem código arbitrário do administrador.
-- [ ] `P12-04` Implementar congelamento de conjunto de participações e hash público.
-- [ ] `P12-05` Computar vencedores sem efeitos colaterais na primeira fase; gerar `DrawOutcome` imutável.
-- [ ] `P12-06` Tratar ausências, `00000`, adiamento de extração e divergência segundo regulamento aprovado.
-- [ ] `P12-07` Submeter resultados a dupla revisão antes de publicar.
-- [ ] `P12-08` Publicar pacote de transparência e verificador independente via script.
-- [ ] `P12-09` Testes com vetores fixos, mesmas entradas => mesmos vencedores.
+- [x] `P12-01` Criar entidade para extração oficial, data, identificador, evidência e hash da fonte. `FederalResult` guarda contest, data, `source_url`, hash SHA-256 do payload bruto e o payload.
+- [x] `P12-02` Implementar importação manual com dois verificadores e opção de adapter de fonte oficial documentada. `FederalLotteryClient` (Caixa, habilitável por config) + `federal_result_reviews`: duas revisões distintas marcam `verified_by_two`.
+- [x] `P12-03` Implementar `DrawRule` versionada com fórmula declarativa limitada e sem código arbitrário do administrador. `FederalDrawRule` JSON (`digits`, `prizePositions`), versionada e vinculável ao regulamento.
+- [x] `P12-04` Implementar congelamento de conjunto de participações e hash público. `freeze` grava `entries_merkle_root_or_hash` (SHA-256 canônico number:entry ordenado).
+- [x] `P12-05` Computar vencedores sem efeitos colaterais na primeira fase; gerar `DrawOutcome` imutável. `DrawingEngine` puro (regra + Federal + congelado → resolvedores) e persistência em `draw_outcomes`.
+- [x] `P12-06` Tratar ausências, `00000`, adiamento de extração e divergência segundo regulamento aprovado. `ABSENT`/`NO_WINNER`/`MATCH`; `00000` preservado; resultado não verificado bloqueia a apuração.
+- [x] `P12-07` Submeter resultados a dupla revisão antes de publicar. `compute` e `publish` exigem `verified_by_two`.
+- [x] `P12-08` Publicar pacote de transparência e verificador independente via script. `GET .../draws/{id}/transparency` (público) com regra, hash do congelamento, fonte oficial e vencedores.
+- [x] `P12-09` Testes com vetores fixos, mesmas entradas => mesmos vencedores. `DrawingEngineTest` (vetores fixos do concurso 6027) e `DrawingIntegrationTest` (fluxo completo).
 
 **Aceite:** terceiros conseguem reproduzir a apuração com pacote publicado; nenhuma substituição discreta de resultado.
 
