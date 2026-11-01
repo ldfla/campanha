@@ -51,6 +51,8 @@ public enum ErrorCode {
     DRAW_RULE_MISMATCH("Regra de apuração não corresponde ao regulamento aprovado", 409),
     DRAW_ALREADY_PUBLISHED("Resultado já publicado e não pode ser alterado", 409),
     DRAW_SURPRISE_COMMITMENT_FAILED("Hash de compromisso dos números-surpresa não confere", 409),
+    DRAW_STATE_INVALID("Operação inválida para o estado atual da apuração", 409),
+    FEDERAL_SOURCE_UNAVAILABLE("Fonte oficial da apuração indisponível", 502),
 
     // Aprovação
     APPROVAL_SELF_APPROVAL("Autoaprovação não permitida", 403),

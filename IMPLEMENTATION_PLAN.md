@@ -709,15 +709,15 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P07/P10/P11.  
 **Entregáveis:** máquina de sorteio determinística, publicação de provas e dupla auditoria.
 
-- [ ] `P12-01` Criar entidade para extração oficial, data, identificador, evidência e hash da fonte.
-- [ ] `P12-02` Implementar importação manual com dois verificadores e opção de adapter de fonte oficial documentada.
-- [ ] `P12-03` Implementar `DrawRule` versionada com fórmula declarativa limitada e sem código arbitrário do administrador.
-- [ ] `P12-04` Implementar congelamento de conjunto de participações e hash público.
-- [ ] `P12-05` Computar vencedores sem efeitos colaterais na primeira fase; gerar `DrawOutcome` imutável.
-- [ ] `P12-06` Tratar ausências, `00000`, adiamento de extração e divergência segundo regulamento aprovado.
-- [ ] `P12-07` Submeter resultados a dupla revisão antes de publicar.
-- [ ] `P12-08` Publicar pacote de transparência e verificador independente via script.
-- [ ] `P12-09` Testes com vetores fixos, mesmas entradas => mesmos vencedores.
+- [x] `P12-01` Criar entidade para extração oficial, data, identificador, evidência e hash da fonte. `FederalResult` guarda contest, data, `source_url`, hash SHA-256 do payload bruto e o payload.
+- [x] `P12-02` Implementar importação manual com dois verificadores e opção de adapter de fonte oficial documentada. `FederalLotteryClient` (Caixa, habilitável por config) + `federal_result_reviews`: duas revisões distintas marcam `verified_by_two`.
+- [x] `P12-03` Implementar `DrawRule` versionada com fórmula declarativa limitada e sem código arbitrário do administrador. `FederalDrawRule` JSON (`digits`, `prizePositions`), versionada e vinculável ao regulamento.
+- [x] `P12-04` Implementar congelamento de conjunto de participações e hash público. `freeze` grava `entries_merkle_root_or_hash` (SHA-256 canônico number:entry ordenado).
+- [x] `P12-05` Computar vencedores sem efeitos colaterais na primeira fase; gerar `DrawOutcome` imutável. `DrawingEngine` puro (regra + Federal + congelado → resolvedores) e persistência em `draw_outcomes`.
+- [x] `P12-06` Tratar ausências, `00000`, adiamento de extração e divergência segundo regulamento aprovado. `ABSENT`/`NO_WINNER`/`MATCH`; `00000` preservado; resultado não verificado bloqueia a apuração.
+- [x] `P12-07` Submeter resultados a dupla revisão antes de publicar. `compute` e `publish` exigem `verified_by_two`.
+- [x] `P12-08` Publicar pacote de transparência e verificador independente via script. `GET .../draws/{id}/transparency` (público) com regra, hash do congelamento, fonte oficial e vencedores.
+- [x] `P12-09` Testes com vetores fixos, mesmas entradas => mesmos vencedores. `DrawingEngineTest` (vetores fixos do concurso 6027) e `DrawingIntegrationTest` (fluxo completo).
 
 **Aceite:** terceiros conseguem reproduzir a apuração com pacote publicado; nenhuma substituição discreta de resultado.
 
@@ -803,14 +803,14 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P17.  
 **Entregáveis:** relatórios de performance e recuperação.
 
-- [ ] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação.
-- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock.
-- [ ] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa.
-- [ ] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery.
-- [ ] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`.
-- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes.
-- [ ] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter.
-- [ ] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números.
+- [x] `P18-01` Gerar 100.000 números/participações simuladas e medir tempos de consulta/alocação. Série de 100.000 gerada em ~33 s; 250 participações em ~38 s.
+- [ ] `P18-02` Testar 100/250/500 concorrentes, mesmo número, número final, falta de espaço e deadlock. **PARCIAL**: 100 e 250 concorrentes sem duplicidade; alto volume sustentou **≈22.780 transações/hora** (meta 10.000/h); 500 e deadlock explícito não executados (limite de pool).
+- [x] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa. Coberto por `OrderServiceIntegrationTest` (replay, atraso, fora de ordem).
+- [x] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery. `OutboxRecoveryIntegrationTest` + `OutboxEvent.recordFailure`.
+- [x] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`. p50≈18,8 s / p95≈36,3 s / p99≈37,7 s; `EXPLAIN` confirma índice.
+- [ ] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. **PARCIAL**: `scripts/backup-mysql.sh` + procedimento; ensaio em CI pendente.
+- [x] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter. Congelamento idempotente e participação tardia bloqueada após `LOCKED`.
+- [x] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números. `docs/progress/P18.md` (gargalo do lock de campanha).
 
 **Aceite:** relatórios reais com comandos, dados e evidência de integridade/recuperação.
 
