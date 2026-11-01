@@ -19,7 +19,7 @@ export default function ComplianceAdmin() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_BASE}/admin/campaigns/${DEMO_CAMPAIGN_ID}/documents`, {
+      const res = await fetch(`${API_BASE}/_cx/campaigns/${DEMO_CAMPAIGN_ID}/documents`, {
         method: "POST",
         credentials: "include",
         body: formData,

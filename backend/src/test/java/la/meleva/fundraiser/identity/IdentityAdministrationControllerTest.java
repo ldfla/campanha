@@ -36,9 +36,9 @@ class IdentityAdministrationControllerTest {
                 {"userPublicId":"%s","organizationPublicId":"%s","role":"SUPPORT"}
                 """.formatted(target.getPublicId(), organization.getPublicId());
 
-        mockMvc.perform(post("/admin/memberships").with(authentication(auth)).contentType(MediaType.APPLICATION_JSON).content(payload))
+        mockMvc.perform(post("/_cx/memberships").with(authentication(auth)).contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(post("/admin/memberships").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(payload))
+        mockMvc.perform(post("/_cx/memberships").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isCreated());
     }
 
@@ -52,7 +52,7 @@ class IdentityAdministrationControllerTest {
         String payload = """
                 {"userPublicId":"%s","organizationPublicId":"%s","role":"SUPPORT"}
                 """.formatted(target.getPublicId(), organization.getPublicId());
-        mockMvc.perform(post("/admin/memberships").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(payload))
+        mockMvc.perform(post("/_cx/memberships").with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isForbidden());
     }
 }

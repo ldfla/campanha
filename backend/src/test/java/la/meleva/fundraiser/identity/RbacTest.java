@@ -43,7 +43,7 @@ class RbacTest {
     void participantCannotAccessAdminEndpoints() throws Exception {
         Cookie session = registerAndGetSessionCookie("+5511777770001");
 
-        mockMvc.perform(get("/admin/anything").cookie(session))
+        mockMvc.perform(get("/_cx/anything").cookie(session))
                 .andExpect(status().isForbidden());
     }
 

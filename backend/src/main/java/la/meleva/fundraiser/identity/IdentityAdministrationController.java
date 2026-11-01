@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/memberships")
+@RequestMapping("/_cx/memberships")
 public class IdentityAdministrationController {
     private final IdentityAdministrationService service;
     IdentityAdministrationController(IdentityAdministrationService service) { this.service = service; }

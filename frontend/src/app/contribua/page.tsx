@@ -101,12 +101,12 @@ export default function AdminDashboard() {
         Ações rápidas
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <QuickAction href="/admin/ofertas" title="Gerenciar ofertas" desc="Criar e editar combos de números" />
-        <QuickAction href="/admin/beneficiarios" title="Instituições" desc="Gerenciar entidades beneficiárias" />
-        <QuickAction href="/admin/pagamentos" title="Pagamentos" desc="Simular liquidação (DEMO)" />
-        <QuickAction href="/admin/compliance" title="Compliance" desc="Documentos e regulamento" />
-        <QuickAction href="/admin/sorteio" title="Sorteio" desc="Regras e apuração" />
-        <QuickAction href="/admin/relatorios" title="Relatórios" desc="Relatório financeiro" />
+        <QuickAction href="/contribua/ofertas" title="Gerenciar ofertas" desc="Criar e editar combos de números" />
+        <QuickAction href="/contribua/beneficiarios" title="Instituições" desc="Gerenciar entidades beneficiárias" />
+        <QuickAction href="/contribua/pagamentos" title="Pagamentos" desc="Simular liquidação (DEMO)" />
+        <QuickAction href="/contribua/compliance" title="Compliance" desc="Documentos e regulamento" />
+        <QuickAction href="/contribua/sorteio" title="Sorteio" desc="Regras e apuração" />
+        <QuickAction href="/contribua/relatorios" title="Relatórios" desc="Relatório financeiro" />
       </div>
     </div>
   );

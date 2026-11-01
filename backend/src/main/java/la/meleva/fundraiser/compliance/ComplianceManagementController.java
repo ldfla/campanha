@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/admin/campaigns/{campaignId}")
+@RequestMapping("/_cx/campaigns/{campaignId}")
 public class ComplianceManagementController {
     private final ComplianceDocumentService documentService;
     private final ComplianceManagementService managementService;
