@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/use-auth";
 import {
@@ -19,26 +19,27 @@ export default function MeusNumerosPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
   const [numbers, setNumbers] = useState<NumberAvailability[]>([]);
-  const [loadingNumbers, setLoadingNumbers] = useState(false);
+  const [loadingNumbers, setLoadingNumbers] = useState(true);
   const demoMode = isDemoMode();
 
-  const fetchNumbers = useCallback(async () => {
-    if (!user) return;
-    setLoadingNumbers(true);
-    try {
-      const res: PagedResponse<NumberAvailability> =
-        await participations.numbers(DEMO_CAMPAIGN_ID);
-      setNumbers(res.content);
-    } catch {
-      setNumbers([]);
-    } finally {
-      setLoadingNumbers(false);
-    }
-  }, [user]);
-
   useEffect(() => {
-    if (user) fetchNumbers();
-  }, [user, fetchNumbers]);
+    if (!user) return;
+    let active = true;
+    participations
+      .numbers(DEMO_CAMPAIGN_ID)
+      .then((res: PagedResponse<NumberAvailability>) => {
+        if (active) setNumbers(res.content);
+      })
+      .catch(() => {
+        if (active) setNumbers([]);
+      })
+      .finally(() => {
+        if (active) setLoadingNumbers(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   async function handleLogin() {
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return;

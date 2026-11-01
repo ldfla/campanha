@@ -27,6 +27,11 @@ import {
 
 type Step = "choose" | "beneficiary" | "register" | "payment";
 
+/** Expiração do pedido (30 min) — fora do render para respeitar a pureza de componentes. */
+function checkoutExpiresAt(): string {
+  return new Date(Date.now() + 30 * 60_000).toISOString();
+}
+
 function ParticiparContent() {
   const searchParams = useSearchParams();
   const { user, register } = useAuth();
@@ -64,14 +69,17 @@ function ParticiparContent() {
   // Referral code from URL
   const referralCode = searchParams.get("ref") ?? undefined;
 
-  // Load offers on mount
+  // Load offers on mount (pré-seleciona o combo da URL, se houver)
   useEffect(() => {
-    setOffersLoading(true);
+    const comboParam = searchParams.get("combo");
     participations
       .offers(DEMO_CAMPAIGN_ID)
       .then((offers) => {
         setServerOffers(offers);
-        if (offers.length > 0) {
+        const match = comboParam ? offers.find((o) => o.id === comboParam) : undefined;
+        if (match) {
+          setSelectedOfferId(match.id);
+        } else if (offers.length > 0) {
           const first = offers[0];
           setSelectedOfferId(first ? first.id : null);
         }
@@ -80,7 +88,7 @@ function ParticiparContent() {
         setServerOffers([]);
       })
       .finally(() => setOffersLoading(false));
-  }, []);
+  }, [searchParams]);
 
   // Load beneficiaries when entering beneficiary step
   const loadBeneficiaries = useCallback(async () => {
@@ -96,14 +104,6 @@ function ParticiparContent() {
   }, []);
 
   // Pre-select combo from URL if present
-  useEffect(() => {
-    const comboParam = searchParams.get("combo");
-    if (comboParam && serverOffers.length > 0) {
-      const match = serverOffers.find((o) => o.id === comboParam);
-      if (match) setSelectedOfferId(match.id);
-    }
-  }, [searchParams, serverOffers]);
-
   const useServerOffers = serverOffers.length > 0;
 
   const displayOffers = useServerOffers
@@ -194,7 +194,7 @@ function ParticiparContent() {
           const order = await payments.createOrder(1, total, crypto.randomUUID());
           setCheckoutResult({
             requestPublicId: allocation.requestPublicId,
-            expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+            expiresAt: checkoutExpiresAt(),
             numbers: allocation.numbers.map((n) => n.formattedNumber),
             orderPublicId: order.orderPublicId,
             amountCents: total,

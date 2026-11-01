@@ -18,7 +18,6 @@ export default function TransparenciaPage() {
   const demoMode = isDemoMode();
 
   useEffect(() => {
-    setLoading(true);
     prizeLoad
       .get(DEMO_CAMPAIGN_ID)
       .then(setData)

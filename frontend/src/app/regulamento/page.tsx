@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ORGANIZER, DRAWING_DATE, isDemoMode } from "@/lib/campaign-config";
+import { ORGANIZER, isDemoMode } from "@/lib/campaign-config";
 
 export const metadata: Metadata = {
   title: "Regulamento — Ação entre Amigos",

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import type { ReactNode } from "react";
-import { auth, type UserResponse, type ApiError } from "./api-client";
+import { auth, type UserResponse } from "./api-client";
 
 interface AuthState {
   user: UserResponse | null;
@@ -46,8 +45,19 @@ export function useAuthProvider(): AuthContextValue {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let active = true;
+    auth
+      .me()
+      .then((user) => {
+        if (active) setState({ user, loading: false, error: null });
+      })
+      .catch(() => {
+        if (active) setState({ user: null, loading: false, error: null });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const register = useCallback(
     async (firstName: string, surname: string, phoneNumber: string) => {
