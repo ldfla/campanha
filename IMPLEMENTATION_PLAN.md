@@ -773,7 +773,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P16-01` Threat model STRIDE com diagramas de trust boundaries. `docs/security/threat-model.md`.
 - [x] `P16-02` Checklist OWASP ASVS 2 e API Top 10, RBAC/IDOR/CSRF/SSRF/XSS/SQLi. `docs/security/asvs-checklist.md`.
 - [x] `P16-03` Security headers, CORS estrito, CSP, WAF/rate limits e segurança de upload. CSP/HSTS/X-Content-Type-Options/Referrer-Policy + CORS vazio por padrão + rate limit/lockout (testes `SecurityHeadersTest`, `RateLimitFilterTest`, `LoginAttemptTrackerTest`).
-- [ ] `P16-04` PII cifrada, máscaras, rotação de segredos, testes de log sem exposição. **PARCIAL**: e-mail mascarado na exportação LGPD; sem campo CPF no domínio (cifra de campo/HMAC ficam pendentes se o CPF for adotado); rotação de `SURPRISE_ENCRYPTION_KEY` pendente.
+- [x] `P16-04` PII cifrada, máscaras, rotação de segredos, testes de log sem exposição. CPF do contemplado cifrado (AES-GCM) + índice HMAC (`docs/security/cpf-prize-recipient.md`); e-mail mascarado; auditoria sem PII. Rotação de chaves pendente.
 - [x] `P16-05` Portal e fluxo de direitos LGPD, correção, exportação, anonimização e retenção compatível. `GET /privacy/me/export` e `POST /privacy/me/anonymize` (auditado). Retenção/expurgo pendente (`D-OPEN-012`).
 - [x] `P16-06` SAST, SCA, secrets scan, image scanning e SBOM em CI. `.github/workflows/backend.yml` (Trivy SCA/secrets/misconfig + SBOM CycloneDX). Não executado localmente.
 - [x] `P16-07` Rodar red-team local: webhook forjado, campanha não autorizada, alteração de sorteado, dupla atribuição e fraude de referral. `docs/security/red-team-report.md` (revisão interna com testes adversariais).
