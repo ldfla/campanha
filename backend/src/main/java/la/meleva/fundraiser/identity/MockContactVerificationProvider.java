@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * Recusa iniciar com operação real habilitada (falha fechada).
  */
 @Component
-@Profile({"default", "local", "test"})
+@Profile({"default", "local", "staging", "test"})
 public class MockContactVerificationProvider implements ContactVerificationProvider {
     private static final byte[] DEMO_CODE = "000000".getBytes(StandardCharsets.US_ASCII);
 

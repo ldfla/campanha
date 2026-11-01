@@ -70,6 +70,9 @@ public class Campaign {
     @Column(name = "surprise_enabled", nullable = false)
     private boolean surpriseEnabled;
 
+    @Column(name = "surprise_commitment_published_at")
+    private Instant surpriseCommitmentPublishedAt;
+
     @Column(name = "current_regulation_id")
     private Long currentRegulationId;
 
@@ -117,6 +120,20 @@ public class Campaign {
     public int getMaxEntriesPerUser() { return maxEntriesPerUser; }
     public boolean isSurpriseEnabled() { return surpriseEnabled; }
     public void enableSurprise() { requireEditable(); this.surpriseEnabled = true; this.updatedAt = Instant.now(); }
+    public Instant getSurpriseCommitmentPublishedAt() { return surpriseCommitmentPublishedAt; }
+    public boolean isSurpriseCommitmentPublished() { return surpriseCommitmentPublishedAt != null; }
+
+    /**
+     * Registra que o compromisso criptografico dos premios-surpresa existe e esta publicado no
+     * endpoint publico (SEC-0003). So entao a campanha pode avancar para revisao/agendamento/abertura.
+     */
+    public void markSurpriseCommitmentPublished(Instant at) {
+        if (!surpriseEnabled) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        if (surpriseCommitmentPublishedAt == null) {
+            this.surpriseCommitmentPublishedAt = java.util.Objects.requireNonNull(at, "at");
+            this.updatedAt = at;
+        }
+    }
     public Long getCurrentRegulationId() { return currentRegulationId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -169,6 +186,16 @@ public class Campaign {
 
     public void transitionTo(CampaignStatus newStatus) {
         CampaignStateMachine.validate(this.status, newStatus);
+        // SEC-0003: campanha com premios-surpresa nao avanca para revisao/agendamento/abertura sem o
+        // compromisso criptografico previamente publicado. O gate vive no dominio (entidade), de modo
+        // que nenhuma chamada direta a transitionTo o contorne.
+        if (surpriseEnabled
+                && (newStatus == CampaignStatus.LEGAL_REVIEW
+                    || newStatus == CampaignStatus.SCHEDULED
+                    || newStatus == CampaignStatus.OPEN)
+                && !isSurpriseCommitmentPublished()) {
+            throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
+        }
         this.status = newStatus;
         this.updatedAt = Instant.now();
     }

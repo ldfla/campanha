@@ -45,6 +45,8 @@ public class SurpriseCommitmentService {
         var context=new SurpriseProof.Context(campaign.getPublicId(),ruleVersion,0,campaign.getNumberMin(),campaign.getNumberMax(),java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
         var commitment=new SurpriseCommitment(campaign.getId(),SurpriseProof.commitment(secret,context),context,actorId);
         commitment.setEncryptedSecret(new SurpriseSecretCipher(encodedKey,random).encrypt(campaignId,secret)); commitments.saveAndFlush(commitment);
+        // SEC-0003: registra a publicacao do compromisso; sem isso a campanha nao avanca (gate no dominio).
+        campaign.markSurpriseCommitmentPublished(context.committedAt());
         audits.save(new AuditEvent(actorId,"SURPRISE_COMMITTED","surprise_commitment",commitment.getId(),commitment.getCommitmentSha256()));
         return publishedView(commitment,campaign.getPublicId());
     }
