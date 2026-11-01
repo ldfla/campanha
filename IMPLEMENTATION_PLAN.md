@@ -651,7 +651,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P06-05` Produzir seção FAQ e regras sem termos enganosos. `app/faq/page.tsx`.
 - [x] `P06-06` Criar telas e tratamento de loading/error/empty/campanha suspensa. `ApiError` (`lib/api-client.ts`), estados em `use-auth.ts` e `CAMPAIGN_STATUS` inclui `SUSPENDED`.
 - [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela. **PENDENTE**: sem testes automatizados de 360/390/768/1280, teclado ou leitor de tela.
-- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso.
+- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso. P20: `participar` agora bloqueia a compra sem ofertas do servidor (P20-F10); restante em P20-F16.
 
 **Aceite:** experiência usável em celular, com informação honesta e bloqueio de participação real indevida.
 
@@ -830,7 +830,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P16-05` Portal e fluxo de direitos LGPD, correção, exportação, anonimização e retenção compatível. `GET /privacy/me/export` e `POST /privacy/me/anonymize` (auditado). Retenção/expurgo pendente (`D-OPEN-012`).
 - [x] `P16-06` SAST, SCA, secrets scan, image scanning e SBOM em CI. `.github/workflows/backend.yml` (Trivy SCA/secrets/misconfig + SBOM CycloneDX). Não executado localmente.
 - [x] `P16-07` Rodar red-team local: webhook forjado, campanha não autorizada, alteração de sorteado, dupla atribuição e fraude de referral. `docs/security/red-team-report.md` (revisão interna com testes adversariais).
-- [x] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual. Nenhum achado crítico/alto na revisão interna; riscos residuais registrados.
+- [x] `P16-08` Corrigir achados críticos/altos e reexecutar testes; registrar risco residual. Nenhum achado crítico/alto na revisão interna; riscos residuais registrados. **Revisão P20 (2026-11-01) contestou este resultado:** 1 crítico + 4 altos encontrados, corrigidos e re-testados (`docs/security/red-team/P20-findings.md`).
 - [x] `P16-09` Plano de incidente, vazamento, segurança de terceiros e continuidade. `docs/operations/incident-response.md`.
 
 **Aceite:** relatório `docs/security/red-team-report.md`, evidências de correções, sem falhas críticas/altas conhecidas não mitigadas.
@@ -892,9 +892,9 @@ Modelo de duas camadas em `campaign_numbers`:
 - [ ] `P20-02` Gerar OpenAPI final, diagramas C4, ERD, ADRs e matriz de rastreabilidade.
 - [ ] `P20-03` Criar README com instalação testada, modo DEMO e comandos operacionais.
 - [ ] `P20-04` Revisar LGPD, políticas de retenção, banners, acessibilidade e privacidade.
-- [ ] `P20-05` Revalidar que cobrança Pix e publicações reais seguem desativadas sem gates.
+- [ ] `P20-05` Revalidar que cobrança Pix e publicações reais seguem desativadas sem gates. **PARCIAL (P20)**: participação gratuita fora de DEMO → 403 e pedido com valor do cliente → 403 (re-teste ao vivo), adaptadores DEMO recusam `LIVE_OPERATIONS_ENABLED=true`; falta o teste de configuração alterada (P19-06) e publicações.
 - [ ] `P20-06` Verificar entrega do kit e fotos como dados reais somente com documentação legítima.
-- [ ] `P20-07` Publicar checklist das aprovações humanas pendentes (`G-LEGAL`, etc.).
+- [x] `P20-07` Publicar checklist das aprovações humanas pendentes (`G-LEGAL`, etc.). `docs/compliance/gates-checklist.md` (nenhum gate marcado; evidência em `docs/progress/P20.md`).
 - [ ] `P20-08` Entregar relatório final de cobertura, performance, segurança, pendências e limitações.
 
 **Aceite:** release candidate técnico testável em DEMO; nenhum lançamento ao público ou movimentação de dinheiro presumidos.
