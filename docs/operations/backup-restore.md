@@ -10,7 +10,10 @@ DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=fundraiser DB_USER=fundraiser \
   ./scripts/backup-mysql.sh backup /var/backups/fundraiser-$(date +%F).sql
 ```
 - `mysqldump --single-transaction` (consistente para InnoDB sem bloquear escrita).
-- Armazenar com retenção definida e cópia imutável/offsite.
+- **Retenção: 30 dias**; cópia **externa** (S3/B2) e imutável.
+- O script gera **`<arquivo>.sha256`** — guardar o hash **offline** para verificação de integridade
+  (D-OPEN-013 / G-OPERATIONS).
+- **Objetivos:** **RTO 4 h**, **RPO 24 h** (dump diário).
 
 ## Restauração (ensaio)
 1. Subir um MySQL limpo: `docker compose -f infrastructure/compose.yaml up -d mysql`.
@@ -21,10 +24,15 @@ DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=fundraiser DB_USER=fundraiser \
 ## Verificação de integridade
 - Conferir o hash da carga inicial de prêmios (`/participations/campaigns/{id}/numbers/prize-load/verify`).
 - Conferir o hash do congelamento da apuração (`draws.entries_merkle_root_or_hash`).
+- Recalcular o `SHA-256` do dump e comparar com o `.sha256` guardado offline.
 - Contagens de `audit_events` e do ledger não podem diminuir após a restauração.
+
+## TLS / borda (G-OPERATIONS)
+- **Cloudflare Full (Strict)** com **certificado de origem válido** no proxy; HTTPS obrigatório, HSTS
+  já emitido pela aplicação. Sem TLS de origem, não usar "Flexible".
 
 ## Riscos / pendências
 - Ensaio de restauração automatizado em CI **não** executado nesta entrega; script e procedimento prontos.
-- RTO/RPO a definir com a operação (`G-OPERATIONS`).
-- Chaves de cifra (`SURPRISE_ENCRYPTION_KEY`) **não** estão no dump; guardar separadamente e testar a
-  recuperação do segredo após restauração.
+- RTO 4 h / RPO 24 h **definidos**; ensaio cronometrado de restauração ainda pendente.
+- Chaves de cifra (`SURPRISE_ENCRYPTION_KEY`, `app.cpf.encryption-key`/`app.cpf.hmac-key`) **não**
+  estão no dump; guardar em KMS/cofre e testar a recuperação após restauração.
