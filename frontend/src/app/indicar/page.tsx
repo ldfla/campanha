@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/use-auth";
 import { QRCode } from "@/components/qr-code";
 import {
   referrals,
-  type ReferralLink,
   type ReferralMetrics,
   ApiError,
 } from "@/lib/api-client";
@@ -26,17 +25,21 @@ export default function IndicarPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [referralLink, setReferralLink] = useState<ReferralLink | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<ReferralMetrics | null>(null);
   const [loadingLink, setLoadingLink] = useState(false);
   const demoMode = isDemoMode();
+
+  const referralUrl = referralCode
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/participar?ref=${referralCode}`
+    : null;
 
   useEffect(() => {
     if (!user) return;
     setLoadingLink(true);
     referrals
       .createLink(DEMO_CAMPAIGN_ID)
-      .then(setReferralLink)
+      .then((m) => setReferralCode(m.code))
       .catch(() => {})
       .finally(() => setLoadingLink(false));
 
@@ -70,29 +73,29 @@ export default function IndicarPage() {
   const [showQR, setShowQR] = useState(false);
 
   const handleCopy = useCallback(() => {
-    if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink.url).catch(() => {});
+    if (!referralUrl) return;
+    navigator.clipboard.writeText(referralUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [referralLink]);
+  }, [referralUrl]);
 
   const shareTitle = "Ação entre Amigos";
-  const shareText = referralLink
+  const shareText = referralUrl
     ? `Participe da Ação entre Amigos e concorra a ${formatBRL(TOTAL_PRIZES_CENTS)} em prêmios! Só ${formatBRL(PRICE_UNIT_CENTS)} por número. Sorteio pela Loteria Federal!`
     : "";
 
   const handleNativeShare = useCallback(async () => {
-    if (!referralLink || typeof navigator.share !== "function") return;
+    if (!referralUrl || typeof navigator.share !== "function") return;
     try {
       await navigator.share({
         title: shareTitle,
         text: shareText,
-        url: referralLink.url,
+        url: referralUrl,
       });
     } catch {
       // user cancelled or share failed — no-op
     }
-  }, [referralLink, shareText]);
+  }, [referralUrl, shareText]);
 
   const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -169,13 +172,13 @@ export default function IndicarPage() {
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-[var(--color-iris)]/20 border-t-[var(--color-iris)] rounded-full animate-spin" />
                 </div>
-              ) : referralLink ? (
+              ) : referralUrl ? (
                 <>
                   {/* Link + Copiar */}
                   <div className="bg-white rounded-2xl border border-black/[0.06] p-5 md:p-6 mb-4">
                     <div className="flex items-center gap-3 bg-[var(--color-snow)] rounded-xl px-4 py-3 mb-4">
                       <span className="flex-1 text-sm text-[var(--color-midnight)] truncate font-mono tabular-nums">
-                        {referralLink.url}
+                        {referralUrl}
                       </span>
                       <button
                         onClick={handleCopy}
@@ -193,7 +196,7 @@ export default function IndicarPage() {
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                       {/* WhatsApp */}
                       <a
-                        href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${referralLink.url}`)}`}
+                        href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${referralUrl}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366]/10 text-[#25D366] font-semibold text-sm hover:bg-[#25D366]/15 transition-colors"
@@ -207,7 +210,7 @@ export default function IndicarPage() {
 
                       {/* Telegram */}
                       <a
-                        href={`https://t.me/share/url?url=${encodeURIComponent(referralLink.url)}&text=${encodeURIComponent(shareText)}`}
+                        href={`https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent(shareText)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#0088cc]/10 text-[#0088cc] font-semibold text-sm hover:bg-[#0088cc]/15 transition-colors"
@@ -266,7 +269,7 @@ export default function IndicarPage() {
                         Mostre este QR Code para indicar pessoalmente
                       </p>
                       <div className="inline-block rounded-xl bg-white p-3 shadow-sm border border-black/[0.04]">
-                        <QRCode value={referralLink.url} size={180} />
+                        <QRCode value={referralUrl} size={180} />
                       </div>
                       <p className="mt-3 text-xs text-[var(--color-midnight)]/30">
                         Aponte a câmera do celular para abrir o link
@@ -286,13 +289,13 @@ export default function IndicarPage() {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
                     <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-midnight)] tabular-nums">
-                      {metrics.totalClicks.toLocaleString("pt-BR")}
+                      {metrics.clicks.toLocaleString("pt-BR")}
                     </p>
                     <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Cliques</p>
                   </div>
                   <div className="bg-white rounded-xl border border-black/[0.04] p-4 text-center">
                     <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--color-jade)] tabular-nums">
-                      {metrics.totalAttributions.toLocaleString("pt-BR")}
+                      {metrics.participations.toLocaleString("pt-BR")}
                     </p>
                     <p className="text-xs text-[var(--color-midnight)]/40 mt-0.5">Vendas</p>
                   </div>
@@ -304,7 +307,7 @@ export default function IndicarPage() {
                   Prêmios por indicação
                 </h3>
                 <div className="space-y-2.5">
-                  {RANKING_REWARDS.find((r) => r.scope === "INFLUENCERS")?.positions.map((p) => (
+                  {RANKING_REWARDS.find((r) => r.scope === "PROMOTER")?.positions.map((p) => (
                     <div key={p.rank} className="flex items-center justify-between text-sm">
                       <span className="text-white/45">{p.label}</span>
                       <span className="font-bold text-[var(--color-gold)]">{formatBRL(p.valueCents)}</span>

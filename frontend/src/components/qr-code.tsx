@@ -27,7 +27,7 @@ function generateQRMatrix(data: string): boolean[][] {
           c === 0 ||
           c === 6 ||
           (r >= 2 && r <= 4 && c >= 2 && c <= 4);
-        matrix[row + r][col + c] = isBlack;
+        matrix[row + r]![col + c] = isBlack;
       }
     }
   }
@@ -38,8 +38,8 @@ function generateQRMatrix(data: string): boolean[][] {
 
   // Timing patterns
   for (let i = 8; i < size - 8; i++) {
-    matrix[6][i] = i % 2 === 0;
-    matrix[i][6] = i % 2 === 0;
+    matrix[6]![i] = i % 2 === 0;
+    matrix[i]![6] = i % 2 === 0;
   }
 
   // Alignment pattern at (18, 18) for version 2
@@ -47,7 +47,7 @@ function generateQRMatrix(data: string): boolean[][] {
     for (let c = 16; c <= 20; c++) {
       const dr = Math.abs(r - 18);
       const dc = Math.abs(c - 18);
-      matrix[r][c] = dr === 2 || dc === 2 || (dr === 0 && dc === 0);
+      matrix[r]![c] = dr === 2 || dc === 2 || (dr === 0 && dc === 0);
     }
   }
 
@@ -67,7 +67,7 @@ function generateQRMatrix(data: string): boolean[][] {
       if (r >= 16 && r <= 20 && c >= 16 && c <= 20) continue;
 
       const seed = ((r * size + c) * 2654435761 + hash) >>> 0;
-      matrix[r][c] = seed % 3 !== 0;
+      matrix[r]![c] = seed % 3 !== 0;
     }
   }
 

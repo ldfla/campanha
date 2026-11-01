@@ -1,4 +1,4 @@
-import { COMBOS, PRICE_UNIT_CENTS, isSoldOut, isSuspended, formatBRL } from "@/lib/campaign-config";
+import { COMBOS, isSoldOut, isSuspended, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
 
 const VISUAL = [
   {
