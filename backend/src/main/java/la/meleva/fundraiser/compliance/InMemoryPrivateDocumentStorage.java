@@ -1,13 +1,13 @@
 package la.meleva.fundraiser.compliance;
 
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Armazenamento exclusivamente DEMO; não deve ser ativado em produção. */
+/** Armazenamento em memória; padrão local/DEMO quando não há object storage configurado. */
 @Component
-@Profile({"default", "test"})
+@ConditionalOnProperty(name = "app.storage.provider", havingValue = "memory", matchIfMissing = true)
 class InMemoryPrivateDocumentStorage implements PrivateDocumentStorage {
     private final ConcurrentHashMap<String, byte[]> objects = new ConcurrentHashMap<>();
     public String store(String filename, String contentType, byte[] content) {

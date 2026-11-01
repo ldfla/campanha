@@ -43,6 +43,10 @@ class CapitalizationModeIntegrationTest {
     @Autowired ApprovalRequestRepository approvalRequests;
     @Autowired MembershipRepository memberships;
     @Autowired AuthorizationService authService;
+    @Autowired la.meleva.fundraiser.participation.ReservationCheckoutService checkout;
+    @Autowired la.meleva.fundraiser.participation.ParticipationService participations;
+    @Autowired la.meleva.fundraiser.participation.beneficiary.BeneficiaryService beneficiaries;
+    @Autowired la.meleva.fundraiser.participation.purchase.PurchaseOfferService offers;
 
     @Test
     void cashPrizeAllowedOnlyInCapitalizationTitle() {
@@ -110,6 +114,39 @@ class CapitalizationModeIntegrationTest {
         campaigns.transition(admin.getId(), campaign.getPublicId(), CampaignStatus.SCHEDULED);
         assertThat(campaignRepository.findByPublicId(campaign.getPublicId()).orElseThrow().getStatus())
                 .isEqualTo(CampaignStatus.SCHEDULED);
+    }
+
+    @Test
+    void capitalizationCheckoutReservesNumbersWhenAuthorizedAndOpen() {
+        var organization = organizations.save(new Organization("Org checkout", "ASSOCIATION"));
+        var admin = users.save(new User("Admin", "Checkout", "+5511999800011"));
+        memberships.save(new Membership(organization, admin, UserRole.SYSTEM_ADMIN));
+        var buyer = users.save(new User("Comprador", "Checkout", "+5511999800012"));
+        var campaign = campaignRepository.save(new Campaign(organization.getId(), "Título", "cap-checkout", CampaignMode.CAPITALIZATION_PRIZE_TITLE));
+        campaign.setNumberRange(0, 9);
+        campaignRepository.save(campaign);
+        participations.initializeSeries(campaign.getPublicId());
+
+        var beneficiary = beneficiaries.create(admin.getId(), campaign.getPublicId(), "Entidade de teste");
+        var offer = offers.create(admin.getId(), campaign.getPublicId(), 2, 200L);
+
+        for (var gate : la.meleva.fundraiser.compliance.GateType.values()) {
+            var request = approvalRequests.save(new ApprovalRequest(campaign.getId(), gate, admin.getId()));
+            request.approve();
+            approvalRequests.save(request);
+        }
+        var authorization = authorizations.save(new CampaignAuthorization(campaign.getId(), "ViaCap", "cert", null, null, null));
+        authorization.verify(Instant.now());
+        authorizations.save(authorization);
+        campaigns.transition(admin.getId(), campaign.getPublicId(), CampaignStatus.LEGAL_REVIEW);
+        campaigns.transition(admin.getId(), campaign.getPublicId(), CampaignStatus.AUTHORIZED);
+        campaigns.transition(admin.getId(), campaign.getPublicId(), CampaignStatus.SCHEDULED);
+        campaigns.transition(admin.getId(), campaign.getPublicId(), CampaignStatus.OPEN);
+
+        // Regressão: o guard do ReservationService bloqueava a capitalização; deve reservar com autorização vigente.
+        var view = checkout.start(buyer.getId(), campaign.getPublicId(), UUID.randomUUID().toString(),
+                offer.id(), beneficiary.id(), null);
+        assertThat(view.reservation().numbers()).hasSize(2);
     }
 
     @Test

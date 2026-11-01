@@ -1,0 +1,33 @@
+# Object storage privado opcional (MinIO).
+#
+# As imagens públicas do MinIO foram removidas do registro público, então este
+# arquivo é separado da stack base do MVP. Use apenas se você tem acesso a uma
+# imagem válida (espelho/registro privado) e ajuste `image:` conforme necessário.
+#
+# Subir:
+#   APP_STORAGE_PROVIDER=minio docker compose -f infrastructure/compose.yaml -f infrastructure/compose.minio.yaml up -d
+#
+# Depois rode o backend com `APP_STORAGE_PROVIDER=minio`.
+
+services:
+  minio:
+    # Substitua por uma imagem MinIO acessível ao seu ambiente (espelho/registro privado).
+    image: minio/minio:latest
+    container_name: fundraiser-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_dev}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  minio_data:

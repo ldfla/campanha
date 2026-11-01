@@ -22,6 +22,8 @@ import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.participation.ParticipationService;
+import la.meleva.fundraiser.participation.beneficiary.BeneficiaryService;
+import la.meleva.fundraiser.participation.purchase.PurchaseOfferService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -30,14 +32,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dados exclusivamente sintéticos para desenvolvimento local (profile `local`). Nunca ativos fora
- * do profile local. Cria a campanha DEMO e uma campanha de **capitalização premiável** já com
- * autorização verificada e gates aprovados, para demonstrar o fluxo do ADR-0007 localmente.
+ * do profile local. Cria:
+ * <ul>
+ *   <li>a campanha <b>DEMO</b> (`acao-demo-local`, OPEN) com beneficiário e prêmio sintético;</li>
+ *   <li>uma campanha de <b>capitalização premiável</b> (`acao-capitalizacao-local`, OPEN, ADR-0007)
+ *       com autorização SUSEP sintética verificada, todos os gates aprovados, beneficiário e
+ *       ofertas de compra (combos) já publicadas.</li>
+ * </ul>
+ * O seed é idempotente por slug.
  */
 @Component
 @Profile("local")
 class LocalDemoSeed implements ApplicationRunner {
 
     private static final String DEMO_PHONE = "+5511999990000";
+    private static final String ORG_NAME = "Organização Demonstração Local";
 
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
@@ -48,13 +57,16 @@ class LocalDemoSeed implements ApplicationRunner {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CampaignService campaignService;
     private final ParticipationService participationService;
+    private final BeneficiaryService beneficiaryService;
+    private final PurchaseOfferService purchaseOfferService;
 
     LocalDemoSeed(OrganizationRepository organizationRepository, UserRepository userRepository,
                   MembershipRepository membershipRepository, CampaignRepository campaignRepository,
                   CampaignPrizeRepository campaignPrizeRepository,
                   CampaignAuthorizationRepository authorizationRepository,
                   ApprovalRequestRepository approvalRequestRepository, CampaignService campaignService,
-                  ParticipationService participationService) {
+                  ParticipationService participationService, BeneficiaryService beneficiaryService,
+                  PurchaseOfferService purchaseOfferService) {
         this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -64,35 +76,43 @@ class LocalDemoSeed implements ApplicationRunner {
         this.approvalRequestRepository = approvalRequestRepository;
         this.campaignService = campaignService;
         this.participationService = participationService;
+        this.beneficiaryService = beneficiaryService;
+        this.purchaseOfferService = purchaseOfferService;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        var organization = organizationRepository.findByLegalName("Organização Demonstração Local")
-                .orElseGet(() -> organizationRepository.save(new Organization("Organização Demonstração Local", "ASSOCIATION")));
+        var organization = organizationRepository.findByLegalName(ORG_NAME)
+                .orElseGet(() -> organizationRepository.save(new Organization(ORG_NAME, "ASSOCIATION")));
         var admin = userRepository.findByPhoneNumber(DEMO_PHONE)
                 .orElseGet(() -> userRepository.save(new User("Admin", "Demonstração", DEMO_PHONE)));
         if (membershipRepository.findActiveByUserAndOrganization(admin.getId(), organization.getId()).isEmpty()) {
             membershipRepository.save(new Membership(organization, admin, UserRole.SYSTEM_ADMIN));
         }
 
-        seedDemoCampaign(organization);
+        seedDemoCampaign(organization, admin.getId());
         seedCapitalizationCampaign(organization, admin.getId());
     }
 
-    private void seedDemoCampaign(Organization organization) {
-        var campaign = campaignRepository.findBySlug("acao-demo-local")
-                .orElseGet(() -> campaignRepository.save(new Campaign(organization.getId(), "Ação demonstração local", "acao-demo-local", CampaignMode.DEMO)));
-        if (campaignPrizeRepository.findByCampaignIdOrderBySortOrder(campaign.getId()).isEmpty()) {
-            campaignPrizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS,
-                    "Item sintético para desenvolvimento local", 0L, 1, 0));
-        }
+    private void seedDemoCampaign(Organization organization, Long adminId) {
+        if (campaignRepository.findBySlug("acao-demo-local").isPresent()) return;
+
+        var campaign = campaignRepository.save(new Campaign(organization.getId(),
+                "Ação demonstração local", "acao-demo-local", CampaignMode.DEMO));
+        campaign.setNumberRange(0, 999);
+        campaignRepository.save(campaign);
+        participationService.initializeSeries(campaign.getPublicId());
+
+        beneficiaryService.create(adminId, campaign.getPublicId(), ORG_NAME);
+        campaignPrizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS,
+                "Item sintético para desenvolvimento local", 0L, 1, 0));
+
+        open(adminId, campaign);
     }
 
     private void seedCapitalizationCampaign(Organization organization, Long adminId) {
-        var existing = campaignRepository.findBySlug("acao-capitalizacao-local");
-        if (existing.isPresent()) return;
+        if (campaignRepository.findBySlug("acao-capitalizacao-local").isPresent()) return;
 
         var campaign = campaignRepository.save(new Campaign(organization.getId(),
                 "Título de capitalização (local)", "acao-capitalizacao-local", CampaignMode.CAPITALIZATION_PRIZE_TITLE));
@@ -104,6 +124,13 @@ class LocalDemoSeed implements ApplicationRunner {
                 "Bônus em dinheiro (sintético)", 1_000L, 1, 1));
         campaignPrizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS,
                 "Bem sintético (local)", 0L, 1, 2));
+
+        beneficiaryService.create(adminId, campaign.getPublicId(), ORG_NAME);
+
+        // Combos: base R$ 1,00/número; 10 com 5% e 100 com 13% de desconto (referência de negócio).
+        purchaseOfferService.create(adminId, campaign.getPublicId(), 1, 100L);
+        purchaseOfferService.create(adminId, campaign.getPublicId(), 10, 950L);
+        purchaseOfferService.create(adminId, campaign.getPublicId(), 100, 8_700L);
 
         // Autorização SUSEP (sintética, apenas local) verificada e vigente.
         var authorization = authorizationRepository.save(new CampaignAuthorization(campaign.getId(), "ViaCap",
@@ -118,6 +145,11 @@ class LocalDemoSeed implements ApplicationRunner {
             request.approve();
             approvalRequestRepository.save(request);
         }
+
+        open(adminId, campaign);
+    }
+
+    private void open(Long adminId, Campaign campaign) {
         campaignService.transition(adminId, campaign.getPublicId(), CampaignStatus.LEGAL_REVIEW);
         campaignService.transition(adminId, campaign.getPublicId(), CampaignStatus.AUTHORIZED);
         campaignService.transition(adminId, campaign.getPublicId(), CampaignStatus.SCHEDULED);
