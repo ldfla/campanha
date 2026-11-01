@@ -15,7 +15,6 @@ export default function BeneficiariosAdmin() {
   const [showForm, setShowForm] = useState(false);
 
   async function loadEntities() {
-    setLoading(true);
     try {
       const list = await participations.beneficiaries(DEMO_CAMPAIGN_ID);
       setEntities(list);
@@ -26,7 +25,13 @@ export default function BeneficiariosAdmin() {
     }
   }
 
-  useEffect(() => { loadEntities(); }, []);
+  useEffect(() => {
+    participations
+      .beneficiaries(DEMO_CAMPAIGN_ID)
+      .then(setEntities)
+      .catch((err) => setError(err instanceof ApiError ? err.detail : "Falha ao carregar instituições"))
+      .finally(() => setLoading(false));
+  }, []);
 
   async function handleCreate() {
     if (!newName.trim()) return;
