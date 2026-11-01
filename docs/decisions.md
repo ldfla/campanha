@@ -1,6 +1,7 @@
 # Decisões Pendentes e Registradas
 
 > Registro de decisões que afetam o projeto. Decisões **OPEN** bloqueiam produção real mas não impedem DEMO.
+> Decisões respondidas pelos gates humanos em **2026-11-01**.
 
 ## Decisões Registradas (ACCEPTED)
 
@@ -11,21 +12,34 @@
 | D-003 | Três modos operacionais com gates humanos | ADR-0003 | 2026-10-30 |
 | D-004 | Money como long centavos (padrão Stripe) | ADR-0004 | 2026-10-30 |
 | D-005 | Rankings por escopo, desempate fixo e snapshots com hash | ADR-0006 | 2026-10-31 |
+| D-006 | Modalidade: Promoção Comercial (Sorteio) via **título de capitalização premiável** (ViaCap / SUSEP 15414.657358/2026-61) | ADR-0007 | 2026-11-01 |
+| D-007 | Retenção de CPF (5 anos) e rotação anual de chaves | ADR-0008 | 2026-11-01 |
+| D-008 | Segurança validada por Red Team interno segregado (OWASP/PTES) + Termo de Aceitação de Risco da Diretoria | ADR-0009 | 2026-11-01 |
 
-## Decisões Pendentes (OPEN — BLOCKING LIVE)
+## Decisões resolvidas pelos gates (2026-11-01)
+
+| ID | Decisão | Base |
+|---|---|---|
+| D-OPEN-002 | Natureza da operação: **Promoção Comercial na forma de Sorteio**, vinculada à Extração da Loteria Federal, com apuração complementar por performance de indicação | G-LEGAL |
+| D-OPEN-004 | Prêmios: por sorteio (número da sorte) e por indicação/maiores contribuidores; dinheiro permitido **sob o título de capitalização premiável autorizado** | G-LEGAL |
+| D-OPEN-005 | Divulgadores: bônus tratado como **premiação de campanha** (não remuneração), com retenção de tributos se aplicável | G-FINANCE |
+| D-OPEN-006 | Ranking de participantes/indicação: **volume de números + timestamp da primeira compra** (desempate) | G-LEGAL |
+| D-OPEN-010 | PSP: **agregador de baixo custo** (Asaas/Efí/Pagar.me); ticket de R$ 1,00 exige **combos/pré-pago** para diluir a taxa fixa; contrato e homologação pendentes | G-PSP |
+| D-OPEN-011 | Tributação sobre **receita bruta**; prêmios lançados como despesa | G-FINANCE |
+| D-OPEN-012 | Retenção de CPF: **5 anos** após o encerramento da campanha, depois **anonimização**; rotação de chaves anual (KMS) | G-SECURITY |
+| D-OPEN-013 | Operação: **Cloudflare Full (Strict)** com certificado de origem; backup diário para S3/B2 com 30 dias; **RTO 4h / RPO 24h**; hash SHA-256 do dump guardado offline | G-OPERATIONS |
+| D-OPEN-007 | Prêmios-surpresa: mecânica fixa e auditável (commit-reveal), contingência no regulamento | G-LEGAL (regulamento) |
+
+## Decisões ainda OPEN (bloqueiam produção real)
 
 | ID | Questão | Impacto | Responsável |
 |---|---|---|---|
-| D-OPEN-001 | Titular/organizador efetivo da campanha | G-LEGAL | Responsável legal |
-| D-OPEN-002 | Natureza da operação (promoção comercial, filantrópica, etc.) | G-LEGAL | Advogado/organizador |
+| D-OPEN-001 | Identidade e documento do titular/organizador efetivo | G-LEGAL | Responsável legal |
 | D-OPEN-003 | Documentação e titularidade dos equipamentos fotográficos | G-LEGAL | Organizador |
-| D-OPEN-004 | Substituição de prêmios pecuniários por bens permitidos | G-LEGAL | Jurídico |
-| D-OPEN-005 | Remuneração de divulgadores: contrato e classificação tributária | G-FINANCE | Jurídico/Contábil |
-| D-OPEN-006 | Ranking de participantes: métrica legal permitida | G-LEGAL | Jurídico |
-| D-OPEN-007 | Critério dos números-surpresa e contingência | G-LEGAL | Regulamento |
-| D-OPEN-008 | Fórmula de apuração da Loteria Federal | G-LEGAL | Regulamento |
-| D-OPEN-009 | Data da extração oficial (20/12/2026 proposta) | G-LEGAL | Organizador |
-| D-OPEN-010 | PSP com contrato e homologação | G-PSP | Financeiro |
-| D-OPEN-011 | Regime tributário e documentos fiscais | G-FINANCE | Contabilidade |
-| D-OPEN-012 | Política de retenção de dados LGPD | G-SECURITY | DPO |
-| D-OPEN-013 | Domínio, identidade visual e orçamento operacional | G-OPERATIONS | Gestão |
+| D-OPEN-008 | **Fórmula fechada** da apuração e formação do número da sorte (texto do regulamento) | G-LEGAL | Regulamento |
+| D-OPEN-009 | **Data e número do concurso** da Loteria Federal (Federal Especial de Natal) | G-LEGAL | Organizador/Caixa |
+| D-OPEN-014 | Contrato/homologação do PSP e do emissor da capitalização (integração real) | G-PSP | Financeiro |
+
+> O documento do título de capitalização (SUSEP ViaCap 15414.657358/2026-61) e o regulamento
+> versionado devem ser anexados ao fluxo de autorização da campanha antes de qualquer operação real.
+> Enquanto não estiverem, a plataforma permanece em **DEMO**.
