@@ -18,7 +18,11 @@ public final class PhoneNumbers {
     public static String toE164(String phone) {
         Objects.requireNonNull(phone, "phone");
         String digits = phone.replaceAll("[^\\d+]", "");
-        if (!digits.startsWith("+")) digits = DEFAULT_COUNTRY_CODE + digits;
+        if (!digits.startsWith("+")) {
+            // 12–13 dígitos iniciados por 55 já trazem o código do país (DDD + 8/9 dígitos = 10–11).
+            boolean hasCountryCode = digits.startsWith("55") && (digits.length() == 12 || digits.length() == 13);
+            digits = hasCountryCode ? "+" + digits : DEFAULT_COUNTRY_CODE + digits;
+        }
         if (!E164.matcher(digits).matches()) throw new IllegalArgumentException("telefone.fora_do_padrao_e164");
         return digits;
     }

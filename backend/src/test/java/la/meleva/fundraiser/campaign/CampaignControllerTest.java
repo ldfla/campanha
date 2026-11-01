@@ -35,38 +35,18 @@ class CampaignControllerTest {
     @Autowired private CampaignRepository campaignRepository;
 
     private Cookie registerAndGetSession(String phone) throws Exception {
-        MvcResult result = mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"firstName": "Campaign", "surname": "Manager", "phoneNumber": "%s"}
-                        """.formatted(phone)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return Arrays.stream(result.getResponse().getCookies())
-                .filter(c -> "SESSION".equals(c.getName()))
-                .findFirst()
-                .orElseThrow();
+        return la.meleva.fundraiser.identity.AuthTestSupport.registerAndSignIn(mockMvc, "Campaign", "Manager", phone);
     }
 
     private Cookie loginWithRole(String phone, UserRole role) throws Exception {
-        registerAndGetSession(phone);
+        la.meleva.fundraiser.identity.AuthTestSupport.register(mockMvc, "Campaign", "Manager", phone);
 
         var user = userRepository.findByPhoneNumber(phone).orElseThrow();
         var org = organizationRepository.findAll().stream().findFirst()
                 .orElseGet(() -> organizationRepository.save(new Organization("Test Org", "ASSOCIATION")));
         membershipRepository.save(new Membership(org, user, role));
 
-        MvcResult result = mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"phoneNumber": "%s"}
-                        """.formatted(phone)))
-                .andExpect(status().isOk())
-                .andReturn();
-        return Arrays.stream(result.getResponse().getCookies())
-                .filter(c -> "SESSION".equals(c.getName()))
-                .findFirst()
-                .orElseThrow();
+        return la.meleva.fundraiser.identity.AuthTestSupport.verify(mockMvc, phone);
     }
 
     @Test
