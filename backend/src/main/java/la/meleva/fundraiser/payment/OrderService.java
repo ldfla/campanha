@@ -8,6 +8,7 @@ import la.meleva.fundraiser.notification.InboxEventRepository;
 import la.meleva.fundraiser.notification.OutboxEvent;
 import la.meleva.fundraiser.notification.OutboxEventRepository;
 import la.meleva.fundraiser.shared.ErrorCode;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,12 +28,13 @@ public class OrderService {
     private final CampaignRepository campaigns; private final OrderRepository orders; private final PaymentRepository payments;
     private final PaymentEventRepository paymentEvents; private final InboxEventRepository inbox; private final FinancialLedgerEntryRepository ledger;
     private final RefundRepository refunds; private final PaymentProvider provider; private final Clock clock; private final JdbcTemplate jdbc; private final OutboxEventRepository outbox; private final AuthorizationService authorizations;
+    private final ApplicationEventPublisher events;
     @Autowired
-    public OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations) {
-        this(campaigns, orders, payments, paymentEvents, inbox, ledger, refunds, provider, jdbc, outbox, authorizations, Clock.systemUTC());
+    public OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations, ApplicationEventPublisher events) {
+        this(campaigns, orders, payments, paymentEvents, inbox, ledger, refunds, provider, jdbc, outbox, authorizations, events, Clock.systemUTC());
     }
-    OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations, Clock clock) {
-        this.campaigns=campaigns;this.orders=orders;this.payments=payments;this.paymentEvents=paymentEvents;this.inbox=inbox;this.ledger=ledger;this.refunds=refunds;this.provider=provider;this.jdbc=jdbc;this.outbox=outbox;this.authorizations=authorizations;this.clock=clock;
+    OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations, ApplicationEventPublisher events, Clock clock) {
+        this.campaigns=campaigns;this.orders=orders;this.payments=payments;this.paymentEvents=paymentEvents;this.inbox=inbox;this.ledger=ledger;this.refunds=refunds;this.provider=provider;this.jdbc=jdbc;this.outbox=outbox;this.authorizations=authorizations;this.events=events;this.clock=clock;
     }
     @Transactional
     public OrderReceipt createOrder(Long campaignId, Long userId, long amountCents, String idempotencyKey) {
@@ -56,18 +58,22 @@ public class OrderService {
         applyProviderState(payment,source.state()); event.processed(); return true;
     }
     @Transactional
-    public void reconcile(Long paymentId) {
+    public PaymentStatus reconcile(Long paymentId) {
         var payment=payments.findLockedById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         var state=verifiedSource(payment).state();
-        if(order.isExpired(Instant.now(clock)) && payment.getStatus()==PaymentStatus.PENDING && state!=PaymentProvider.ChargeState.REFUNDED){payment.expire();order.expire();return;}
+        if(order.isExpired(Instant.now(clock)) && payment.getStatus()==PaymentStatus.PENDING && state!=PaymentProvider.ChargeState.REFUNDED){payment.expire();order.expire();return payment.getStatus();}
         applyProviderState(payment,state);
         if(payment.getStatus()==PaymentStatus.CONFIRMED){order.reconcile(); postLedgerOnce(order,"PAYMENT_CONFIRMED",payment.getAmountCents());}
+        return payment.getStatus();
     }
     @Transactional
     public void refund(Long paymentId,String reason) {
         var payment=payments.findLockedById(paymentId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); if(payment.getStatus()!=PaymentStatus.CONFIRMED) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        // Resposta de estorno perdida (timeout) seguida de nova tentativa: o PSP já estornou; converge sem estornar de novo.
+        if(verifiedSource(payment).state()==PaymentProvider.ChargeState.REFUNDED){applyProviderState(payment,PaymentProvider.ChargeState.REFUNDED);return;}
         var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException); order.refundPending();
         var result=provider.refund(payment.getProviderChargeId(),payment.getAmountCents(),reason); var refund=new Refund(paymentId,payment.getAmountCents(),reason); refund.complete(result.id()); refunds.save(refund); payment.refund();order.refunded();postLedgerOnce(order,"PAYMENT_REFUND",-payment.getAmountCents());
+        events.publishEvent(new PaymentRefundedEvent(order.getId(),order.getCampaignId(),payment.getId()));
     }
     private void applyProviderState(Payment payment, PaymentProvider.ChargeState state) {
         var order=orders.findById(payment.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
@@ -90,6 +96,7 @@ public class OrderService {
             var refund=new Refund(payment.getId(),payment.getAmountCents(),"Estorno integral confirmado pelo provedor simulado");
             refund.complete(null); refunds.save(refund);
             payment.refund();order.refunded();postLedgerOnce(order,"PAYMENT_REFUND",-payment.getAmountCents());
+            events.publishEvent(new PaymentRefundedEvent(order.getId(),order.getCampaignId(),payment.getId()));
         }
     }
     private void postLedgerOnce(Order order,String type,long amount){String ref=order.getPublicId();if(!ledger.existsBySourceRefAndEntryType(ref,type))ledger.save(new FinancialLedgerEntry(order.getCampaignId(),ref,type,amount));}
