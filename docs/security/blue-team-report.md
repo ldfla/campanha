@@ -41,6 +41,16 @@
 - Taxa de 401/403/429; tentativas de login por conta; falhas de assinatura de webhook; divergências de
   ledger; `DEAD_LETTER` na outbox; `verify` de hash de prêmios/apuração retornando `match=false`.
 
+## Metodologia e governança (G-SECURITY, 2026-11-01)
+- **Sem verba para pentest externo.** A validação é feita por **Red Team interno segregado** do
+  desenvolvimento, seguindo **OWASP Testing Guide / PTES**, com relatório de evidências
+  (`docs/security/red-team-report.md`).
+- **Segregação:** quem executa o Red Team não é quem escreveu o código. Onde houver sobreposição,
+  declarar como limitação.
+- **Risco residual** assumido pela Diretoria via **Termo de Aceitação de Risco**
+  (`docs/compliance/risk-acceptance.md`), com compromisso de pentest externo futuro.
+- **Não** se declara "pentest" nem homologação. `G-SECURITY` fica **condicional** (interno + aceitação).
+
 ## Lacunas conhecidas (a fechar)
 - Rate limit/lockout em memória (não distribuído) — bypass por múltiplas instâncias.
 - Sem anti-bot dedicado em rotas de leitura; sem WAF documentado.

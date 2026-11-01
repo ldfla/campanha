@@ -27,7 +27,14 @@ case "$action" in
     mysqldump --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --password \
       --single-transaction --quick --routines --triggers --events \
       --set-gtid-purged=OFF "$DB_NAME" > "$file"
+    # Hash SHA-256 do dump (guardar o .sha256 offline; D-OPEN-013 / G-OPERATIONS).
+    if command -v shasum >/dev/null 2>&1; then
+      shasum -a 256 "$file" | awk '{print $1}' > "$file.sha256"
+    else
+      sha256sum "$file" | awk '{print $1}' > "$file.sha256"
+    fi
     echo "Backup concluído: $(wc -c < "$file") bytes"
+    echo "SHA-256: $(cat "$file.sha256")  (guardar offline)"
     ;;
   restore)
     echo "Restaurando ${DB_NAME} a partir de ${file}..."
