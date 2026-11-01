@@ -25,6 +25,7 @@ public class ReservationPaymentLink {
         if (totalCents < 1) throw new IllegalArgumentException("reservation_payment.invalid_total");
         this.totalCents = totalCents; this.referralCode = referralCode; this.createdAt = Instant.now();
     }
+    public Long getRequestId() { return requestId; }
     public Long getOrderId() { return orderId; }
     public Long getOfferId() { return offerId; }
     public long getTotalCents() { return totalCents; }

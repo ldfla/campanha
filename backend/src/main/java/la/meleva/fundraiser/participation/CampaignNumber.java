@@ -96,4 +96,8 @@ public class CampaignNumber {
     }
     public void freeze() { if (status == NumberStatus.ASSIGNED) { this.status = NumberStatus.FROZEN; this.updatedAt = Instant.now(); } }
     public void invalidate() { if (status == NumberStatus.FROZEN) { this.status = NumberStatus.INVALIDATED; this.updatedAt = Instant.now(); } }
+    /** Número estornado não volta ao estoque: fica fora da apuração e não é revendido. */
+    public void invalidateRefunded() {
+        if (status == NumberStatus.ASSIGNED || status == NumberStatus.FROZEN) { this.status = NumberStatus.INVALIDATED; this.updatedAt = Instant.now(); }
+    }
 }

@@ -34,4 +34,9 @@ public class ParticipationEntry {
     public void rejectReservation() { if (status != ParticipationStatus.REQUESTED) throw new IllegalStateException("participation.reservation_invalid"); this.status = ParticipationStatus.REJECTED; this.updatedAt = Instant.now(); }
     public void freeze() { if (status == ParticipationStatus.ASSIGNED) { this.status = ParticipationStatus.FROZEN; this.updatedAt = Instant.now(); } }
     public void invalidate() { if (status == ParticipationStatus.FROZEN) { this.status = ParticipationStatus.INVALIDATED; this.updatedAt = Instant.now(); } }
+    /** Estorno integral do pagamento: a entrada deixa de ser elegível antes ou depois do congelamento. */
+    public boolean invalidateRefunded() {
+        if (status != ParticipationStatus.ASSIGNED && status != ParticipationStatus.FROZEN) return false;
+        this.status = ParticipationStatus.INVALIDATED; this.updatedAt = Instant.now(); return true;
+    }
 }
