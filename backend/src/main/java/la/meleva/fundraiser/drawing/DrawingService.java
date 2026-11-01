@@ -19,6 +19,7 @@ import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.shared.ErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,23 +42,24 @@ public class DrawingService {
     private final UserRepository users;
     private final AuditEventRepository audits;
     private final JdbcTemplate jdbc;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     @Autowired
     public DrawingService(CampaignRepository campaigns, DrawRuleRepository rules, DrawRepository draws,
                           DrawOutcomeRepository outcomes, FederalResultRepository federalResults,
                           MembershipRepository memberships, UserRepository users, AuditEventRepository audits,
-                          JdbcTemplate jdbc) {
-        this(campaigns, rules, draws, outcomes, federalResults, memberships, users, audits, jdbc, Clock.systemUTC());
+                          JdbcTemplate jdbc, ApplicationEventPublisher events) {
+        this(campaigns, rules, draws, outcomes, federalResults, memberships, users, audits, jdbc, events, Clock.systemUTC());
     }
 
     DrawingService(CampaignRepository campaigns, DrawRuleRepository rules, DrawRepository draws,
                    DrawOutcomeRepository outcomes, FederalResultRepository federalResults,
                    MembershipRepository memberships, UserRepository users, AuditEventRepository audits,
-                   JdbcTemplate jdbc, Clock clock) {
+                   JdbcTemplate jdbc, ApplicationEventPublisher events, Clock clock) {
         this.campaigns = campaigns; this.rules = rules; this.draws = draws; this.outcomes = outcomes;
         this.federalResults = federalResults; this.memberships = memberships; this.users = users;
-        this.audits = audits; this.jdbc = jdbc; this.clock = clock;
+        this.audits = audits; this.jdbc = jdbc; this.events = events; this.clock = clock;
     }
 
     @Transactional
@@ -139,6 +141,7 @@ public class DrawingService {
         Instant now = Instant.now(clock);
         draw.publish(now);
         audits.save(new AuditEvent(actorId, "DRAW_PUBLISHED", "draw", draw.getId(), result.getSourceDocumentHash()));
+        events.publishEvent(new DrawPublishedEvent(campaign.getId(), draw.getId()));
         var rule = rules.findById(draw.getDrawRuleId()).orElseThrow(ErrorCode.DRAW_RULE_MISMATCH::toException);
         return view(draw, rule);
     }
