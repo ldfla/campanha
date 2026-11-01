@@ -1,0 +1,98 @@
+# Stack de STAGING (MVP em servidor, modo DEMO). Soberana para qualquer host Docker Compose
+# (ex.: Dockhand/Dokploy/Coolify/VPS). NUNCA libera operação real: `LIVE_OPERATIONS_ENABLED=false`.
+#
+# Uso:
+#   cp .env.staging.example .env.staging   # preencha os segredos
+#   docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml up -d --build
+#   GARAGE_CONTAINER=fundraiser-staging-garage ./scripts/s3-init.sh   # cria bucket/chave do object storage
+#
+# A exposição pública é feita pelo Cloudflare Tunnel (`cloudflared`): no painel da Cloudflare,
+# aponte o hostname do app para `http://frontend:3000` e o da API para `http://backend:8080`.
+# Nenhum serviço publica porta no host (rede interna do compose).
+
+name: fundraiser-staging
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: fundraiser-staging-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-fundraiser}
+      MYSQL_USER: ${DB_USERNAME:-fundraiser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-time-zone=+00:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${DB_USERNAME:-fundraiser}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    container_name: fundraiser-staging-garage
+    restart: unless-stopped
+    command: /garage server
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_data:/var/lib/garage
+
+  backend:
+    build:
+      context: ../backend
+    image: fundraiser-backend:staging
+    container_name: fundraiser-staging-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-fundraiser}
+      DB_USERNAME: ${DB_USERNAME:-fundraiser}
+      DB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+      APP_STORAGE_PROVIDER: s3
+      APP_STORAGE_S3_ENDPOINT: http://garage:3900
+      APP_STORAGE_S3_ACCESS_KEY: ${APP_STORAGE_S3_ACCESS_KEY:?defina APP_STORAGE_S3_ACCESS_KEY}
+      APP_STORAGE_S3_SECRET_KEY: ${APP_STORAGE_S3_SECRET_KEY:?defina APP_STORAGE_S3_SECRET_KEY}
+      APP_STORAGE_S3_REGION: garage
+      APP_STORAGE_S3_BUCKET: ${APP_STORAGE_S3_BUCKET:-fundraiser-private}
+      SURPRISE_ENCRYPTION_KEY: ${SURPRISE_ENCRYPTION_KEY:?defina SURPRISE_ENCRYPTION_KEY}
+      APP_CPF_ENCRYPTION_KEY: ${APP_CPF_ENCRYPTION_KEY:?defina APP_CPF_ENCRYPTION_KEY}
+      APP_CPF_HMAC_KEY: ${APP_CPF_HMAC_KEY:?defina APP_CPF_HMAC_KEY}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_CAMPAIGN_ID: ${NEXT_PUBLIC_CAMPAIGN_ID:-demo}
+    image: fundraiser-frontend:staging
+    container_name: fundraiser-staging-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: fundraiser-staging-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?defina CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
+  garage_data:

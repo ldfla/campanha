@@ -42,7 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
  * O seed é idempotente por slug.
  */
 @Component
-@Profile("local")
+@Profile({"local", "staging"})
 class LocalDemoSeed implements ApplicationRunner {
 
     private static final String DEMO_PHONE = "+5511999990000";
