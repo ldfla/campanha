@@ -9,12 +9,15 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/** Adaptador local para bucket privado do MinIO; nunca publica URLs de objeto. */
+/**
+ * Adaptador de bucket privado (MinIO/S3-compatível); nunca publica URLs de objeto.
+ * Ativado apenas com `app.storage.provider=minio`.
+ */
 @Component
-@Profile("local")
+@ConditionalOnProperty(name = "app.storage.provider", havingValue = "minio")
 class MinioPrivateDocumentStorage implements PrivateDocumentStorage {
     private final MinioClient client;
     private final String bucket;

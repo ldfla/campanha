@@ -8,7 +8,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.notification.OutboxEvent;
 import la.meleva.fundraiser.notification.OutboxEventRepository;
@@ -38,26 +40,30 @@ public class ReservationService {
     private final Clock clock;
     private final BeneficiaryRepository beneficiaries;
     private final BeneficiarySelectionRepository selections;
+    private final AuthorizationService authorizations;
 
     @Autowired
     public ReservationService(CampaignRepository campaigns, CampaignNumberRepository numbers,
                               ParticipationRequestRepository requests, ParticipationEntryRepository entries,
                               ReservationLeaseRepository leases, UserRepository users,
                               OutboxEventRepository outbox, EntityManager entityManager,
-                              BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections) {
-        this(campaigns, numbers, requests, entries, leases, users, outbox, entityManager, beneficiaries, selections, Clock.systemUTC());
+                              BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections,
+                              AuthorizationService authorizations) {
+        this(campaigns, numbers, requests, entries, leases, users, outbox, entityManager, beneficiaries, selections, authorizations, Clock.systemUTC());
     }
 
     ReservationService(CampaignRepository campaigns, CampaignNumberRepository numbers,
                        ParticipationRequestRepository requests, ParticipationEntryRepository entries,
                        ReservationLeaseRepository leases, UserRepository users,
                        OutboxEventRepository outbox, EntityManager entityManager,
-                       BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections, Clock clock) {
+                       BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections,
+                       AuthorizationService authorizations, Clock clock) {
         this.campaigns = campaigns; this.numbers = numbers; this.requests = requests; this.entries = entries;
         this.leases = leases; this.users = users; this.outbox = outbox; this.entityManager = entityManager;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.beneficiaries = Objects.requireNonNull(beneficiaries, "beneficiaries");
         this.selections = Objects.requireNonNull(selections, "selections");
+        this.authorizations = Objects.requireNonNull(authorizations, "authorizations");
     }
 
     @Transactional
@@ -72,7 +78,13 @@ public class ReservationService {
         Objects.requireNonNull(key, "key");
         if (count < 1 || count > 100 || !key.matches("^[0-9a-fA-F-]{36}$")) throw ErrorCode.VALIDATION_ERROR.toException();
         var campaign = campaigns.findLockedByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
-        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        // ADR-0007: DEMO sempre opera; capitalização premiável só com autorização SUSEP verificada e vigente.
+        if (!campaign.getMode().isDemo()) {
+            if (campaign.getMode() != CampaignMode.CAPITALIZATION_PRIZE_TITLE
+                    || !authorizations.hasEffectiveAuthorization(campaign.getId())) {
+                throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+            }
+        }
         if (!campaign.getStatus().acceptsParticipations()) throw ErrorCode.PARTICIPATION_CAMPAIGN_CLOSED.toException();
         if (users.findById(userId).filter(user -> user.isActive()).isEmpty()) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();
         Instant now = Instant.now(clock).truncatedTo(ChronoUnit.SECONDS);
