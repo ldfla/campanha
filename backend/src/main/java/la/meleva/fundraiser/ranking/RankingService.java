@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
@@ -47,6 +49,7 @@ public class RankingService {
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 200;
     private static final int SNAPSHOT_LIST_LIMIT = 20;
+    private static final Pattern PAYLOAD_SCORE = Pattern.compile("\"score\":(\\d+)");
     private static final Set<CampaignStatus> RULE_WINDOW = EnumSet.of(
             CampaignStatus.DRAFT, CampaignStatus.LEGAL_REVIEW,
             CampaignStatus.AUTHORIZED, CampaignStatus.SCHEDULED);
@@ -176,7 +179,7 @@ public class RankingService {
         if (!sha256(snapshot.getPayloadJson()).equals(snapshot.getSnapshotHash())) {
             throw ErrorCode.RANKING_SNAPSHOT_HASH_MISMATCH.toException();
         }
-        if (positions.findByIdSnapshotIdOrderByPosition(snapshot.getId()).size() != snapshot.getEntryCount()) {
+        if (!positionsMatchPayload(positions.findByIdSnapshotIdOrderByPosition(snapshot.getId()), snapshot)) {
             throw ErrorCode.RANKING_SNAPSHOT_HASH_MISMATCH.toException();
         }
         audits.save(new AuditEvent(actorId, "RANKING_SNAPSHOT_EXPORTED", "ranking_snapshot",
@@ -184,6 +187,22 @@ public class RankingService {
         return new SnapshotExport(snapshot.getPublicId(), campaign.getPublicId(), snapshot.getScope(),
                 snapshot.getCutoffAt(), snapshot.getGeneratedAt(), snapshot.getSnapshotHash(), true,
                 snapshot.getPayloadJson());
+    }
+
+    /** As linhas de posição não entram no hash; conferi-las contra o payload lacrado detecta edição direta no banco. */
+    private static boolean positionsMatchPayload(List<RankingPosition> rows, RankingSnapshot snapshot) {
+        if (rows.size() != snapshot.getEntryCount()) {
+            return false;
+        }
+        Matcher scores = PAYLOAD_SCORE.matcher(snapshot.getPayloadJson());
+        for (int index = 0; index < rows.size(); index++) {
+            RankingPosition row = rows.get(index);
+            if (row.getPosition() != index + 1 || !scores.find()
+                    || Long.parseLong(scores.group(1)) != row.getScore()) {
+                return false;
+            }
+        }
+        return !scores.find();
     }
 
     private List<Ranked> ranked(Campaign campaign, RankingScope scope, Instant cutoff) {

@@ -384,11 +384,6 @@ export const referrals = {
       method: "POST",
     }),
 
-  attribute: (campaignId: string, code: string, entryId: string) =>
-    request<void>(`/referrals/campaigns/${campaignId}/attributions/${code}/${entryId}`, {
-      method: "POST",
-    }),
-
   metrics: (campaignId: string) =>
     request<ReferralMetrics>(`/referrals/campaigns/${campaignId}/metrics`),
 };
