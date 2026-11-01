@@ -45,6 +45,7 @@ public enum ErrorCode {
     RANKING_RULE_NOT_FOUND("Nenhuma regra de ranking vigente para a campanha", 404),
     RANKING_SNAPSHOT_NOT_FOUND("Snapshot de ranking não encontrado", 404),
     RANKING_SNAPSHOT_HASH_MISMATCH("Hash do snapshot de ranking não confere", 409),
+    RANKING_AWARD_REQUIRES_LOCK("A premiação do ranking só é gerada com a campanha congelada", 409),
 
     // Sorteio
     DRAW_RESULTS_NOT_VERIFIED("Resultados oficiais não verificados por dois revisores", 409),

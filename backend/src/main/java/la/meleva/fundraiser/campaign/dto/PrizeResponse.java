@@ -13,6 +13,8 @@ public record PrizeResponse(
         int quantity,
         CampaignPrize.PrizeStatus status,
         int sortOrder,
+        CampaignPrize.RankingScope rankingScope,
+        Integer rankingPosition,
         Instant createdAt
 ) {
     public static PrizeResponse from(CampaignPrize p) {
@@ -25,6 +27,8 @@ public record PrizeResponse(
                 p.getQuantity(),
                 p.getStatus(),
                 p.getSortOrder(),
+                p.getRankingScope(),
+                p.getRankingPosition(),
                 p.getCreatedAt()
         );
     }
