@@ -23,6 +23,40 @@ Uma tarefa só pode ser marcada concluída se tiver implementação funcional (n
 
 ---
 
+## 0.1. Status de execução (2026-11-01)
+
+> Visão consolidada para agentes/programadores. Detalhes por fase abaixo e em `docs/progress/`.
+
+### Implementado e na `main`
+- **P00–P12, P13, P14, P15, P16, P18** (e **P07-A** carga inicial de prêmios) com `./mvnw -B verify` verde.
+  PRs #1–#26 mergeados.
+- **P16** (hardening/LGPD/red-team interno), **P18** (carga/recuperação, alto volume) e **CPF do
+  contemplado** (cifrado, só para prêmio, `V022`).
+
+### Decisões dos gates registradas (docs)
+- `docs/decisions.md` (D-001…D-008; D-OPEN-002/004/005/006/007/010/011/012/013 resolvidos).
+- `docs/adr/ADR-0007` (modalidade), `ADR-0008` (retenção CPF/rotação de chaves), `ADR-0009`
+  (red-team interno + aceitação de risco).
+- `docs/compliance/gates-status.md`, `docs/compliance/risk-acceptance.md`.
+
+### ADR-0007 — execução
+- Implementado o modo **`CAPITALIZATION_PRIZE_TITLE`** (ver **P05-A** abaixo). Cobrança e prêmio em
+  dinheiro **somente** com autorização SUSEP **verificada e vigente** + todos os gates aprovados.
+- **Cobrança permanece sandbox** (`MockPaymentProvider`); `LIVE_OPERATIONS_ENABLED=false`.
+
+### Pendências que bloqueiam PRODUÇÃO REAL (não o MVP/DEMO)
+- `D-OPEN-001` titular; `D-OPEN-003` equipamentos; `D-OPEN-008` fórmula fechada da apuração;
+  `D-OPEN-009` data/concurso da Federal; `D-OPEN-014` contrato/homologação do PSP e do emissor.
+- Anexar **documento SUSEP** + **regulamento versionado** à campanha; `G-*` restantes no
+  `gates-status.md`; assinatura do Termo de Aceitação de Risco.
+- Frontend: alinhar preços (base R$ 1,00; combos 5/13/26/31%), `entityId` obrigatório e telas de
+  transparência/apuração.
+
+### MVP local
+- Como rodar: `docs/operations/local-mvp.md` (Docker Compose + backend profile `local` + frontend).
+
+---
+
 # 1. Visão do produto e especificação comercial de referência
 
 ## 1.1. Produto
@@ -583,6 +617,25 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P05-09` Separar conteúdo publicável do confidencial, com auditoria de downloads.
 
 **Aceite:** não é possível abrir campanha real sem todas as portas e regras; o modo DEMO funciona com banner.
+
+## P05-A — Modalidade capitalização premiável (ADR-0007)
+
+**Dependências:** P05/P09.  
+**Entregáveis:** modo autorizado que permite cobrança e prêmio em dinheiro sob título SUSEP (sandbox).
+
+- [x] `P05A-01` Novo `CampaignMode.CAPITALIZATION_PRIZE_TITLE` (distinto de `COMMERCIAL_PROMOTION`).
+- [x] `P05A-02` `CapabilityPolicy` do modo com `COLLECT_PAYMENTS` + `AWARD_CASH_PRIZES` (e demais).
+- [x] `P05A-03` `AdminGateMatrix` exige todos os gates (G_LEGAL, G_PSP, G_FINANCE, G_SECURITY, G_OPERATIONS, G_LAUNCH).
+- [x] `P05A-04` Prêmio em dinheiro permitido **somente** nesse modo (`allowsCashPrizes`); surpresa em DEMO e capitalização.
+- [x] `P05A-05` Cobrança (sandbox) só com **autorização SUSEP verificada e vigente** (`CampaignAuthorization.verify`/`isEffectiveAt`, `AuthorizationService`); `OrderService`/`ReservationCheckoutService` condicionam a isso.
+- [x] `P05A-06` Abertura (`transition` para `SCHEDULED`/`OPEN`) exige **todos os gates aprovados** e autorização vigente (substitui o stub que sempre bloqueava).
+- [x] `P05A-07` `POST /admin/campaigns/{id}/authorizations/{authorizationId}/verify` (`SYSTEM_ADMIN`/`COMPLIANCE_REVIEWER`).
+- [x] `P05A-08` Seed local cria campanha de capitalização com autorização/gates para o MVP (`docs/operations/local-mvp.md`).
+- [ ] `P05A-09` Premiação por **posição** do ranking de indicação (apuração complementar) — ordenação já vem do ranking `PROMOTER` (desempate volume + 1ª compra); falta ligar a premiação por posição ao fluxo de entrega (P13).
+
+**Aceite:** modo autorizado distinto; cobrança/prêmio em dinheiro só com autorização vigente e gates; DEMO/`COMMERCIAL_PROMOTION` inalterados.
+
+> Evidências: `docs/adr/ADR-0007-*`, `docs/progress/ADR-0007.md`. Cobrança é **sandbox** (mock); liberação real depende de `G-PSP`/`G-LAUNCH`.
 
 ## P06 — Landing page, catálogo e regulamento público
 

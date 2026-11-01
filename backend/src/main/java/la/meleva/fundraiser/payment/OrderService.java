@@ -3,6 +3,7 @@ package la.meleva.fundraiser.payment;
 import la.meleva.fundraiser.campaign.Campaign;
 import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import la.meleva.fundraiser.notification.InboxEventRepository;
 import la.meleva.fundraiser.notification.OutboxEvent;
 import la.meleva.fundraiser.notification.OutboxEventRepository;
@@ -25,13 +26,13 @@ import java.util.UUID;
 public class OrderService {
     private final CampaignRepository campaigns; private final OrderRepository orders; private final PaymentRepository payments;
     private final PaymentEventRepository paymentEvents; private final InboxEventRepository inbox; private final FinancialLedgerEntryRepository ledger;
-    private final RefundRepository refunds; private final PaymentProvider provider; private final Clock clock; private final JdbcTemplate jdbc; private final OutboxEventRepository outbox;
+    private final RefundRepository refunds; private final PaymentProvider provider; private final Clock clock; private final JdbcTemplate jdbc; private final OutboxEventRepository outbox; private final AuthorizationService authorizations;
     @Autowired
-    public OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox) {
-        this(campaigns, orders, payments, paymentEvents, inbox, ledger, refunds, provider, jdbc, outbox, Clock.systemUTC());
+    public OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations) {
+        this(campaigns, orders, payments, paymentEvents, inbox, ledger, refunds, provider, jdbc, outbox, authorizations, Clock.systemUTC());
     }
-    OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, Clock clock) {
-        this.campaigns=campaigns;this.orders=orders;this.payments=payments;this.paymentEvents=paymentEvents;this.inbox=inbox;this.ledger=ledger;this.refunds=refunds;this.provider=provider;this.jdbc=jdbc;this.outbox=outbox;this.clock=clock;
+    OrderService(CampaignRepository campaigns, OrderRepository orders, PaymentRepository payments, PaymentEventRepository paymentEvents, InboxEventRepository inbox, FinancialLedgerEntryRepository ledger, RefundRepository refunds, PaymentProvider provider, JdbcTemplate jdbc, OutboxEventRepository outbox, AuthorizationService authorizations, Clock clock) {
+        this.campaigns=campaigns;this.orders=orders;this.payments=payments;this.paymentEvents=paymentEvents;this.inbox=inbox;this.ledger=ledger;this.refunds=refunds;this.provider=provider;this.jdbc=jdbc;this.outbox=outbox;this.authorizations=authorizations;this.clock=clock;
     }
     @Transactional
     public OrderReceipt createOrder(Long campaignId, Long userId, long amountCents, String idempotencyKey) {
@@ -99,7 +100,14 @@ public class OrderService {
                 || charge.amountCents()!=payment.getAmountCents()) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
         return charge;
     }
-    private void assertSandboxBillable(Campaign campaign) { if(campaign.getMode()==CampaignMode.COMMERCIAL_PROMOTION) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException(); if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException(); }
+    private void assertSandboxBillable(Campaign campaign) {
+        var mode = campaign.getMode();
+        if (mode == CampaignMode.COMMERCIAL_PROMOTION) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException();
+        if (mode.isDemo()) return;
+        // ADR-0007: título de capitalização premiável só cobra com autorização verificada e vigente.
+        if (mode == CampaignMode.CAPITALIZATION_PRIZE_TITLE && authorizations.hasEffectiveAuthorization(campaign.getId())) return;
+        throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+    }
     private OrderReceipt receipt(Order order,Payment payment){return new OrderReceipt(order.getPublicId(),payment.getId(),payment.getProviderChargeId(),payment.getTxid(),order.getStatus());}
     private static String sha256(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
     public record OrderReceipt(String orderPublicId,Long paymentId,String chargeId,String txid,OrderStatus status) {}

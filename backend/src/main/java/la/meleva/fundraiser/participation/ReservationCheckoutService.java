@@ -5,7 +5,10 @@ import jakarta.persistence.LockModeType;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
+import la.meleva.fundraiser.campaign.Campaign;
+import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import la.meleva.fundraiser.participation.purchase.PurchaseOfferRepository;
 import la.meleva.fundraiser.participation.purchase.ReservationPaymentLink;
 import la.meleva.fundraiser.participation.purchase.ReservationPaymentLinkRepository;
@@ -46,6 +49,7 @@ public class ReservationCheckoutService {
     private final UserRepository users;
     private final ReferralService referrals;
     private final CampaignNumberBuyerRepository buyers;
+    private final AuthorizationService authorizations;
 
     @Autowired
     public ReservationCheckoutService(ReservationService reservations, CampaignRepository campaigns,
@@ -53,13 +57,15 @@ public class ReservationCheckoutService {
             OrderRepository orders, OrderService orderService, PaymentRepository payments, PaymentProvider provider,
             ReservationLeaseRepository leases, CampaignNumberRepository numbers, ParticipationEntryRepository entries,
             EntryNumberAssignmentRepository assignments, EligibilityEventRepository eligibility, EntityManager entityManager,
-            UserRepository users, ReferralService referrals, CampaignNumberBuyerRepository buyers) {
+            UserRepository users, ReferralService referrals, CampaignNumberBuyerRepository buyers,
+            AuthorizationService authorizations) {
         this.reservations=reservations; this.campaigns=campaigns; this.offers=offers; this.requests=requests;
         this.links=links; this.orders=orders; this.orderService=orderService; this.payments=payments; this.provider=provider;
         this.leases=leases; this.numbers=numbers; this.entries=entries; this.assignments=assignments;
         this.eligibility=eligibility; this.entityManager=entityManager; this.clock=Clock.systemUTC();
         this.users=Objects.requireNonNull(users, "users"); this.referrals=Objects.requireNonNull(referrals, "referrals");
         this.buyers=Objects.requireNonNull(buyers, "buyers");
+        this.authorizations=Objects.requireNonNull(authorizations, "authorizations");
     }
 
     @Transactional
@@ -74,7 +80,7 @@ public class ReservationCheckoutService {
         Objects.requireNonNull(key, "key"); Objects.requireNonNull(offerPublicId, "offerPublicId");
         if (!"MOCK".equals(provider.name())) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException();
         var campaign = campaigns.findByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
-        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        if (!payable(campaign)) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
         var offer = offers.findByPublicIdAndCampaignIdAndActiveTrue(offerPublicId, campaign.getId())
                 .orElseThrow(ErrorCode.VALIDATION_ERROR::toException);
         var validReferral = referralCode == null || referralCode.isBlank() ? java.util.Optional.<String>empty()
@@ -105,7 +111,7 @@ public class ReservationCheckoutService {
         if (!"MOCK".equals(provider.name())) throw ErrorCode.PAYMENT_NOT_ALLOWED.toException();
         if (users.findById(userId).filter(user -> user.isActive()).isEmpty()) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
         var campaign = campaigns.findLockedByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
-        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        if (!payable(campaign)) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
         var request = requests.findByPublicId(requestPublicId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         entityManager.refresh(request, LockModeType.PESSIMISTIC_WRITE);
         if (!request.getCampaignId().equals(campaign.getId()) || !request.getUserId().equals(userId)) {
@@ -152,6 +158,13 @@ public class ReservationCheckoutService {
             link.referralCode().ifPresent(code -> referrals.attributeIfValid(campaign.getId(), code, entryId));
         }
         request.markAssigned();
+    }
+
+    /** ADR-0007: capitalização premiável só opera (sandbox) com autorização verificada e vigente. */
+    private boolean payable(Campaign campaign) {
+        var mode = campaign.getMode();
+        if (mode.isDemo()) return true;
+        return mode == CampaignMode.CAPITALIZATION_PRIZE_TITLE && authorizations.hasEffectiveAuthorization(campaign.getId());
     }
 
     private static String e164OrFail(String phone) {

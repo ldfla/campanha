@@ -56,6 +56,13 @@ public class ComplianceManagementController {
                 request.issuer(), request.certificateNo(), request.validFrom(), request.validTo(), request.documentUri()).getId());
     }
 
+    @PostMapping("/authorizations/{authorizationId}/verify")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'COMPLIANCE_REVIEWER')")
+    public ResponseEntity<Long> verifyAuthorization(@AuthenticationPrincipal AppUserDetails principal,
+            @PathVariable String campaignId, @PathVariable Long authorizationId) {
+        return ResponseEntity.ok(managementService.verifyAuthorization(principal.userId(), campaignId, authorizationId).getId());
+    }
+
     @GetMapping("/documents/{documentId}/private-content")
     @PreAuthorize("hasAnyRole('CAMPAIGN_MANAGER', 'SYSTEM_ADMIN', 'LEGAL_REVIEWER')")
     public ResponseEntity<byte[]> downloadPrivate(@AuthenticationPrincipal AppUserDetails principal,

@@ -17,7 +17,8 @@ public final class AdminGateMatrix {
                     GateType.G_OPERATIONS,
                     GateType.G_LAUNCH
             ),
-            CampaignMode.PHILANTHROPIC_AUTHORIZED, EnumSet.allOf(GateType.class)
+            CampaignMode.PHILANTHROPIC_AUTHORIZED, EnumSet.allOf(GateType.class),
+            CampaignMode.CAPITALIZATION_PRIZE_TITLE, EnumSet.allOf(GateType.class)
     );
 
     private AdminGateMatrix() {}
