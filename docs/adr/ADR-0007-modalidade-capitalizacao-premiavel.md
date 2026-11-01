@@ -1,6 +1,6 @@
 # ADR-0007 — Modalidade: Promoção Comercial (Sorteio) via título de capitalização premiável
 
-**Status:** Aceito (decisão de negócio/jurídica) — **implementação pendente**  
+**Status:** Aceito — **implementado** (PR #30 `feature/adr-0007-capitalization`)  
 **Data:** 2026-11-01  
 **Decisores:** Organizador / Jurídico (G-LEGAL)
 
@@ -32,7 +32,7 @@ promoções gratuitas.
 - **Não muda por flag.** A modalidade só se torna executável quando o **documento do título**
   (autorização SUSEP) e o **regulamento versionado** estiverem anexados e aprovados por dois papéis
   independentes (fluxo `campaign_authorizations` + gates). Até lá, a plataforma permanece **DEMO**.
-- Mudança de domínio ampla (a implementar, requer ADR de execução + testes):
+- Mudança de domínio **implementada** (PR #30); o modo autorizado segue **sandbox**:
   1. novo valor de `CampaignMode` para **título de capitalização premiável** (não reutilizar
      `COMMERCIAL_PROMOTION`, para não confundir os dois regimes);
   2. permitir cobrança (PSP) **somente** nessa modalidade e com autorização válida;
@@ -41,7 +41,7 @@ promoções gratuitas.
   4. apuração: manter o motor da P12 (Federal) e acrescentar a **apuração complementar por
      indicação**, com desempate fixo (volume + timestamp da 1ª compra) — ver ADR-0006/0009;
   5. registrar a **regra de desempate** no regulamento versionado (`approved_regulation_sha256`).
-- Enquanto não implementado, `COMMERCIAL_PROMOTION` continua recusando cobrança e dinheiro.
+- `COMMERCIAL_PROMOTION` continua recusando cobrança e dinheiro; `DEMO` inalterado. Liberação real depende de `G-PSP`/`G-LAUNCH` e de anexar documento/regulamento.
 
 ## Riscos
 
