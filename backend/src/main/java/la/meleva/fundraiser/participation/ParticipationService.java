@@ -95,6 +95,8 @@ public class ParticipationService {
             throw ErrorCode.VALIDATION_ERROR.toException();
         }
         Campaign campaign = lockedCampaign(campaignPublicId);
+        // P20-F04: a participação sem cobrança é exclusiva de DEMO; modos pagos exigem checkout conciliado.
+        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_LIVE_OPERATIONS_DISABLED.toException();
         if (!campaign.getStatus().acceptsParticipations()) throw ErrorCode.PARTICIPATION_CAMPAIGN_CLOSED.toException();
         if (!userRepository.findById(userId).filter(la.meleva.fundraiser.identity.User::isActive).isPresent()) {
             throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();

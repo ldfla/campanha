@@ -54,6 +54,8 @@ public enum ErrorCode {
     DRAW_STATE_INVALID("Operação inválida para o estado atual da apuração", 409),
     FEDERAL_SOURCE_UNAVAILABLE("Fonte oficial da apuração indisponível", 502),
 
+    PRIZE_LOAD_SEALED("Lista de números premiados lacrada até o encerramento das vendas", 409),
+
     // Aprovação
     APPROVAL_SELF_APPROVAL("Autoaprovação não permitida", 403),
     APPROVAL_ALREADY_DECIDED("Aprovação já decidida", 409),

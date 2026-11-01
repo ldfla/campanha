@@ -146,6 +146,26 @@ public class InitialPrizeLoadService {
         return csv.toString();
     }
 
+    /**
+     * Exportação pública (P20-F05): enquanto houver venda possível, publicar quais números são
+     * premiados permitiria comprar exatamente até um número premiado. Antes do encerramento só o
+     * SHA-256 é público (compromisso); a lista é revelada a partir de {@code LOCKED}.
+     */
+    @Transactional(readOnly = true)
+    public String exportPublicCsv(String campaignPublicId) {
+        var campaign = campaigns.findByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if (!PUBLIC_REVEAL_STATUSES.contains(campaign.getStatus())) throw ErrorCode.PRIZE_LOAD_SEALED.toException();
+        return exportCsv(campaignPublicId);
+    }
+
+    private static final java.util.Set<la.meleva.fundraiser.campaign.CampaignStatus> PUBLIC_REVEAL_STATUSES =
+            java.util.EnumSet.of(la.meleva.fundraiser.campaign.CampaignStatus.LOCKED,
+                    la.meleva.fundraiser.campaign.CampaignStatus.DRAW_PENDING,
+                    la.meleva.fundraiser.campaign.CampaignStatus.DRAWN,
+                    la.meleva.fundraiser.campaign.CampaignStatus.AWARDS_PENDING,
+                    la.meleva.fundraiser.campaign.CampaignStatus.CLOSED,
+                    la.meleva.fundraiser.campaign.CampaignStatus.CANCELLED);
+
     @Transactional(readOnly = true)
     public VerifyView verify(String campaignPublicId) {
         var campaign = campaigns.findByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
