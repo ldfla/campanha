@@ -20,8 +20,9 @@
 - Sem as chaves configuradas, o armazenamento fica **indisponível** (`503 CPF_NOT_CONFIGURED`) — não há
   fallback que grave em claro.
 - **Retenção (D-OPEN-012 / ADR-0008):** CPF retido por **5 anos após o encerramento da campanha**
-  (obrigação legal/regulatória); depois, **anonimização**.
+  (obrigação legal/regulatória de premiação e prestação de contas); depois, **anonimização**.
 - **Rotação de chaves:** **anual ou por campanha**, com **KMS gerenciado**; requer recifrar os CPFs
   existentes — procedimento e ensaio pendentes (ADR-0008).
 - A chave **não** vai no dump do banco; guardar em KMS/cofre e testar a recuperação.
-- CPF é dado sensível: acesso restrito; minimização e finalidade específica (recebimento de prêmio).
+- CPF é dado sensível: acesso restrito; princípio de minimização e finalidade específica
+  (recebimento de prêmio).
