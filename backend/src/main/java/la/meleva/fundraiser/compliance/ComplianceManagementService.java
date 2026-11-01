@@ -46,6 +46,29 @@ public class ComplianceManagementService {
                 validFrom, validTo, documentUri));
     }
 
+    /**
+     * Verifica uma autorização (ADR-0007). Exige papel de compliance e vínculo ativo; quem verifica
+     * deve ser independente do solicitante no fluxo real de dupla aprovação.
+     */
+    @Transactional
+    public CampaignAuthorization verifyAuthorization(Long actorId, String campaignPublicId, Long authorizationId) {
+        Campaign campaign = campaignRepository.findByPublicId(campaignPublicId)
+                .orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        requireComplianceRole(actorId, campaign.getOrganizationId());
+        CampaignAuthorization authorization = authorizationRepository.findById(authorizationId)
+                .orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        if (!authorization.getCampaignId().equals(campaign.getId())) throw ErrorCode.RESOURCE_NOT_FOUND.toException();
+        authorization.verify(Instant.now());
+        return authorizationRepository.save(authorization);
+    }
+
+    private void requireComplianceRole(Long actorId, Long organizationId) {
+        boolean allowed = membershipRepository.findActiveByUserAndOrganization(actorId, organizationId).stream()
+                .anyMatch(membership -> membership.getRole() == la.meleva.fundraiser.identity.UserRole.COMPLIANCE_REVIEWER
+                        || membership.getRole() == la.meleva.fundraiser.identity.UserRole.SYSTEM_ADMIN);
+        if (!allowed) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+    }
+
     private Campaign campaign(String publicId, Long actorId) {
         Campaign campaign = campaignRepository.findByPublicId(publicId)
                 .orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);

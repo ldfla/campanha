@@ -45,6 +45,17 @@ public record CapabilityPolicy(CampaignMode mode, Set<Capability> capabilities) 
                     Capability.EXECUTE_DRAWING,
                     Capability.DELIVER_AWARDS
             ));
+            case CAPITALIZATION_PRIZE_TITLE -> new CapabilityPolicy(mode, EnumSet.of(
+                    Capability.ACCEPT_PARTICIPATIONS,
+                    Capability.COLLECT_PAYMENTS,
+                    Capability.AWARD_GOODS_PRIZES,
+                    Capability.AWARD_CASH_PRIZES,
+                    Capability.PUBLISH_CAMPAIGN,
+                    Capability.SHOW_RANKINGS,
+                    Capability.SHOW_SURPRISE_NUMBERS,
+                    Capability.EXECUTE_DRAWING,
+                    Capability.DELIVER_AWARDS
+            ));
         };
     }
 

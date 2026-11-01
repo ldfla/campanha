@@ -8,14 +8,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SurprisePrizePolicyTest {
 
-    @Test void allowsSimulatedCashOnlyInDemo() {
+    @Test void allowsSimulatedCashInDemoAndCapitalizationTitle() {
         assertThat(SurprisePrizePolicy.requireAllowed(CampaignMode.DEMO))
+                .isEqualTo(SurprisePrizePolicy.PrizeType.SIMULATED_CASH);
+        assertThat(SurprisePrizePolicy.requireAllowed(CampaignMode.CAPITALIZATION_PRIZE_TITLE))
                 .isEqualTo(SurprisePrizePolicy.PrizeType.SIMULATED_CASH);
     }
 
-    @Test void refusesCashPrizesForAnyNonDemoModality() {
+    @Test void refusesCashPrizesForNonAuthorizedModalities() {
         for (var mode : CampaignMode.values()) {
-            if (mode == CampaignMode.DEMO) continue;
+            if (mode == CampaignMode.DEMO || mode == CampaignMode.CAPITALIZATION_PRIZE_TITLE) continue;
             assertThatThrownBy(() -> SurprisePrizePolicy.requireAllowed(mode))
                     .isInstanceOfSatisfying(ErrorCode.BusinessException.class,
                             ex -> assertThat(ex.errorCode()).isEqualTo(ErrorCode.CAMPAIGN_NOT_AUTHORIZED));

@@ -10,6 +10,8 @@ import la.meleva.fundraiser.identity.Membership;
 import la.meleva.fundraiser.identity.MembershipRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.drawing.SurpriseCommitmentRepository;
+import la.meleva.fundraiser.compliance.ApprovalService;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,14 +25,20 @@ public class CampaignService {
     private final MembershipRepository memberships;
     private final AuditEventRepository audits;
     private final SurpriseCommitmentRepository surpriseCommitments;
+    private final ApprovalService approvals;
+    private final AuthorizationService authorizations;
 
     public CampaignService(CampaignRepository campaignRepository,
-                           CampaignPrizeRepository prizeRepository, MembershipRepository memberships, AuditEventRepository audits, SurpriseCommitmentRepository surpriseCommitments) {
+                           CampaignPrizeRepository prizeRepository, MembershipRepository memberships, AuditEventRepository audits,
+                           SurpriseCommitmentRepository surpriseCommitments, ApprovalService approvals,
+                           AuthorizationService authorizations) {
         this.campaignRepository = campaignRepository;
         this.prizeRepository = prizeRepository;
         this.memberships = memberships;
         this.audits = audits;
         this.surpriseCommitments = surpriseCommitments;
+        this.approvals = approvals;
+        this.authorizations = authorizations;
     }
 
     @Transactional
@@ -81,9 +89,13 @@ public class CampaignService {
                 && campaign.isSurpriseEnabled() && !surpriseCommitments.existsByCampaignIdAndEncryptedSecretIsNotNull(campaign.getId())) {
             throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
         }
-        if (targetStatus == CampaignStatus.OPEN || targetStatus == CampaignStatus.SCHEDULED) {
-            if (!campaign.getMode().isDemo()) {
-                AdminGateMatrix.requireGatesForTransition(campaign.getMode(), targetStatus);
+        if ((targetStatus == CampaignStatus.OPEN || targetStatus == CampaignStatus.SCHEDULED) && !campaign.getMode().isDemo()) {
+            // ADR-0007: abertura exige TODOS os gates aprovados e, quando aplicável, autorização vigente.
+            if (!approvals.areAllGatesApproved(campaign.getId(), campaign.getMode())) {
+                throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
+            }
+            if (campaign.getMode().requiresAuthorization() && !authorizations.hasEffectiveAuthorization(campaign.getId())) {
+                throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
             }
         }
 
