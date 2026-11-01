@@ -53,14 +53,16 @@ class CapitalizationModeIntegrationTest {
         var organization = organizations.save(new Organization("Org capitalização", "ASSOCIATION"));
         var demo = campaignRepository.save(new Campaign(organization.getId(), "Demo", "cap-demo", CampaignMode.DEMO));
         var title = campaignRepository.save(new Campaign(organization.getId(), "Título", "cap-title", CampaignMode.CAPITALIZATION_PRIZE_TITLE));
+        var manager = users.save(new User("Gestor", "Prêmios", "+5511999800090"));
+        memberships.save(new Membership(organization, manager, UserRole.CAMPAIGN_MANAGER));
 
-        assertThatThrownBy(() -> campaigns.addPrize(demo.getPublicId(),
-                new PrizeRequest(CampaignPrize.PrizeType.CASH, "Dinheiro", 1000, 1, 1)))
+        assertThatThrownBy(() -> campaigns.addPrize(manager.getId(), demo.getPublicId(),
+                new PrizeRequest(CampaignPrize.PrizeType.CASH, "Dinheiro", 1000, 1, 1, null, null)))
                 .isInstanceOfSatisfying(BusinessException.class,
                         ex -> assertThat(ex.errorCode()).isEqualTo(ErrorCode.PRIZE_CASH_NOT_ALLOWED));
 
-        assertThat(campaigns.addPrize(title.getPublicId(),
-                new PrizeRequest(CampaignPrize.PrizeType.CASH, "Dinheiro", 1000, 1, 1))).isNotNull();
+        assertThat(campaigns.addPrize(manager.getId(), title.getPublicId(),
+                new PrizeRequest(CampaignPrize.PrizeType.CASH, "Dinheiro", 1000, 1, 1, null, null))).isNotNull();
     }
 
     @Test

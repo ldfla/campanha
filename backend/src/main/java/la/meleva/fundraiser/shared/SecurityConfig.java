@@ -47,6 +47,16 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * O token é lido pelo JS do frontend (double-submit). Com o caminho padrão (`/api`, o context-path) o cookie
+     * fica invisível para as páginas do frontend e todo POST protegido recebe 403.
+     */
+    static CookieCsrfTokenRepository csrfTokenRepository() {
+        var repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie.path("/").sameSite("Lax"));
+        return repository;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         var csrfHandler = new CsrfTokenRequestAttributeHandler();
@@ -66,7 +76,7 @@ public class SecurityConfig {
                 .contentTypeOptions(Customizer.withDefaults())
             )
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRepository(csrfTokenRepository())
                 .csrfTokenRequestHandler(csrfHandler)
                 .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/login/verify", "/auth/logout", "/auth/verify-contact", "/auth/mfa/verify")
             )
@@ -79,8 +89,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/actuator/**").hasAnyRole("SYSTEM_ADMIN", "SECURITY_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/campaigns/public/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/campaigns/slug/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/campaigns/*/prizes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/participations/campaigns/*/offers", "/participations/campaigns/*/beneficiaries").permitAll()
+                .requestMatchers(HttpMethod.GET, "/campaigns/slug/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/campaigns/*/prizes").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rankings/campaigns/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/surprises/campaigns/*/commitment").permitAll()
                 .requestMatchers(HttpMethod.GET, "/participations/campaigns/*/numbers/prize-load", "/participations/campaigns/*/numbers/prize-load/export", "/participations/campaigns/*/numbers/prize-load/verify").permitAll()
