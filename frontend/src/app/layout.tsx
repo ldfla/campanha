@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Overlock } from "next/font/google";
 import { AuthProvider } from "@/components/auth-provider";
+import { CampaignStateProvider } from "@/components/campaign-state-provider";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${overlock.variable}`}
     >
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <CampaignStateProvider>{children}</CampaignStateProvider>
+        </AuthProvider>
       </body>
     </html>
   );

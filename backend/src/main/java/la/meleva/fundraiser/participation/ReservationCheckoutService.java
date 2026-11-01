@@ -161,7 +161,7 @@ public class ReservationCheckoutService {
     }
 
     /** ADR-0007: capitalização premiável só opera (sandbox) com autorização verificada e vigente. */
-    private boolean payable(Campaign campaign) {
+    public boolean payable(Campaign campaign) {
         var mode = campaign.getMode();
         if (mode.isDemo()) return true;
         return mode == CampaignMode.CAPITALIZATION_PRIZE_TITLE && authorizations.hasEffectiveAuthorization(campaign.getId());
