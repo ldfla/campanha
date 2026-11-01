@@ -562,7 +562,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P02-02` Criar Next.js + React 19 + TS strict, configuração de lint, formatação e aliases.
 - [x] `P02-03` Configurar Docker Compose MySQL 8.4, MinIO local e healthchecks.
 - [x] `P02-04` Configurar `.env.example` e política de segredos; nunca versionar `.env`.
-- [ ] `P02-05` Criar workflow CI (build, typecheck, lint, testes backend/frontend, SCA, secret scan).
+- [ ] `P02-05` Criar workflow CI (build, typecheck, lint, testes backend/frontend, SCA, secret scan). **PARCIAL**: `backend.yml` (build+test+Trivy+SBOM); faltam typecheck/lint/testes do frontend no CI.
 - [x] `P02-06` Ativar Actuator /health, readiness/liveness e correlação de requisição.
 - [x] `P02-07` Publicar documentação OpenAPI inicial e scripts `dev`, `test`, `check`.
 - [x] `P02-08` Criar rotas Next.js mínimas e layout responsivo com dark/light respeitando acessibilidade.
@@ -644,14 +644,14 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 
 **Referência de layout para o Claude:** o layout da branch `feature/p06-landing-page` foi escolhido pelo responsável como o melhor encontrado até agora. Preserve sua direção visual como referência nas próximas alterações; a escolha do layout não substitui os critérios de aceite e testes desta fase.
 
-- [ ] `P06-01` Criar design system, tokens de cores, tipografia, estados e componentes reutilizáveis.
-- [ ] `P06-02` Implementar landing page e página da campanha com SEO e imagens responsivas.
-- [ ] `P06-03` Exibir galeria e lista completa dos itens do kit, com alt e valor verificável.
-- [ ] `P06-04` Exibir informações do promotor, autorização e regulamento publicado.
-- [ ] `P06-05` Produzir seção FAQ e regras sem termos enganosos.
-- [ ] `P06-06` Criar telas e tratamento de loading/error/empty/campanha suspensa.
-- [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela.
-- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend.
+- [x] `P06-01` Criar design system, tokens de cores, tipografia, estados e componentes reutilizáveis. Design tokens em `frontend/src/app/globals.css` e componentes reutilizáveis (`components/`).
+- [x] `P06-02` Implementar landing page e página da campanha com SEO e imagens responsivas. Landing (`app/page.tsx`) com metadados/SEO (`app/layout.tsx`); a jornada de compra é `/participar` (não há página por slug).
+- [x] `P06-03` Exibir galeria e lista completa dos itens do kit, com alt e valor verificável. Lista de prêmios/itens em `components/prizes.tsx` + `lib/campaign-config.ts`.
+- [x] `P06-04` Exibir informações do promotor, autorização e regulamento publicado. Promotor em `campaign-config.ts` (`ORGANIZER`) e regulamento em `app/regulamento/page.tsx`.
+- [x] `P06-05` Produzir seção FAQ e regras sem termos enganosos. `app/faq/page.tsx`.
+- [x] `P06-06` Criar telas e tratamento de loading/error/empty/campanha suspensa. `ApiError` (`lib/api-client.ts`), estados em `use-auth.ts` e `CAMPAIGN_STATUS` inclui `SUSPENDED`.
+- [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela. **PENDENTE**: sem testes automatizados de 360/390/768/1280, teclado ou leitor de tela.
+- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso.
 
 **Aceite:** experiência usável em celular, com informação honesta e bloqueio de participação real indevida.
 
@@ -660,15 +660,15 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 **Dependências:** P03/P04/P05.  
 **Entregáveis:** atribuição transacional segura de até 100.000 números.
 
-- [ ] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies.
-- [ ] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário.
+- [x] `P07-01` Gerar série de 5 dígitos, intervalos configuráveis e zero-padding em todas as superfícies. Série 5 dígitos + zero-padding (`initializeSeries`, `%05d`, UI).
+- [x] `P07-02` Definir e implementar algoritmo de atribuição autorizado, aleatório/equitativo quando necessário. Atribuição determinística (`lockAvailableByCampaignId`); DEMO explícito.
 - [x] `P07-03` Criar solicitação idempotente de participação, elegibilidade e atribuição atômica.
-- [ ] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento.
+- [x] `P07-04` Implementar períodos, limites por usuário e validações de público elegível conforme regulamento. Períodos (`startsAt`/`endsAt`), `maxEntriesPerUser` e elegibilidade de usuário ativo.
 - [x] `P07-05` Garantir unique number por campanha/série e tratamento de conflito concorrente.
-- [ ] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis.
+- [x] `P07-06` Construir grid virtualizado/consulta de números com acesso restrito a dados sensíveis. Grid virtualizado (PR #18) e `/numeros` paginado sem PII de terceiros.
 - [x] `P07-07` Estados e auditoria de concessão, invalidação excepcional e congelamento.
 - [x] `P07-08` Testar 100.000 posições, `00000`, `00001`, `99999`, esgotamento e 100–500 concorrentes.
-- [ ] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira.
+- [x] `P07-09` Garantir que nenhum fluxo DEMO gere expectativa de premiação verdadeira. Rótulos de DEMO/simulação no backend e na UI.
 
 **Aceite:** zero duplicidades em carga concorrente; atribuição reproduzível nos testes, dados congeláveis e elegíveis.
 
@@ -702,8 +702,8 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P08-03` Registrar clique mínimo, consentimentos aplicáveis e atribuição após participação válida.
 - [x] `P08-04` Evitar self-referral, ciclos, reatribuição arbitrária e atribuição múltipla de uma entrada.
 - [x] `P08-05` Criar painel com clicks/cadastros/participações separadas, sem identificar indicados.
-- [ ] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile.
-- [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios.
+- [x] `P08-06` Adicionar link compartilhável/cópia/QR de URL com teste mobile. QR + Web Share + Telegram (PR #19): `components/qr-code.tsx` e `app/indicar`.
+- [ ] `P08-07` Testar cookie stuffing, replay, troca de URL, contas vinculadas e manipulação de relatórios. **PARCIAL**: self-referral/atribuição única/reatribuição cobertos; faltam cookie stuffing, replay, contas vinculadas e manipulação de relatório.
 - [x] `P08-08` Manter incentivo remunerado bloqueado até gate específico de contrato e tributação.
 
 **Aceite:** só atividades válidas entram no ranking; testes de autindicação passam.
@@ -720,7 +720,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P09-05` Reconciliar cobrança com fonte do PSP; não confiar apenas no webhook/browser.
 - [x] `P09-06` Implementar worker de reconciliação, devoluções e ledger com ajustes compensatórios.
 - [x] `P09-07` Criar um adaptador **desativado** para PSP real somente após contrato e especificação disponível (sem inventar endpoints/credenciais).
-- [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação.
+- [ ] `P09-08` Testar pagamento tardio, pedido expirado, evento fora de ordem, timeouts, replays e falha parcial de transação. **PARCIAL**: coberto tardio/expirado/fora de ordem/replay (`OrderServiceIntegrationTest`); pendente timeout de transporte e falha parcial entre PSP e banco.
 - [x] `P09-09` Garantir que modo `COMMERCIAL_PROMOTION` retorna `403` para qualquer tentativa de cobrar participação.
 
 **Aceite:** 100% dos efeitos são idempotentes; não existe rota para cobrança real sem `G-LEGAL`, `G-PSP`, `G-FINANCE` e live gate.
