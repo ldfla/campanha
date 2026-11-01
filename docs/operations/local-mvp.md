@@ -18,6 +18,7 @@ docker compose -f infrastructure/compose.yaml up -d   # MySQL 8.4 + Mailpit
 ```bash
 cd backend
 APP_STORAGE_PROVIDER=memory \
+APP_CORS_ALLOWED_ORIGINS=http://localhost:3000 \
 SURPRISE_ENCRYPTION_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
 app.cpf.encryption-key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
 app.cpf.hmac-key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
@@ -35,12 +36,32 @@ O **seed local** (`LocalDemoSeed`, profile `local`) cria, de forma idempotente:
   **ofertas/combos** já publicados (R$ 1,00 / R$ 9,50 / R$ 87,00).
 - Usuário admin local: telefone `+5511999990000` (exige MFA sandbox, código `000000`).
 
+> O CORS é restrito por padrão (nenhuma origem liberada). Sem `APP_CORS_ALLOWED_ORIGINS`, o navegador
+> bloqueia todas as chamadas do frontend em `:3000` e os CTAs ficam "Indisponível no momento".
+
+### Notificações DEMO (opcional, P15)
+Por padrão nenhuma notificação sai da plataforma: o worker fica desligado e o transporte só registra na
+inbox. Para ver as mensagens no Mailpit (`http://localhost:8025`), suba o backend também com:
+```bash
+APP_NOTIFICATIONS_WORKER_ENABLED=true \
+APP_NOTIFICATIONS_DEMO_SMTP_ENABLED=true \
+SPRING_MAIL_HOST=localhost SPRING_MAIL_PORT=1025 \
+```
+O transporte recusa SMTP que não seja local e não sobe com `app.live-operations-enabled=true`. O
+destinatário é sempre `<publicId>@demo.invalid` (domínio reservado, sem rota real); o corpo não leva nome,
+telefone nem e-mail. Mensagens de marketing não são emitidas.
+
 ## 3. Frontend
 ```bash
 cd frontend
 npm install
-npm run dev    # http://localhost:3000
+# publicId da campanha DEMO criada pelo seed (slug acao-demo-local)
+NEXT_PUBLIC_CAMPAIGN_ID=<publicId> npm run dev    # http://localhost:3000
 ```
+O `publicId` sai de `GET /api/campaigns/slug/<slug>` (campo `id`). Sem ele o frontend usa `demo`, que
+não existe, e os CTAs ficam bloqueados. O estado dos CTAs vem de `GET /api/campaigns/public/{id}`
+(P06-08): a campanha `acao-demo-local` não tem ofertas publicadas e aparece como **"Em breve"**; para
+exercitar a compra pela interface use `acao-capitalizacao-local`, que tem ofertas.
 
 ## 4. O que experimentar (via API `http://localhost:8080/api`)
 - Cadastro/login: `POST /auth/register`, `POST /auth/login` (telefone E.164, ex.: `+5511999990001`).

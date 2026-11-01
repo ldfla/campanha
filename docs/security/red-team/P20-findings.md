@@ -195,6 +195,38 @@ que corrigiu (sem segregação, ADR-0009).
 - **Correção:** exportação confere posição e pontuação de cada linha contra o payload lacrado.
 - **Re-teste:** `ReferralFraudIntegrationTest.directDatabaseEditOfSnapshotPositionsOrPayloadIsDetected`.
 
+## Achados da Fase 2 (2026-11-01)
+
+Encontrados ao implementar P06-08/P05A-09/P17 e verificar a UI no navegador e com Playwright. Corrigidos com
+teste; mesmo revisor que corrigiu (ADR-0009).
+
+### P20-F25 — ALTO — Edição de campanha e prêmios de outra organização (CWE-639 / OWASP API1)
+- **PoC:** `PUT /campaigns/{id}` e `POST|PUT|DELETE /campaigns/{id}/prizes[/{prizeId}]` checavam só o papel
+  `CAMPAIGN_MANAGER`; o gestor de qualquer organização alterava título, datas e prêmios de campanhas alheias. As
+  operações de prêmio ignoravam o `campaignId` da URL, e `POST /campaigns` gravava sempre na organização `1`.
+- **Correção:** escrita exige papel de gestão ativo na organização dona; prêmio de outra campanha responde 404;
+  prêmios e campanha só mudam em `DRAFT` (`CAMPAIGN_NOT_EDITABLE` depois); criação usa a organização do gestor.
+- **Re-teste:** `CampaignControllerTest` (4 testes novos).
+
+### P20-F26 — ALTO (integridade/disponibilidade) — Cookie CSRF invisível ao frontend
+- **PoC:** `XSRF-TOKEN` saía com `Path=/api`; as páginas do frontend não o leem e todo `POST` protegido (checkout,
+  preferências, suporte, painel) recebia 403. Não foi pego antes porque a UI não havia sido exercida no navegador.
+- **Correção:** cookie com `Path=/` e `SameSite=Lax` (`SecurityConfig.csrfTokenRepository`); o token continua
+  exigido no header.
+- **Re-teste:** `CsrfCookieTest`;
+  E2E `purchase.spec.ts` (checkout real pelo navegador).
+
+### P20-F27 — MÉDIO — UI anunciava números garantidos sem confirmação do servidor
+- **PoC:** a etapa de pagamento chamava a liquidação mock (proibida ao participante desde F03) e, sem chamar
+  `.../checkout/{id}/confirm`, exibia "Números atribuídos".
+- **Correção:** botão "Verificar pagamento" chama o `confirm`; enquanto o PSP mock não liquida, a UI diz que o
+  pagamento não foi confirmado. Em DEMO quem liquida é o operador.
+- **Re-teste:** E2E `purchase.spec.ts`.
+
+### P20-F16 — fechado
+- CTAs (`CTAButton`, `FloatingCTA`, `ComboCards`, `numeros`, `participar`) usam `GET /campaigns/public/{id}`;
+  carregando ou com erro, bloqueiam. `CAMPAIGN_STATUS`/`isSoldOut`/`isSuspended` removidos do frontend.
+
 ## Vetores atacados sem achado novo
 
 | Vetor | Evidência | Resultado |

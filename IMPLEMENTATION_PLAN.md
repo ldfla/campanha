@@ -641,7 +641,7 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P05A-06` Abertura (`transition` para `SCHEDULED`/`OPEN`) exige **todos os gates aprovados** e autorização vigente (substitui o stub que sempre bloqueava).
 - [x] `P05A-07` `POST /admin/campaigns/{id}/authorizations/{authorizationId}/verify` (`SYSTEM_ADMIN`/`COMPLIANCE_REVIEWER`).
 - [x] `P05A-08` Seed local cria campanha de capitalização com autorização/gates para o MVP (`docs/operations/local-mvp.md`).
-- [ ] `P05A-09` Premiação por **posição** do ranking de indicação (apuração complementar) — ordenação já vem do ranking `PROMOTER` (desempate volume + 1ª compra); falta ligar a premiação por posição ao fluxo de entrega (P13).
+- [x] `P05A-09` Premiação por **posição** do ranking de indicação (apuração complementar). Prêmio por posição em `campaign_prizes` (V023) e `AwardDeliveryService.createRankingSimulations` (snapshot verificado após `LOCKED`, uma vez por escopo, dinheiro bloqueado). `RankingAwardIntegrationTest` (3) — `docs/progress/P20-fase2.md`.
 
 **Aceite:** modo autorizado distinto; cobrança/prêmio em dinheiro só com autorização vigente e gates; DEMO/`COMMERCIAL_PROMOTION` inalterados.
 
@@ -660,8 +660,8 @@ Cada fase lista **entregáveis**, tarefas rastreáveis e aceite. Todos os itens 
 - [x] `P06-04` Exibir informações do promotor, autorização e regulamento publicado. Promotor em `campaign-config.ts` (`ORGANIZER`) e regulamento em `app/regulamento/page.tsx`.
 - [x] `P06-05` Produzir seção FAQ e regras sem termos enganosos. `app/faq/page.tsx`.
 - [x] `P06-06` Criar telas e tratamento de loading/error/empty/campanha suspensa. `ApiError` (`lib/api-client.ts`), estados em `use-auth.ts` e `CAMPAIGN_STATUS` inclui `SUSPENDED`.
-- [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela. **PENDENTE**: sem testes automatizados de 360/390/768/1280, teclado ou leitor de tela.
-- [ ] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. **PENDENTE**: frontend usa `CAMPAIGN_STATUS`/modo, mas não bloqueia CTA por *capability* do backend por recurso. P20: `participar` agora bloqueia a compra sem ofertas do servidor (P20-F10); restante em P20-F16.
+- [ ] `P06-07` Testes mobile 360/390/768/1280px, teclado e leitores de tela. **PARCIAL**: Playwright cobre 360/390/768/1280 sem rolagem horizontal e CTA por teclado com foco visível (`responsive.spec.ts`); leitor de tela **não testado** — `docs/progress/P20-fase2.md`.
+- [x] `P06-08` Aplicar bloqueios de CTA conforme capabilities do backend. `GET /campaigns/public/{id}` decide o estado; CTAs falham fechado. `PublicCampaignStateIntegrationTest` (6), `cta-state.spec.ts` (6) — `docs/progress/P20-fase2.md`.
 
 **Aceite:** experiência usável em celular, com informação honesta e bloqueio de participação real indevida.
 
@@ -820,11 +820,11 @@ Modelo de duas camadas em `campaign_numbers`:
 **Entregáveis:** comunicação transacional e trilha de atendimento.
 
 - [x] `P15-01` Templates de e-mail em PT-BR com versionamento e anti-phishing. 5 essenciais + 1 marketing, sem links nem credenciais.
-- [ ] `P15-02` Notificar cadastro/verificação, participação válida, mudanças administrativas relevantes, resultado e entrega. **PARCIAL**: cadastro e participação enfileiram evento; os demais têm template, sem emissão (resultado depende da P12).
-- [ ] `P15-03` Mensagens processadas por outbox, com retry, deduplicação e opt-out quando aplicável. **PARCIAL**: outbox, deduplicação por inbox e opt-out de marketing implementados; política de retry de falha transitória pendente.
+- [x] `P15-02` Notificar cadastro/verificação, participação válida, mudanças administrativas relevantes, resultado e entrega. Eventos internos → outbox (`NotificationEnqueuer`). `NotificationFlowIntegrationTest`, `DrawingIntegrationTest`, `RankingAwardIntegrationTest` — `docs/progress/P20-fase2.md`.
+- [x] `P15-03` Mensagens processadas por outbox, com retry, deduplicação e opt-out quando aplicável. Falha do transporte reagenda com backoff e vai a `DEAD_LETTER` ao esgotar; inbox deduplica — `docs/progress/P20-fase2.md`.
 - [x] `P15-04` Criar canal/ticket de suporte com permissões e logging de alterações. `POST/GET /support/requests`; listagem restrita a `SUPPORT`/`SYSTEM_ADMIN`; abertura auditada.
 - [x] `P15-05` Diferenciar comunicação essencial, consentimento de marketing e bases legais. `NotificationPreferenceService.mayDispatch`; essencial inextinguível, marketing sob opt-out (base legal pendente de `G-LEGAL`).
-- [ ] `P15-06` Simular envios em DEMO via Mailpit/MailHog local; não enviar para contatos reais. **PARCIAL**: Mailpit disponível no `infrastructure/compose.yaml`; nenhum transporte envia mensagem (o processador DEMO só registra simulação no banco).
+- [x] `P15-06` Simular envios em DEMO via Mailpit/MailHog local; não enviar para contatos reais. `MailpitNotificationTransport` (só SMTP local, destinatário `@demo.invalid`, recusa operação real); `MailpitTransportIntegrationTest` com Mailpit real — `docs/progress/P20-fase2.md`.
 
 **Aceite:** nenhuma notificação duplicada crítica e nenhuma campanha de marketing sem base/legalidade.
 
@@ -850,13 +850,13 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P06–P16.  
 **Entregáveis:** journeys completos e testados.
 
-- [ ] `P17-01` E2E visitante -> cadastro -> elegibilidade -> participação DEMO -> histórico.
+- [x] `P17-01` E2E visitante -> cadastro -> elegibilidade -> participação DEMO -> histórico. `purchase.spec.ts` (oferta → instituição → código → reserva → liquidação pelo operador → confirmação → Meus números) — `docs/progress/P20-fase2.md`.
 - [ ] `P17-02` E2E link de indicação -> participação válida -> ranking.
 - [ ] `P17-03` E2E cobrança mock filantrópica em sandbox -> webhook -> conciliação -> participação, sem produção.
 - [ ] `P17-04` E2E manager -> revisores -> gates DEMO -> congelamento -> apuração mock -> publicação -> entrega mock.
-- [ ] `P17-05` E2E bloqueios: promoção gratuita não cobra, operação não autorizada não lança, cash prizes não aparecem.
-- [ ] `P17-06` E2E viewport mobile/tablet/desktop, teclado, zoom 200% e sem quebra de navegação.
-- [ ] `P17-07` Localização PT-BR: datas, centavos, separador de milhar, zeros à esquerda, timezone.
+- [ ] `P17-05` E2E bloqueios: promoção gratuita não cobra, operação não autorizada não lança, cash prizes não aparecem. **PARCIAL**: estados de CTA bloqueados (`cta-state.spec.ts`, estado simulado na rede) e regras no backend (`PublicCampaignStateIntegrationTest`); sem E2E contra campanhas reais desses modos — `docs/progress/P20-fase2.md`.
+- [x] `P17-06` E2E viewport mobile/tablet/desktop, teclado, zoom 200% e sem quebra de navegação. `responsive.spec.ts` (zoom 200% como 640 px CSS) — `docs/progress/P20-fase2.md`.
+- [ ] `P17-07` Localização PT-BR: datas, centavos, separador de milhar, zeros à esquerda, timezone. **PARCIAL**: BRL (`R$ 1,00`) e números com 5 dígitos verificados no E2E; datas, milhar e fuso não verificados — `docs/progress/P20-fase2.md`.
 - [ ] `P17-08` Capturar screenshots de referência no repositório somente se não contiverem PII.
 
 **Aceite:** testes E2E principais verdes sem mocks esconderem erros de contrato; prova visual mobile.
