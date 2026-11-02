@@ -15,7 +15,7 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 
 ## SEC-0002 — Revelação condicionada a estado sem gatilho aprovado
 
-- Status: RETEST; severidade preliminar: HIGH; CWE-841.
+- Status: CLOSED (re-testado — ver “Reteste SEC-0002” no fim); severidade preliminar: HIGH; CWE-841.
 - Componente: `SurpriseCommitmentService.reveal`, endpoint `/surprises/campaigns/{id}/reveal`.
 - Pré-condições: campanha DEMO em `DRAWN`, `AWARDS_PENDING` ou `CLOSED`, chave configurada e auditor/admin com vínculo ativo na organização.
 - Reprodução sugerida: criar campanha fictícia com compromisso, avançá-la ao estado aceito antes do gatilho previsto no regulamento e tentar revelar.
@@ -26,7 +26,7 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 
 ## SEC-0003 — Abertura sem prova prévia de compromisso
 
-- Status: OPEN; severidade preliminar: MEDIUM; CWE-841.
+- Status: CLOSED (corrigido e re-testado — ver “Reteste SEC-0003” no fim); severidade preliminar: MEDIUM; CWE-841.
 - Componente: transição de campanha e compromisso P11.
 - Pré-condições: campanha fictícia com prêmios-surpresa e sem compromisso criada antes da abertura.
 - Reprodução sugerida: tentar abrir campanha DEMO sem compromisso e observar resultado; repetir com compromisso publicado.
@@ -59,3 +59,44 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 - Reprodução independente segura: avançar campanha DEMO a `DRAWN` sem registro em `draws`, aprovar por dois usuários e tentar revelar.
 - Resultado observado antes da correção: revelação permitida sem registro de extração. Esperado: bloquear sem evidência simulada publicada e verificada. Impacto: divulgação prematura em demonstração; não foi demonstrado bypass de dupla revisão nem operação real.
 - Mitigação: aprovação e revelação exigem registro `PUBLISHED` vinculado a resultado com flag de verificação dupla, consultado com lock de leitura. Reteste independente em 31/10/2026 confirmou rejeição de dados ausentes, de outra campanha, não publicados ou com flag falsa; alteração concorrente da flag aguardou o fim da transação no cenário testado. O finding permanece OPEN: a flag não comprova duas revisões independentes, autenticidade da fonte ou publicação externa. Dados sintéticos foram criados somente em teste; a criação/verificação de resultados da P12 permanece fora do escopo.
+
+## Reteste SEC-0002 — revelação DEMO por vínculos revogados (2026-11-01)
+
+- Rodada: reteste **independente pela API** (MockMvc) sobre a `main`, MySQL 8.4/Testcontainers.
+- Cenário: campanha DEMO com compromisso, avançada a `DRAWN`, com `draws` PUBLICADO e
+  `federal_results.verified_by_two=TRUE`; duas contas distintas com papéis `DRAW_AUDITOR` e
+  `COMPLIANCE_REVIEWER` e o criador do compromisso à parte.
+- Resultado observado:
+  - `POST /surprises/campaigns/{id}/reveal` **sem** as duas aprovações → **403** (`CAMPAIGN_GATES_INCOMPLETE`), sem decifrar.
+  - Aprovações pela API (`POST /reveal-approvals`) exigem os papéis corretos e distinção do criador.
+  - Com as duas revisões distintas → **200** com o segredo, e `SurpriseProof.verify` confere o compromisso.
+  - **Vínculo revogado**: após desativar o vínculo de um dos revisores, a nova revelação → **403**
+    (`AUTH_RESOURCE_ACCESS_DENIED`); a revalidação de vínculo sob lock já era coberta pelo teste de suspensão.
+- Teste: `SurpriseCommitmentIntegrationTest.apiRevealRequiresTwoDistinctApprovalsAndRejectsRevokedMembership`.
+- **Status: CLOSED** para o vetor de vínculo revogado/API.
+- **Residual (não técnico):** persistência após o commit não recolhe segredo já revelado; segregação
+  independente do revisor (ADR-0009) e MFA real seguem pendentes para `G-SECURITY`/`G-LAUNCH`.
+
+## Reteste SEC-0003 — abertura sem prova prévia de compromisso (2026-11-01)
+
+- Correção aplicada (branch `chore/security-and-deploy`):
+  1. **Derivado do regulamento**: `campaign_regulations.surprise_required` (novo). Ao criar um
+     regulamento que declara prêmios-surpresa, a campanha passa a exigir compromisso
+     (`Campaign.enableSurprise()`), deixando de ser um flag solto.
+  2. **Gate no domínio**: `Campaign.transitionTo` recusa `LEGAL_REVIEW`/`SCHEDULED`/`OPEN` quando há
+     surpresa sem compromisso **publicado** — nenhuma chamada direta à entidade contorna o gate.
+  3. **Prova de publicação**: `campaigns.surprise_commitment_published_at` é preenchido só no `commit`,
+     quando o compromisso é gravado e servido no endpoint **público** `GET /surprises/.../commitment`.
+  4. Migração `V023__surprise_commitment_publication.sql` (forward-only).
+- Testes (MySQL 8.4/Testcontainers):
+  - `regulationDeclaringSurpriseRequiresPublishedCommitmentBeforeOpening` — regulamento com surpresa
+    bloqueia a abertura até o compromisso; libera depois.
+  - `entityGateBlocksTransitionWithoutPublishedCommitment` — gate na entidade.
+  - `apiOpeningIsBlockedUntilCommitmentPublished` — via **HTTP** (`POST /api/campaigns/{id}/transition`):
+    403 sem compromisso, 200 após.
+  - `concurrentCommitsPublishExactlyOneCommitment` — **8 tentativas concorrentes** → exatamente 1
+    compromisso e 1 publicação.
+- **Status: CLOSED**.
+- **Residual (declarado):** não é tecnicamente possível provar **publicação externa** (espelhos/
+  terceiros); garante-se que o compromisso existe, é imutável e está servido publicamente com o hash e
+  o contexto. Vinculação a resultado real da P12 fora do escopo.

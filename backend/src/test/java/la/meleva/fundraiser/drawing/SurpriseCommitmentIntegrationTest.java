@@ -46,6 +46,7 @@ class SurpriseCommitmentIntegrationTest {
     @Autowired CampaignService campaignService;
     @Autowired SurpriseRevealApprovalRepository approvals;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired la.meleva.fundraiser.compliance.ComplianceManagementService complianceService;
 
     @Test void encryptsSecretAndBlocksPrematureRevealAndReplacement() {
         var org=organizations.save(new Organization("Organização surpresa","ASSOCIATION"));
@@ -190,6 +191,103 @@ class SurpriseCommitmentIntegrationTest {
         assertThatThrownBy(()->service.commit(actor.getId(),campaign.getPublicId(),1))
                 .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_NOT_AUTHORIZED));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM surprise_commitments WHERE campaign_id=?",Long.class,campaign.getId())).isZero();
+    }
+
+    // === SEC-0003: abertura so com compromisso previo, derivado do regulamento, gate no dominio ===
+
+    @Test void regulationDeclaringSurpriseRequiresPublishedCommitmentBeforeOpening() {
+        var org=organizations.save(new Organization("Organização regulamento surpresa","ASSOCIATION"));
+        var actor=actor(org,"+5511999777013");
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-regulamento",CampaignMode.DEMO));
+        complianceService.createRegulation(actor.getId(),campaign.getPublicId(),"a".repeat(64),"docs://regulamento",true);
+        assertThat(campaigns.findById(campaign.getId()).orElseThrow().isSurpriseEnabled()).isTrue();
+        assertThatThrownBy(()->campaignService.transition(actor.getId(),campaign.getPublicId(),CampaignStatus.LEGAL_REVIEW))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
+        service.commit(actor.getId(),campaign.getPublicId(),1);
+        campaignService.transition(actor.getId(),campaign.getPublicId(),CampaignStatus.LEGAL_REVIEW);
+        campaignService.transition(actor.getId(),campaign.getPublicId(),CampaignStatus.AUTHORIZED);
+        campaignService.transition(actor.getId(),campaign.getPublicId(),CampaignStatus.SCHEDULED);
+        campaignService.transition(actor.getId(),campaign.getPublicId(),CampaignStatus.OPEN);
+        assertThat(campaigns.findById(campaign.getId()).orElseThrow().getStatus()).isEqualTo(CampaignStatus.OPEN);
+    }
+
+    @Test void entityGateBlocksTransitionWithoutPublishedCommitment() {
+        var org=organizations.save(new Organization("Organização gate entidade","ASSOCIATION"));
+        var actor=actor(org,"+5511999777014");
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-gate-entidade",CampaignMode.DEMO));
+        service.enable(actor.getId(),campaign.getPublicId());
+        var managed=campaigns.findById(campaign.getId()).orElseThrow();
+        assertThatThrownBy(()->managed.transitionTo(CampaignStatus.LEGAL_REVIEW))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
+        assertThat(managed.getStatus()).isEqualTo(CampaignStatus.DRAFT);
+    }
+
+    @Test void concurrentCommitsPublishExactlyOneCommitment() throws Exception {
+        var org=organizations.save(new Organization("Organização concorrência surpresa","ASSOCIATION"));
+        var actor=actor(org,"+5511999777015");
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-concorrencia",CampaignMode.DEMO));
+        int attempts=8;
+        try(var executor=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()){
+            var tasks=new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for(int i=0;i<attempts;i++) tasks.add(executor.submit(()->{
+                try { service.commit(actor.getId(),campaign.getPublicId(),1); return true; }
+                catch(BusinessException ex){ return false; }
+            }));
+            long published=0;
+            for(var task:tasks) if(task.get(20,java.util.concurrent.TimeUnit.SECONDS)) published++;
+            assertThat(published).isEqualTo(1);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM surprise_commitments WHERE campaign_id=?",Long.class,campaign.getId())).isEqualTo(1);
+        assertThat(campaigns.findById(campaign.getId()).orElseThrow().isSurpriseCommitmentPublished()).isTrue();
+    }
+
+    @Test void apiOpeningIsBlockedUntilCommitmentPublished() throws Exception {
+        var org=organizations.save(new Organization("Organização API abertura surpresa","ASSOCIATION"));
+        var actor=actor(org,"+5511999777016");
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-api-abertura",CampaignMode.DEMO));
+        service.enable(actor.getId(),campaign.getPublicId());
+        var auth=auth(actor,UserRole.SYSTEM_ADMIN);
+        String endpoint="/api/campaigns/"+campaign.getPublicId()+"/transition";
+        mvc.perform(post(endpoint).with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CAMPAIGN_GATES_INCOMPLETE"));
+        assertThat(campaigns.findById(campaign.getId()).orElseThrow().getStatus()).isEqualTo(CampaignStatus.DRAFT);
+        service.commit(actor.getId(),campaign.getPublicId(),1);
+        mvc.perform(post(endpoint).with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
+                .andExpect(status().isOk());
+        assertThat(campaigns.findById(campaign.getId()).orElseThrow().getStatus()).isEqualTo(CampaignStatus.LEGAL_REVIEW);
+    }
+
+    // === SEC-0002: reteste independente pela API, incluindo vínculo revogado ===
+
+    @Test void apiRevealRequiresTwoDistinctApprovalsAndRejectsRevokedMembership() throws Exception {
+        var org=organizations.save(new Organization("Organização API revelação","ASSOCIATION"));
+        var creator=actor(org,"+5511999777017");
+        var auditor=users.save(new User("Auditor","Api","+5511999777018"));
+        var reviewer=users.save(new User("Revisor","Api","+5511999777019"));
+        memberships.save(new Membership(org,auditor,UserRole.DRAW_AUDITOR));
+        memberships.save(new Membership(org,reviewer,UserRole.COMPLIANCE_REVIEWER));
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-api-revelacao",CampaignMode.DEMO));
+        service.commit(creator.getId(),campaign.getPublicId(),1);
+        for(var status:new CampaignStatus[]{CampaignStatus.LEGAL_REVIEW,CampaignStatus.AUTHORIZED,CampaignStatus.SCHEDULED,CampaignStatus.OPEN,CampaignStatus.LOCKED,CampaignStatus.DRAW_PENDING,CampaignStatus.DRAWN})
+            campaignService.transition(creator.getId(),campaign.getPublicId(),status);
+        long resultId=insertSimulatedDraw(campaign.getId());
+        jdbc.update("UPDATE federal_results SET verified_by_two=TRUE WHERE id=?",resultId);
+        String base="/surprises/campaigns/"+campaign.getPublicId();
+        var creatorAuth=auth(creator,UserRole.SYSTEM_ADMIN);
+        var auditorAuth=auth(auditor,UserRole.DRAW_AUDITOR);
+        var reviewerAuth=auth(reviewer,UserRole.COMPLIANCE_REVIEWER);
+        mvc.perform(post(base+"/reveal").with(authentication(creatorAuth)).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(post(base+"/reveal-approvals").with(authentication(auditorAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"DRAW_AUDITOR\"}")).andExpect(status().isNoContent());
+        mvc.perform(post(base+"/reveal-approvals").with(authentication(reviewerAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"COMPLIANCE_REVIEWER\"}")).andExpect(status().isNoContent());
+        mvc.perform(post(base+"/reveal").with(authentication(creatorAuth)).with(csrf())).andExpect(status().isOk());
+        var reviewerMembership=memberships.findActiveByUserAndOrganization(reviewer.getId(),org.getId()).stream().findFirst().orElseThrow();
+        reviewerMembership.deactivate(); memberships.saveAndFlush(reviewerMembership);
+        mvc.perform(post(base+"/reveal").with(authentication(creatorAuth)).with(csrf())).andExpect(status().isForbidden());
+    }
+
+    private UsernamePasswordAuthenticationToken auth(User user,UserRole... roles){
+        var principal=new AppUserDetails(user.getId(),user.getPublicId(),user.getPhoneNumber(),List.of(roles));
+        return new UsernamePasswordAuthenticationToken(principal,null,principal.getAuthorities());
     }
 
     private static java.util.List<Integer> concat(java.util.List<Integer> first, java.util.List<Integer> second) {
