@@ -128,8 +128,20 @@ public class SurpriseCommitmentService {
                 || memberships.lockActiveForAuthorization(actorId,organizationId,Arrays.asList(roles),Membership.MembershipStatus.ACTIVE,la.meleva.fundraiser.identity.User.UserStatus.ACTIVE).isEmpty()) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
     }
 
+    /**
+     * SEC-0006: a revelação/aprovação DEMO só é liberada com um desfecho PUBLICADO cuja fonte tenha
+     * **duas revisões independentes registradas** (linhas distintas em `federal_result_reviews`) e
+     * **hash do documento-fonte** — não basta a flag booleana `verified_by_two`.
+     */
     private void requirePublishedEvidence(Long campaignId) {
-        var rows=jdbc.queryForList("SELECT d.id FROM draws d JOIN federal_results f ON f.id=d.federal_result_id WHERE d.campaign_id=? AND d.status='PUBLISHED' AND f.verified_by_two=TRUE LIMIT 1 FOR SHARE",Long.class,campaignId);
+        var rows=jdbc.queryForList("""
+            SELECT d.id FROM draws d
+            JOIN federal_results f ON f.id=d.federal_result_id
+            WHERE d.campaign_id=? AND d.status='PUBLISHED'
+              AND f.verified_by_two=TRUE
+              AND f.source_document_hash IS NOT NULL
+              AND (SELECT COUNT(DISTINCT r.reviewer_user_id) FROM federal_result_reviews r WHERE r.federal_result_id=f.id)>=2
+            LIMIT 1 FOR SHARE""",Long.class,campaignId);
         if(rows.isEmpty()) throw ErrorCode.CAMPAIGN_GATES_INCOMPLETE.toException();
     }
 

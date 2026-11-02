@@ -28,6 +28,7 @@ public enum ErrorCode {
     PAYMENT_ORDER_EXPIRED("Pedido expirado", 410),
     PAYMENT_DUPLICATE_EVENT("Evento de pagamento duplicado", 409),
     PAYMENT_PROVIDER_ERROR("Erro no provedor de pagamento", 502),
+    PAYMENT_NOT_RECONCILED("Pagamento ainda não conciliado", 409),
     PAYMENT_WEBHOOK_INVALID("Assinatura de webhook inválida", 401),
 
     // Prêmio

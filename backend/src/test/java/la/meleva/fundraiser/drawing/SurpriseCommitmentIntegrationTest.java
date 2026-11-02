@@ -153,7 +153,7 @@ class SurpriseCommitmentIntegrationTest {
             campaignService.transition(creator.getId(),campaign.getPublicId(),status);
         assertThatThrownBy(()->service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR))
                 .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
-        long resultId=insertSimulatedDraw(campaign.getId());
+        long resultId=insertSimulatedDraw(campaign.getId(),auditor.getId(),reviewer.getId());
         assertThatThrownBy(()->service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR))
                 .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
         jdbc.update("UPDATE federal_results SET verified_by_two=TRUE WHERE id=?",resultId);
@@ -270,7 +270,7 @@ class SurpriseCommitmentIntegrationTest {
         service.commit(creator.getId(),campaign.getPublicId(),1);
         for(var status:new CampaignStatus[]{CampaignStatus.LEGAL_REVIEW,CampaignStatus.AUTHORIZED,CampaignStatus.SCHEDULED,CampaignStatus.OPEN,CampaignStatus.LOCKED,CampaignStatus.DRAW_PENDING,CampaignStatus.DRAWN})
             campaignService.transition(creator.getId(),campaign.getPublicId(),status);
-        long resultId=insertSimulatedDraw(campaign.getId());
+        long resultId=insertSimulatedDraw(campaign.getId(),auditor.getId(),reviewer.getId());
         jdbc.update("UPDATE federal_results SET verified_by_two=TRUE WHERE id=?",resultId);
         String base="/surprises/campaigns/"+campaign.getPublicId();
         var creatorAuth=auth(creator,UserRole.SYSTEM_ADMIN);
@@ -283,6 +283,35 @@ class SurpriseCommitmentIntegrationTest {
         var reviewerMembership=memberships.findActiveByUserAndOrganization(reviewer.getId(),org.getId()).stream().findFirst().orElseThrow();
         reviewerMembership.deactivate(); memberships.saveAndFlush(reviewerMembership);
         mvc.perform(post(base+"/reveal").with(authentication(creatorAuth)).with(csrf())).andExpect(status().isForbidden());
+    }
+
+    // === SEC-0006: prova de extração exige duas revisões independentes e hash da fonte ===
+
+    @Test void sec0006RevealRequiresTwoDistinctResultReviewsAndSourceHash() {
+        var org=organizations.save(new Organization("Organização evidência extração","ASSOCIATION"));
+        var creator=actor(org,"+5511999777020");
+        var auditor=users.save(new User("Auditor","Extracao","+5511999777021"));
+        var reviewer=users.save(new User("Revisor","Extracao","+5511999777022"));
+        memberships.save(new Membership(org,auditor,UserRole.DRAW_AUDITOR));
+        memberships.save(new Membership(org,reviewer,UserRole.COMPLIANCE_REVIEWER));
+        var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-evidencia-extracao",CampaignMode.DEMO));
+        service.commit(creator.getId(),campaign.getPublicId(),1);
+        for(var status:new CampaignStatus[]{CampaignStatus.LEGAL_REVIEW,CampaignStatus.AUTHORIZED,CampaignStatus.SCHEDULED,CampaignStatus.OPEN,CampaignStatus.LOCKED,CampaignStatus.DRAW_PENDING,CampaignStatus.DRAWN})
+            campaignService.transition(creator.getId(),campaign.getPublicId(),status);
+        long resultId=insertSimulatedDraw(campaign.getId(),auditor.getId(),reviewer.getId());
+        jdbc.update("UPDATE federal_results SET verified_by_two=TRUE WHERE id=?",resultId);
+        jdbc.update("DELETE FROM federal_result_reviews WHERE federal_result_id=?",resultId);
+        assertThatThrownBy(()->service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
+        jdbc.update("INSERT INTO federal_result_reviews (federal_result_id,reviewer_user_id,created_at) VALUES (?,?,UTC_TIMESTAMP())",resultId,auditor.getId());
+        assertThatThrownBy(()->service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
+        jdbc.update("INSERT INTO federal_result_reviews (federal_result_id,reviewer_user_id,created_at) VALUES (?,?,UTC_TIMESTAMP())",resultId,reviewer.getId());
+        jdbc.update("UPDATE federal_results SET source_document_hash=NULL WHERE id=?",resultId);
+        assertThatThrownBy(()->service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR))
+                .isInstanceOfSatisfying(BusinessException.class,ex->assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.CAMPAIGN_GATES_INCOMPLETE));
+        jdbc.update("UPDATE federal_results SET source_document_hash=? WHERE id=?","a".repeat(64),resultId);
+        service.approveReveal(auditor.getId(),campaign.getPublicId(),SurpriseRevealApproval.ApprovalRole.DRAW_AUDITOR);
     }
 
     private UsernamePasswordAuthenticationToken auth(User user,UserRole... roles){
@@ -315,12 +344,14 @@ class SurpriseCommitmentIntegrationTest {
         }
     }
 
-    private long insertSimulatedDraw(Long campaignId) {
+    private long insertSimulatedDraw(Long campaignId, Long reviewerA, Long reviewerB) {
         jdbc.update("INSERT INTO draw_rules (campaign_id,version,source_kind,formula_json) VALUES (?,1,'DEMO',JSON_OBJECT('simulation',TRUE))",campaignId);
         Long ruleId=jdbc.queryForObject("SELECT id FROM draw_rules WHERE campaign_id=? AND version=1",Long.class,campaignId);
         String contest="DEMO-"+java.util.UUID.randomUUID();
-        jdbc.update("INSERT INTO federal_results (contest_identifier,result_payload,verified_by_two) VALUES (?,JSON_OBJECT('simulation',TRUE),FALSE)",contest);
+        jdbc.update("INSERT INTO federal_results (contest_identifier,source_kind,result_payload,source_document_hash,verified_by_two) VALUES (?, 'DEMO_SIMULATED', JSON_OBJECT('simulation',TRUE), ?, FALSE)",contest,"a".repeat(64));
         Long resultId=jdbc.queryForObject("SELECT id FROM federal_results WHERE contest_identifier=?",Long.class,contest);
+        // SEC-0006: duas revisões independentes registradas (linhas distintas) sobre o resultado.
+        jdbc.update("INSERT INTO federal_result_reviews (federal_result_id,reviewer_user_id,created_at) VALUES (?,?,UTC_TIMESTAMP()),(?,?,UTC_TIMESTAMP())",resultId,reviewerA,resultId,reviewerB);
         jdbc.update("INSERT INTO draws (public_id,campaign_id,draw_rule_id,federal_result_id,status) VALUES (?,?,?,?, 'PUBLISHED')",java.util.UUID.randomUUID().toString(),campaignId,ruleId,resultId);
         return resultId;
     }
