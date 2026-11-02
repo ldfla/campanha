@@ -8,10 +8,12 @@ import { Countdown } from "@/components/countdown";
 import { useAuth } from "@/lib/use-auth";
 import {
   participations,
+  campaigns,
   mockPayments,
   type OfferResponse,
   type BeneficiaryResponse,
   type CheckoutResponse,
+  type CampaignResponse,
   ApiError,
 } from "@/lib/api-client";
 import {
@@ -19,6 +21,7 @@ import {
   isSoldOut,
   isSuspended,
   isDemoMode,
+  campaignAllowsParticipation,
   formatBRL,
   toE164,
   DEMO_CAMPAIGN_ID,
@@ -32,7 +35,10 @@ function ParticiparContent() {
   const soldOut = isSoldOut();
   const suspended = isSuspended();
   const demoMode = isDemoMode();
-  const blocked = soldOut || suspended;
+  // P20-F16: capabilities/estado vindos do servidor; quando indisponíveis, cai nas constantes.
+  const [campaign, setCampaign] = useState<CampaignResponse | null>(null);
+  const serverAllows = campaignAllowsParticipation(campaign);
+  const blocked = soldOut || suspended || serverAllows === false;
 
   // Offers from server (fallback to config)
   const [serverOffers, setServerOffers] = useState<OfferResponse[]>([]);
@@ -63,6 +69,22 @@ function ParticiparContent() {
 
   // Referral code from URL
   const referralCode = searchParams.get("ref") ?? undefined;
+
+  // P20-F16: busca a campanha no servidor para decidir o CTA por capabilities/estado.
+  useEffect(() => {
+    let active = true;
+    campaigns
+      .getById(DEMO_CAMPAIGN_ID)
+      .then((loaded) => {
+        if (active) setCampaign(loaded);
+      })
+      .catch(() => {
+        /* sem campanha carregada: não bloqueia; o backend continua sendo a autorização */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Load offers on mount (pré-seleciona o combo da URL, se houver)
   useEffect(() => {

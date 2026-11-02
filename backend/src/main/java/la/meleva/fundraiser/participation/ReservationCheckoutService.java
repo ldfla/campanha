@@ -121,13 +121,14 @@ public class ReservationCheckoutService {
         var payment = payments.findLockedByOrderId(link.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         var order = orders.findById(link.getOrderId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
         var charge = provider.getCharge(payment.getProviderChargeId());
-        if (!"MOCK".equals(payment.getProvider()) || payment.getStatus()!=PaymentStatus.CONFIRMED
-                || order.getStatus()!=OrderStatus.RECONCILED || !order.getUserId().equals(userId)
+        // P20-F17: inconsistência real de dados do provedor => 502; ainda não conciliado => 409.
+        if (!"MOCK".equals(payment.getProvider()) || !order.getUserId().equals(userId)
                 || !order.getCampaignId().equals(campaign.getId()) || order.getTotalCents()!=link.getTotalCents()
                 || payment.getAmountCents()!=link.getTotalCents() || charge.amountCents()!=link.getTotalCents()
-                || charge.state()!=PaymentProvider.ChargeState.PAID
                 || !Objects.equals(charge.id(), payment.getProviderChargeId())
                 || !Objects.equals(charge.txid(), payment.getTxid())) throw ErrorCode.PAYMENT_PROVIDER_ERROR.toException();
+        if (payment.getStatus()!=PaymentStatus.CONFIRMED || order.getStatus()!=OrderStatus.RECONCILED
+                || charge.state()!=PaymentProvider.ChargeState.PAID) throw ErrorCode.PAYMENT_NOT_RECONCILED.toException();
         if (request.getStatus()==ParticipationStatus.ASSIGNED) return;
         if (request.getStatus()!=ParticipationStatus.REQUESTED) throw ErrorCode.PAYMENT_ORDER_EXPIRED.toException();
         var active = leases.findByRequestIdAndStatusOrderByIdAsc(request.getId(), "ACTIVE");

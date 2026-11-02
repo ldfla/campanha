@@ -29,16 +29,16 @@ Achados médios/baixos remanescentes estão listados com risco residual.
 | P20-F08 | MÉDIO | "Meus números" listava números da campanha inteira e calculava "Investido" no cliente | CLOSED |
 | P20-F09 | MÉDIO | `/actuator/metrics` acessível a qualquer autenticado | CLOSED |
 | P20-F10 | MÉDIO | Preço de quantidade personalizada e fallback de combos calculados no navegador | CLOSED |
-| P20-F11 | MÉDIO | Atribuição de números sequencial, não aleatória/equitativa (AGENTS §5.2) | OPEN |
+| P20-F11 | MÉDIO | Atribuição de números sequencial, não aleatória/equitativa (AGENTS §5.2) | CLOSED (Fase 2) |
 | P20-F12 | MÉDIO | Rate limit confiava em `X-Forwarded-For` (bypass trocando o cabeçalho) | CLOSED |
 | P20-F13 | BAIXO | Frontend não enviava `X-XSRF-TOKEN`: toda mutação autenticada falhava (403) | CLOSED |
 | P20-F14 | BAIXO | Casca do painel `/contribua` exibida a qualquer usuário autenticado | CLOSED (só UI) |
 | P20-F15 | BAIXO | 401/403/429 sem `charset` (texto corrompido) | CLOSED |
-| P20-F16 | MÉDIO | CTA/esgotado/suspenso decididos por constantes do frontend, não por capabilities | OPEN (P06-08) |
-| P20-F17 | BAIXO | Pagamento não conciliado responde 502 em vez de 409 na confirmação | OPEN |
+| P20-F16 | MÉDIO | CTA/esgotado/suspenso decididos por constantes do frontend, não por capabilities | CLOSED (Fase 2; residual F16r) |
+| P20-F17 | BAIXO | Pagamento não conciliado responde 502 em vez de 409 na confirmação | CLOSED (Fase 2) |
 | P20-F18 | BAIXO | Sessões criadas antes da correção sobrevivem ao reinício (Spring Session JDBC) | MITIGADO (runbook) |
 | P20-F19 | BAIXO | Perfil `default` ativa adaptadores mock | MITIGADO |
-| P20-F20 | BAIXO | `OrderReceipt` expõe `paymentId` interno sequencial | OPEN |
+| P20-F20 | BAIXO | `OrderReceipt` expõe `paymentId` interno sequencial | CLOSED (Fase 2) |
 
 ## Detalhes
 
@@ -220,3 +220,43 @@ que corrigiu (sem segregação, ADR-0009).
 - Verificação visual do frontend no navegador: o preview foi recusado nesta sessão; só `typecheck` e `build`.
 - gitleaks/trufflehog, SAST/DAST, SBOM: ferramentas não instaladas; nada foi executado.
 - Revisor independente (segregação ADR-0009) não disponível.
+
+
+## Fase 2 — finalização dos achados remanescentes (2026-11-01)
+
+Branch `chore/security-p20-final` (sobre o PR #41). Correções com teste negativo e re-teste em MySQL 8.4.
+
+### P20-F11 — Atribuição aleatória/equitativa (CLOSED)
+- **Correção:** `NumberAllocator` sorteia um início com `SecureRandom` e faz varredura **circular** sob
+  lock pessimista (`lockAvailableFrom` + `lockAvailableBelow`, sem `SKIP LOCKED`), preservando `00000`.
+  Substitui a ordenação fixa por `number_value` em `ParticipationService` e `ReservationService`.
+- **Testes:** `ParticipationConcurrencyIntegrationTest.allocationIsRandomizedNotAlwaysLowestNumber`
+  (30 sorteios em 0..999 não caem todos no mesmo número) e o teste de esgotamento passa a exigir o
+  conjunto `{00000,00001}` em qualquer ordem; os testes de concorrência (sem duplicatas) seguem verdes.
+- **Residual:** distribuição uniforme por início aleatório; não é prova formal de equidade estatística.
+
+### P16 — CTA por capabilities do servidor (CLOSED; residual F16r)
+- **Correção:** `campaignAllowsParticipation(campaign)` deriva o bloqueio de `CampaignResponse.status`
+  + `capabilities` (`ACCEPT_PARTICIPATIONS`); `participar` busca a campanha no servidor e bloqueia o CTA.
+- **Residual (F16r):** textos de marketing (preços/prêmios) continuam em `campaign-config.ts`; quando a
+  campanha não é carregada, a UI recorre às constantes. O **backend permanece a autorização** efetiva.
+
+### P20-F17 — Semântica de confirmação (CLOSED)
+- **Correção:** inconsistência real do provedor → `502 PAYMENT_PROVIDER_ERROR`; **pagamento ainda não
+  conciliado** → novo `409 PAYMENT_NOT_RECONCILED` (`ReservationCheckoutService.confirm`).
+- **Testes ajustados:** `P20RedTeamRegressionTest.checkoutConfirmationIsBoundToOwnerAndToReconciledPayment`
+  e `PurchaseFlowControllerIntegrationTest` (409). `PaymentFailureRecoveryIntegrationTest` (502 de
+  provedor) inalterado.
+
+### P20-F20 — ID interno na API (CLOSED)
+- **Correção:** `PaymentController.create` retorna `OrderView` (sem `paymentId`); o record interno
+  `OrderReceipt` permanece apenas para uso interno/testes.
+
+### F18/F19 — implantação
+- **F18** (sessões antigas): instrução de invalidação no runbook `docs/operations/deploy-staging.md`.
+- **F19** (perfis com mock): perfil `staging` explícito (sem depender de `default`), com
+  `LIVE_OPERATIONS_ENABLED=false` e adaptadores que **recusam** iniciar com operação real.
+
+### SEC-0006
+- Fechado junto desta rodada (duas revisões independentes registradas + hash da fonte). Ver
+  `docs/security/SECURITY-FINDINGS.md`.

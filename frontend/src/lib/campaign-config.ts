@@ -130,3 +130,15 @@ export function isSuspended(): boolean {
 export function isDemoMode(): boolean {
   return CAMPAIGN_MODE === "DEMO";
 }
+
+/**
+ * P20-F16: a decisão de permitir participação/compra vem das **capabilities do servidor**
+ * (`CampaignResponse`), não de constantes do frontend. Retorna `null` quando a campanha ainda não
+ * foi carregada (para não bloquear a UI indevidamente).
+ */
+export function campaignAllowsParticipation(
+  campaign: { status: string; capabilities: readonly string[] } | null,
+): boolean | null {
+  if (!campaign) return null;
+  return campaign.status !== "SUSPENDED" && campaign.capabilities.includes("ACCEPT_PARTICIPATIONS");
+}
