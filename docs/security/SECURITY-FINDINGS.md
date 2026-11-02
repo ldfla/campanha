@@ -54,7 +54,7 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 
 ## SEC-0006 — Estado DEMO sem evidência de extração permite revisão
 
-- Status: OPEN; severidade: MEDIUM; CWE-841. Componente: transição e pré-condições de revelação DEMO.
+- Status: CLOSED (corrigido e re-testado — ver “Reteste SEC-0006” no fim); severidade: MEDIUM; CWE-841. Componente: transição e pré-condições de revelação DEMO.
 - Versão testada: `76275d0` com alterações locais anteriores à correção; 31/10/2026. Pré-condições: administrador da organização e dois revisores distintos com papéis exigidos.
 - Reprodução independente segura: avançar campanha DEMO a `DRAWN` sem registro em `draws`, aprovar por dois usuários e tentar revelar.
 - Resultado observado antes da correção: revelação permitida sem registro de extração. Esperado: bloquear sem evidência simulada publicada e verificada. Impacto: divulgação prematura em demonstração; não foi demonstrado bypass de dupla revisão nem operação real.
@@ -100,3 +100,20 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 - **Residual (declarado):** não é tecnicamente possível provar **publicação externa** (espelhos/
   terceiros); garante-se que o compromisso existe, é imutável e está servido publicamente com o hash e
   o contexto. Vinculação a resultado real da P12 fora do escopo.
+
+## Reteste SEC-0006 — prova de extração para revelação DEMO (2026-11-01)
+
+- Correção: `SurpriseCommitmentService.requirePublishedEvidence` deixa de confiar só na flag
+  `federal_results.verified_by_two` e passa a exigir, sob `FOR SHARE`:
+  1. desfecho `PUBLISHED` no `draws` da campanha;
+  2. **duas revisões independentes registradas** — `COUNT(DISTINCT reviewer_user_id) >= 2` em
+     `federal_result_reviews` (linhas reais, não a flag);
+  3. **hash do documento-fonte** (`federal_results.source_document_hash IS NOT NULL`).
+- Teste: `SurpriseCommitmentIntegrationTest.sec0006RevealRequiresTwoDistinctResultReviewsAndSourceHash`
+  (MySQL 8.4/Testcontainers): sem revisões → bloqueado; com **uma** revisão → bloqueado; com duas
+  revisões mas **sem hash** → bloqueado; com duas revisões distintas **e** hash → liberado.
+- **Status: CLOSED**.
+- **Residual (declarado):** a verificação prova que existem duas revisões independentes registradas e
+  o hash do payload; **não** prova autenticidade criptográfica da fonte externa nem publicação externa
+  — depende de `G-PSP`/contrato da fonte oficial e do processo de dupla conferência do órgão.
+  A criação/verificação de resultados reais da P12 segue como responsabilidade da apuração.

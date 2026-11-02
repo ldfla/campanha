@@ -125,14 +125,13 @@ class P20RedTeamRegressionTest {
         mvc.perform(get(path, campaign.getPublicId()).cookie(alice))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.numbers.length()").value(2))
-                .andExpect(jsonPath("$.numbers[0].formattedNumber").value("00000"))
                 .andExpect(jsonPath("$.confirmedCount").value(2))
                 .andExpect(jsonPath("$.confirmedAmountCents").value(0))
                 .andExpect(jsonPath("$.simulation").value(true));
+        // P20-F11: atribuição aleatória — não se assume um valor específico de número.
         String brunoView = mvc.perform(get(path, campaign.getPublicId()).cookie(bruno))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.numbers.length()").value(1))
-                .andExpect(jsonPath("$.numbers[0].formattedNumber").value("00002"))
                 .andReturn().getResponse().getContentAsString();
         assertThat(brunoView).doesNotContain("Alice").doesNotContain("977700002");
     }
@@ -183,10 +182,10 @@ class P20RedTeamRegressionTest {
 
         mvc.perform(post(confirm, campaign.getPublicId(), requestId).cookie(attacker).with(csrf()))
                 .andExpect(status().isForbidden());
-        // Contrato atual: pagamento não conciliado responde PAYMENT_PROVIDER_ERROR (502); ver P20-F17.
+        // P20-F17 resolvido: pagamento ainda não conciliado responde 409 (não 502).
         mvc.perform(post(confirm, campaign.getPublicId(), requestId).cookie(owner).with(csrf()))
-                .andExpect(status().isBadGateway())
-                .andExpect(jsonPath("$.code").value("PAYMENT_PROVIDER_ERROR"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_NOT_RECONCILED"));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM campaign_numbers WHERE campaign_id=? AND status='ASSIGNED'",
                 Long.class, campaign.getId())).isZero();
     }

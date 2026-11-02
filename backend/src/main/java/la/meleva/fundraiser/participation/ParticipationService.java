@@ -41,6 +41,7 @@ public class ParticipationService {
     private final BeneficiarySelectionRepository selections;
     private final ReferralService referrals;
     private final CampaignNumberBuyerRepository buyers;
+    private final NumberAllocator numberAllocator;
 
     ParticipationService(CampaignRepository campaignRepository, CampaignNumberRepository numberRepository,
                          ParticipationRequestRepository requestRepository, ParticipationEntryRepository entryRepository,
@@ -48,7 +49,7 @@ public class ParticipationService {
                          UserRepository userRepository, AuditEventRepository auditEventRepository,
                          OutboxEventRepository outbox, BeneficiaryRepository beneficiaries,
                          BeneficiarySelectionRepository selections, ReferralService referrals,
-                         CampaignNumberBuyerRepository buyers) {
+                         CampaignNumberBuyerRepository buyers, NumberAllocator numberAllocator) {
         this.campaignRepository = campaignRepository;
         this.numberRepository = numberRepository;
         this.requestRepository = requestRepository;
@@ -62,6 +63,7 @@ public class ParticipationService {
         this.selections = selections;
         this.referrals = referrals;
         this.buyers = buyers;
+        this.numberAllocator = numberAllocator;
     }
 
     @Transactional
@@ -138,7 +140,7 @@ public class ParticipationService {
             return allocationFor(requestRepository.findByCampaignIdAndUserIdAndIdempotencyKey(campaign.getId(), userId, idempotencyKey)
                     .orElseThrow(ErrorCode.IDEMPOTENCY_CONFLICT::toException));
         }
-        List<CampaignNumber> available = numberRepository.lockAvailableByCampaignId(campaign.getId(), PageRequest.of(0, count));
+        List<CampaignNumber> available = numberAllocator.lockAvailable(campaign, count);
         if (available.size() != count) throw ErrorCode.NUMBER_POOL_EXHAUSTED.toException();
         String modality = modality(count);
         List<ParticipationAllocation.AssignedNumber> assigned = new ArrayList<>(count);
