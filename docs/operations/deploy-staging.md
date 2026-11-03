@@ -5,11 +5,12 @@
 > sem comunicação externa. **Não** ativar operação real sem os gates `G-*`.
 
 ## Arquivos da stack (onde está o quê)
-- **`compose.yaml`** (raiz) — entrypoint para gerenciadores que procuram um compose na raiz (Dockhand).
-  Usa `include` e aponta para a definição real.
-- **`infrastructure/compose.staging.yaml`** — **definição da stack** (imagens imutáveis, endurecida):
-  `mysql`, `garage` (S3), `backend`, `frontend`, `cloudflared`. Nenhuma porta é publicada no host.
-- **`infrastructure/compose.build.yaml`** — *override opcional* para buildar as imagens localmente.
+- **`compose.yaml`** (raiz) — **stack completa e autocontida** (é o arquivo que o Dockhand usa):
+  `mysql`, `garage` (S3), `backend`, `frontend`, `cloudflared`. Imagens imutáveis, endurecida;
+  nenhuma porta publicada no host.
+- **`compose.build.yaml`** (raiz) — *override opcional* para buildar as imagens localmente.
+- **`infrastructure/compose.local.yaml`** — compose **local de desenvolvimento** (MySQL + Mailpit);
+  o backend/frontend locais rodam via `./mvnw` e `npm`.
 - **`backend/Dockerfile`**, **`frontend/Dockerfile`** — imagens (multi-stage, non-root).
 - **`.github/workflows/images.yml`** — builda e publica as imagens Linux no **GHCR**.
 - **`.env.staging.example`**, **`scripts/s3-init.sh`**.
@@ -17,7 +18,7 @@
 > Não existe um único “Dockerfile da stack”: é um **stack Compose** multi-serviço; as Dockerfiles são por serviço.
 
 ## Pré-requisitos
-- Docker Engine + Compose v2 (o `include` exige Compose **≥ 2.20**).
+- Docker Engine + Compose v2 (≥ 2.20).
 - Domínio na Cloudflare e um **Cloudflare Tunnel** (Zero Trust → Networks → Tunnels) com token.
 - Porta de saída liberada para o Cloudflare (não é preciso abrir portas de entrada).
 
@@ -46,19 +47,18 @@ Preencha também `BACKEND_IMAGE`, `FRONTEND_IMAGE` (tags `sha-...`), `DB_ROOT_PA
 O `.env.staging` está no `.gitignore`.
 
 ## 3. Subir a stack
-**No Dockhand:** crie um stack a partir deste repositório, aponte o **compose path** para
-**`compose.yaml`** (raiz) — ou `infrastructure/compose.staging.yaml` — e cole o ambiente do `.env.staging`.
-Faça o deploy.
+**No Dockhand:** crie um stack a partir deste repositório e aponte o **compose path** para
+**`compose.yaml`** (raiz); cole o ambiente do `.env.staging`. Faça o deploy.
 
 **Via CLI:**
 ```bash
-docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml up -d
+docker compose --env-file .env.staging -f compose.yaml up -d
 ```
 Serviços: `mysql`, `garage`, `backend`, `frontend`, `cloudflared` — todos endurecidos
 (`read_only`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit`/`cpus`/`pids_limit`, logging rotativo,
 redes `edge`/`data` separadas).
 
-> **Build local (sem GHCR):** `docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml -f infrastructure/compose.build.yaml up -d --build`.
+> **Build local (sem GHCR):** `docker compose --env-file .env.staging -f compose.yaml -f compose.build.yaml up -d --build`.
 
 ## 4. Configurar o object storage (uma vez)
 A imagem do Garage é distroless; o init roda no host via `docker exec`:
@@ -78,7 +78,7 @@ variável do repositório e rode o workflow de imagens de novo.
 
 ## 6. Verificação pós-deploy
 ```bash
-docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml ps
+docker compose --env-file .env.staging -f compose.yaml ps
 curl -fsS https://<host-api>/api/actuator/health      # {"status":"UP"}
 ```
 - Confirmar `app.live-operations-enabled=false` (endpoints de cobrança real não existem).
@@ -86,7 +86,7 @@ curl -fsS https://<host-api>/api/actuator/health      # {"status":"UP"}
 ## 7. Segurança de implantação (obrigatório)
 - **Invalidar sessões antigas** a cada publicação de correção de autenticação (Spring Session JDBC):
   ```bash
-  docker exec $(docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml ps -q mysql) \
+  docker exec $(docker compose --env-file .env.staging -f compose.yaml ps -q mysql) \
     mysql -uroot -p"$DB_ROOT_PASSWORD" fundraiser \
     -e "DELETE FROM SPRING_SESSION_ATTRIBUTES; DELETE FROM SPRING_SESSION;"
   ```

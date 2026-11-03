@@ -1,7 +1,7 @@
 name: images
 
 # Builda as imagens Linux (backend e frontend) e publica no GHCR, para a stack de staging usar
-# referências IMUTÁVEIS (tags `sha-<commit>`). Ver `infrastructure/compose.staging.yaml`.
+# referências IMUTÁVEIS (tags `sha-<commit>`). Ver `compose.yaml`.
 on:
   push:
     branches: ["main"]
