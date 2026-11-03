@@ -1,0 +1,9 @@
+# Entrypoint de stack na raiz do repositório, para gerenciadores que procuram um compose no topo
+# (ex.: Dockhand, Dokploy, Coolify). A definição real está em infrastructure/compose.staging.yaml.
+#
+# As imagens do backend/frontend são buildadas no GitHub Actions e publicadas no GHCR — ver
+# `.github/workflows/images.yml`. Preencha o ambiente (`.env.staging.example`) com as IMAGE refs.
+name: fundraiser
+
+include:
+  - path: infrastructure/compose.staging.yaml

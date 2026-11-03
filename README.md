@@ -47,9 +47,16 @@ cd frontend && npm run typecheck && npm run lint && npm run build
 
 ## Deploy (staging/MVP)
 
-Stack pronta em [`infrastructure/compose.staging.yaml`](infrastructure/compose.staging.yaml)
-(backend + frontend + MySQL + Garage + **Cloudflare Tunnel**), incluindo Dockerfiles:
-runbook em [`docs/operations/deploy-staging.md`](docs/operations/deploy-staging.md).
+- **Stack (arquivo principal):** [`compose.yaml`](compose.yaml) na raiz — entrypoint para gerenciadores
+  de stack (ex.: **Dockhand**); a definição real está em
+  [`infrastructure/compose.staging.yaml`](infrastructure/compose.staging.yaml) — endurecida
+  (`read_only`, `cap_drop`, `no-new-privileges`, limites, redes separadas) e baseada em **imagens imutáveis**.
+- **Imagens:** buildadas no GitHub Actions e publicadas no GHCR —
+  [`.github/workflows/images.yml`](.github/workflows/images.yml); Dockerfiles em
+  [`backend/Dockerfile`](backend/Dockerfile) e [`frontend/Dockerfile`](frontend/Dockerfile).
+- **Runbook:** [`docs/operations/deploy-staging.md`](docs/operations/deploy-staging.md)
+  (variáveis em `.env.staging.example`; init do storage em `scripts/s3-init.sh`; build local via
+  `infrastructure/compose.build.yaml`).
 
 ## Segurança
 
