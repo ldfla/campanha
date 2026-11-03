@@ -11,7 +11,7 @@
     pública de ofertas e instituições (o visitante escolhe antes do cadastro); compra pela UI só com oferta
     publicada; **P20-F25** (escrita de campanha/prêmios sem checar organização), **P20-F26** (cookie CSRF com
     `Path=/api`, todo POST do frontend em 403), **P20-F27** (UI dizia "números atribuídos" sem confirmação).
-  - `P05A-09` — migração `V023` (`campaign_prizes.ranking_scope/ranking_position`, entrega com
+  - `P05A-09` — migração `V024` (`campaign_prizes.ranking_scope/ranking_position`, entrega com
     `ranking_snapshot_id/ranking_position/prize_id`); `AwardDeliveryService.createRankingSimulations`.
   - `P15-02/03/06` — `CampaignStatusChangedEvent`, `DrawPublishedEvent`, `AwardDeliveryChangedEvent`;
     `NotificationEnqueuer`, `DemoNotificationProcessor` (5 templates essenciais, retry com backoff, inbox),
@@ -50,7 +50,7 @@
 - **Contratos/ADRs/migrações alterados:** `CampaignController` em `/campaigns`; `PUT/DELETE
   /campaigns/{id}/prizes/{prizeId}` agora conferem a campanha; `CreateCampaignRequest.organizationId` opcional;
   `PrizeRequest/PrizeResponse` com `rankingScope/rankingPosition`; novo `GET /campaigns/public/{id}`; `GET` de
-  ofertas e instituições públicos; migração `V023`; dependências `spring-boot-starter-mail` e `@playwright/test`.
+  ofertas e instituições públicos; migração `V024`; dependências `spring-boot-starter-mail` e `@playwright/test`.
 
 - **Riscos, limitações e bloqueios:**
   - Prêmios de ranking configurados hoje são em dinheiro e seguem bloqueados (G-LEGAL); só bens geram entrega.
