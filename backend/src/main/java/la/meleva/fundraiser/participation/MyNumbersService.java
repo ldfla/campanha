@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class MyNumbersService {
-    static final int MAX_NUMBERS = 1_000;
+    static final int MAX_NUMBERS = 10_000;
 
     private final CampaignRepository campaigns;
     private final JdbcTemplate jdbc;
@@ -35,13 +35,22 @@ public class MyNumbersService {
                 ORDER BY n.number_value LIMIT ?""",
                 (rs, row) -> new MyNumber("%05d".formatted(rs.getInt("number_value")), confirmedStatus(rs.getString("status"))),
                 campaign.getId(), userId, MAX_NUMBERS);
-        long confirmed = numbers.stream().filter(number -> "CONFIRMED".equals(number.status())).count();
+        long confirmed = countEntries(campaign.getId(), userId, "e.status IN ('ASSIGNED', 'FROZEN')");
+        long pending = countEntries(campaign.getId(), userId, "e.status NOT IN ('ASSIGNED', 'FROZEN', 'REJECTED', 'INVALIDATED')");
         Long amount = jdbc.queryForObject("""
                 SELECT COALESCE(SUM(total_cents), 0) FROM orders
                 WHERE campaign_id = ? AND user_id = ? AND status IN ('CONFIRMED', 'RECONCILED')""",
                 Long.class, campaign.getId(), userId);
-        return new MyNumbersView(campaign.getPublicId(), numbers, confirmed, numbers.size() - confirmed,
+        return new MyNumbersView(campaign.getPublicId(), numbers, confirmed, pending,
                 amount == null ? 0L : amount, "BRL", campaign.getMode().isDemo());
+    }
+
+    private long countEntries(Long campaignId, Long userId, String statusFilter) {
+        Long count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM participation_entries e
+                JOIN entry_number_assignments a ON a.entry_id = e.id
+                WHERE e.campaign_id = ? AND e.user_id = ? AND\s""" + statusFilter, Long.class, campaignId, userId);
+        return count == null ? 0L : count;
     }
 
     private static String confirmedStatus(String entryStatus) {

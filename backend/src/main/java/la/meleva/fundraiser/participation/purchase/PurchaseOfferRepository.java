@@ -11,4 +11,6 @@ public interface PurchaseOfferRepository extends JpaRepository<PurchaseOffer, Lo
     List<PurchaseOffer> findByCampaignIdAndActiveTrueOrderByIdAsc(Long campaignId, Pageable pageable);
 
     boolean existsByCampaignIdAndActiveTrue(Long campaignId);
+
+    Optional<PurchaseOffer> findFirstByCampaignIdAndActiveTrueOrderByTotalCentsAsc(Long campaignId);
 }

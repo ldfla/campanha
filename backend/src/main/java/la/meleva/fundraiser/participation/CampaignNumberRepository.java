@@ -14,6 +14,7 @@ public interface CampaignNumberRepository extends JpaRepository<CampaignNumber, 
     long countByCampaignId(Long campaignId);
     List<CampaignNumber> findByCampaignIdAndStatus(Long campaignId, NumberStatus status);
     List<CampaignNumber> findByEntryId(Long entryId);
+    List<CampaignNumber> findByEntryIdIn(java.util.Collection<Long> entryIds);
     Page<CampaignNumber> findByCampaignId(Long campaignId, org.springframework.data.domain.Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

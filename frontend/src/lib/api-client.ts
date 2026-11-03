@@ -140,6 +140,7 @@ export interface PublicCampaignState {
   purchaseEnabled: boolean;
   availableNumbers: number;
   endsAt: string | null;
+  entryPriceCents: number | null;
 }
 export type CampaignStatus =
   | "DRAFT" | "LEGAL_REVIEW" | "AUTHORIZED" | "SCHEDULED"
@@ -288,6 +289,8 @@ export interface OfferResponse {
   quantity: number;
   totalCents: number;
   currency: string;
+  unitCents: number;
+  discountPct: number;
 }
 
 export interface BeneficiaryResponse {

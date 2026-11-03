@@ -7,8 +7,10 @@ import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
 import la.meleva.fundraiser.campaign.CampaignStatus;
 import la.meleva.fundraiser.campaign.CapabilityPolicy.Capability;
+import la.meleva.fundraiser.participation.purchase.PurchaseOffer;
 import la.meleva.fundraiser.participation.purchase.PurchaseOfferRepository;
 import la.meleva.fundraiser.shared.ErrorCode;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -54,7 +56,9 @@ public class PublicCampaignController {
         CtaState cta = ctaState(campaign, available, Instant.now(clock));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(new PublicCampaignView(campaign.getPublicId(), campaign.getTitle(), campaign.getMode(),
-                        campaign.getMode().isDemo(), cta, cta == CtaState.OPEN, available, campaign.getEndsAt()));
+                        campaign.getMode().isDemo(), cta, cta == CtaState.OPEN, available, campaign.getEndsAt(),
+                        offers.findFirstByCampaignIdAndActiveTrueOrderByTotalCentsAsc(campaign.getId())
+                                .map(PurchaseOffer::getTotalCents).orElse(null)));
     }
 
     private CtaState ctaState(Campaign campaign, long available, Instant now) {
@@ -78,5 +82,5 @@ public class PublicCampaignController {
     public enum CtaState { OPEN, NOT_STARTED, SOLD_OUT, CLOSED, SUSPENDED, BLOCKED }
 
     public record PublicCampaignView(String id, String title, CampaignMode mode, boolean simulation, CtaState ctaState,
-                              boolean purchaseEnabled, long availableNumbers, Instant endsAt) { }
+                              boolean purchaseEnabled, long availableNumbers, Instant endsAt, @Nullable Long entryPriceCents) { }
 }

@@ -22,6 +22,8 @@ import {
 } from "@/lib/campaign-config";
 import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
+const NUMBERS_PREVIEW = 60;
+
 type Step = "choose" | "beneficiary" | "register" | "payment";
 
 function ParticiparContent() {
@@ -103,6 +105,7 @@ function ParticiparContent() {
       id: o.id,
       qty: o.quantity,
       totalCents: o.totalCents,
+      discountPct: o.discountPct,
       label: configMatch?.label ?? `${o.quantity.toLocaleString("pt-BR")} números`,
       badge: configMatch?.badge ?? null,
       popular: configMatch?.popular ?? false,
@@ -311,6 +314,7 @@ function ParticiparContent() {
                               </h3>
                               <p className="text-sm text-[var(--color-midnight)]/40">
                                 {c.qty.toLocaleString("pt-BR")} números
+                                {c.discountPct > 0 ? ` · ${c.discountPct}% de desconto` : ""}
                               </p>
                             </div>
                             <div className="text-right">
@@ -545,12 +549,17 @@ function ParticiparContent() {
                 <div className="bg-white rounded-2xl border border-black/[0.06] p-5 mb-6">
                   <h3 className="text-sm font-semibold text-[var(--color-midnight)] mb-3">Seus números reservados</h3>
                   <div className="flex flex-wrap gap-2">
-                    {assignedNumbers.map((n) => (
+                    {assignedNumbers.slice(0, NUMBERS_PREVIEW).map((n) => (
                       <span key={n} className="font-mono text-sm font-bold text-[var(--color-midnight)] bg-[var(--color-snow)] rounded-lg px-2.5 py-1 tabular-nums">
                         {n}
                       </span>
                     ))}
                   </div>
+                  {assignedNumbers.length > NUMBERS_PREVIEW && (
+                    <p className="mt-3 text-xs text-[var(--color-midnight)]/50">
+                      Mostrando {NUMBERS_PREVIEW} de {assignedNumbers.length.toLocaleString("pt-BR")}. Depois de confirmado o pagamento, a lista completa fica em Meus números.
+                    </p>
+                  )}
                 </div>
               )}
 

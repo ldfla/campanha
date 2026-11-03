@@ -106,17 +106,17 @@ class ReservationServiceIntegrationTest {
 
     @Test
     void assignsOnlyAfterMatchingMockPaymentIsReconciled() {
-        var campaign = openCampaign("lease-payment", 4);
+        var campaign = openCampaign("lease-payment", 8);
         var user = users.save(new User("Pessoa", "Pagamento", "+55119999001303"));
         var promoter = users.save(new User("Pessoa", "Indicação", "+55119999001305"));
         var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade teste"));
         var referral = referrals.link(campaign.getId(), promoter.getId()).getCode();
         participations.request(promoter.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
-        var offer = offers.save(new PurchaseOffer(campaign.getId(), 2, 250));
+        var offer = offers.save(new PurchaseOffer(campaign.getId(), 5, 500));
         String key = UUID.randomUUID().toString();
         var start = checkout.start(user.getId(), campaign.getPublicId(), key, offer.getPublicId(), beneficiary.getPublicId(), referral);
         assertThat(checkout.start(user.getId(), campaign.getPublicId(), key, offer.getPublicId(), beneficiary.getPublicId(), referral)).isEqualTo(start);
-        assertThat(start.amountCents()).isEqualTo(250);
+        assertThat(start.amountCents()).isEqualTo(500);
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isZero();
         assertThatThrownBy(() -> checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId()))
                 .isInstanceOf(ErrorCode.BusinessException.class);
@@ -127,18 +127,18 @@ class ReservationServiceIntegrationTest {
         orderService.reconcile(paymentId);
         checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId());
         checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId());
-        assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(2);
+        assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(5);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM beneficiary_selections WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND beneficiary_id=?", Long.class, start.reservation().requestPublicId(), beneficiary.getId())).isEqualTo(1L);
-        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(3);
+        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(6);
         assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.RESERVED)).isZero();
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reservation_leases WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND status='CONSUMED'", Long.class, start.reservation().requestPublicId())).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reservation_leases WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND status='CONSUMED'", Long.class, start.reservation().requestPublicId())).isEqualTo(5);
     }
 
     @Test
     void paymentAfterReservationDeadlineDoesNotAssignNumbers() {
-        var campaign = openCampaign("lease-late-payment", 2);
+        var campaign = openCampaign("lease-late-payment", 5);
         var user = users.save(new User("Pessoa", "Atraso", "+55119999001304"));
-        var offer = offers.save(new PurchaseOffer(campaign.getId(), 1, 100));
+        var offer = offers.save(new PurchaseOffer(campaign.getId(), 5, 500));
         var start = checkout.start(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), offer.getPublicId(), entityIdFor(campaign), null);
         Long requestId = jdbc.queryForObject("SELECT id FROM participation_requests WHERE public_id=?", Long.class, start.reservation().requestPublicId());
         Long paymentId = jdbc.queryForObject("SELECT p.id FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.public_id=?", Long.class, start.orderPublicId());
@@ -151,7 +151,7 @@ class ReservationServiceIntegrationTest {
                 .extracting(exception -> ((ErrorCode.BusinessException) exception).errorCode()).isEqualTo(ErrorCode.PAYMENT_ORDER_EXPIRED);
         assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.ASSIGNED)).isZero();
         assertThat(reservations.expireByRequestId(requestId, java.time.Instant.now())).isTrue();
-        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.AVAILABLE)).isEqualTo(2);
+        assertThat(numbers.countByCampaignIdAndStatus(campaign.getId(), NumberStatus.AVAILABLE)).isEqualTo(5);
     }
 
     private Campaign openCampaign(String slug, int capacity) {

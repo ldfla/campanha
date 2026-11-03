@@ -93,7 +93,7 @@ export default function OfertasAdmin() {
               <input
                 type="number"
                 min={1}
-                max={100}
+                max={5000}
                 value={newQty}
                 onChange={(e) => setNewQty(parseInt(e.target.value) || 1)}
                 className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] text-sm text-[var(--color-midnight)] bg-[var(--color-snow)] outline-none focus:border-[var(--color-iris)]/40"
@@ -119,7 +119,7 @@ export default function OfertasAdmin() {
           </div>
           <button
             onClick={handleCreate}
-            disabled={creating || newQty < 1 || newTotal < 1}
+            disabled={creating || newQty < 5 || newQty > 5000 || newTotal < 500}
             className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--color-jade)] text-white hover:bg-[var(--color-jade)]/90 transition-colors disabled:opacity-50"
           >
             {creating ? "Criando..." : "Criar oferta"}

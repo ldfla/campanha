@@ -180,6 +180,7 @@ public class ParticipationService {
     static String modality(int count) {
         return switch (count) {
             case 1 -> "UNIT";
+            case 5 -> "COMBO_5";
             case 10 -> "COMBO_10";
             case 100 -> "COMBO_100";
             case 1000 -> "COMBO_1000";

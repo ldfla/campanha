@@ -151,14 +151,14 @@ class P20RedTeamRegressionTest {
     void checkoutConfirmationIsBoundToOwnerAndToReconciledPayment() throws Exception {
         var organization = organizations.save(new Organization("Organização p20 idor", "ASSOCIATION"));
         var campaign = new Campaign(organization.getId(), "Campanha idor", "p20-idor", CampaignMode.DEMO);
-        campaign.setNumberRange(0, 4);
+        campaign.setNumberRange(0, 9);
         campaign = campaigns.save(campaign);
         AuthTestSupport.register(mvc, "Gestor", "Idor", "+5511977700010");
         memberships.save(new Membership(organization, users.findByPhoneNumber("+5511977700010").orElseThrow(),
                 UserRole.CAMPAIGN_MANAGER));
         Cookie manager = AuthTestSupport.verify(mvc, "+5511977700010");
         var offer = mvc.perform(post("/participations/campaigns/{id}/offers", campaign.getPublicId()).cookie(manager)
-                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2,\"totalCents\":250}"))
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":5,\"totalCents\":500}"))
                 .andExpect(status().isCreated()).andReturn();
         String offerId = JsonPath.read(offer.getResponse().getContentAsString(), "$.id");
         var entity = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade idor"));
@@ -177,7 +177,7 @@ class P20RedTeamRegressionTest {
                         .content("{\"idempotencyKey\":\"" + UUID.randomUUID() + "\",\"offerId\":\"" + offerId
                                 + "\",\"entityId\":\"" + entity.getPublicId() + "\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.amountCents").value(250)).andReturn();
+                .andExpect(jsonPath("$.amountCents").value(500)).andReturn();
         String requestId = JsonPath.read(checkout.getResponse().getContentAsString(), "$.requestPublicId");
         String confirm = "/participations/campaigns/{id}/checkout/{requestId}/confirm";
 

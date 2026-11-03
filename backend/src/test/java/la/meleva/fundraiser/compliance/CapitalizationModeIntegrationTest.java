@@ -130,7 +130,7 @@ class CapitalizationModeIntegrationTest {
         participations.initializeSeries(campaign.getPublicId());
 
         var beneficiary = beneficiaries.create(admin.getId(), campaign.getPublicId(), "Entidade de teste");
-        var offer = offers.create(admin.getId(), campaign.getPublicId(), 2, 200L);
+        var offer = offers.create(admin.getId(), campaign.getPublicId(), 5, 500L);
 
         for (var gate : la.meleva.fundraiser.compliance.GateType.values()) {
             var request = approvalRequests.save(new ApprovalRequest(campaign.getId(), gate, admin.getId()));
@@ -148,7 +148,7 @@ class CapitalizationModeIntegrationTest {
         // Regressão: o guard do ReservationService bloqueava a capitalização; deve reservar com autorização vigente.
         var view = checkout.start(buyer.getId(), campaign.getPublicId(), UUID.randomUUID().toString(),
                 offer.id(), beneficiary.id(), null);
-        assertThat(view.reservation().numbers()).hasSize(2);
+        assertThat(view.reservation().numbers()).hasSize(5);
     }
 
     @Test

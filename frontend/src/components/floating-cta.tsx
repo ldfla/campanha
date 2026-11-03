@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import {
   TOTAL_PRIZES_CENTS,
-  PRICE_UNIT_CENTS,
   formatBRL,
 } from "@/lib/campaign-config";
 import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 export function FloatingCTA() {
   const [show, setShow] = useState(false);
-  const { purchaseEnabled, ctaState } = useCampaignState();
+  const { purchaseEnabled, ctaState, state } = useCampaignState();
+  const entryPriceCents = state?.entryPriceCents ?? null;
 
   useEffect(() => {
     function onScroll() {
@@ -46,9 +46,11 @@ export function FloatingCTA() {
             className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-orange)] px-6 py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.97]"
           >
             {ctaLabel("OPEN")}
-            <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
-              {formatBRL(PRICE_UNIT_CENTS)}
-            </span>
+            {entryPriceCents !== null && (
+              <span className="rounded bg-white/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">
+                {formatBRL(entryPriceCents)}
+              </span>
+            )}
           </a>
         )}
       </div>

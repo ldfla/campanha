@@ -1,7 +1,5 @@
 export const CAMPAIGN_MODE = "DEMO" as const;
 
-export const PRICE_UNIT_CENTS = 100;
-
 export const TOTAL_NUMBERS = 100_000;
 
 export const TOTAL_PRIZES_CENTS = 2_530_000;
@@ -14,11 +12,13 @@ export const ORGANIZER = {
 
 export const DRAWING_DATE = "2026-12-20" as const;
 
+// Rótulos cosméticos por quantidade; preços e descontos vêm sempre das ofertas do servidor.
 export const COMBOS = [
-  { id: "combo10", qty: 10, totalCents: 950, label: "Combo 10", unitCents: 95, discountPct: 5, badge: null, popular: false },
-  { id: "combo100", qty: 100, totalCents: 8_700, label: "Combo 100", unitCents: 87, discountPct: 13, badge: "Mais Popular", popular: true },
-  { id: "combo1000", qty: 1_000, totalCents: 74_000, label: "Combo 1.000", unitCents: 74, discountPct: 26, badge: "Máximo Desconto", popular: false },
-  { id: "combo5000", qty: 5_000, totalCents: 345_000, label: "Combo 5.000", unitCents: 69, discountPct: 31, badge: "Apoiador", popular: false },
+  { qty: 5, label: "Combo 5", badge: "Para começar", popular: false },
+  { qty: 10, label: "Combo 10", badge: null, popular: false },
+  { qty: 100, label: "Combo 100", badge: "Mais Popular", popular: true },
+  { qty: 1_000, label: "Combo 1.000", badge: "Máximo Desconto", popular: false },
+  { qty: 5_000, label: "Combo 5.000", badge: "Apoiador", popular: false },
 ] as const;
 
 export const PRIZES = [

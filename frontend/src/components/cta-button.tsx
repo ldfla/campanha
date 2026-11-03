@@ -1,6 +1,6 @@
 "use client";
 
-import { isDemoMode, PRICE_UNIT_CENTS, formatBRL } from "@/lib/campaign-config";
+import { isDemoMode, formatBRL } from "@/lib/campaign-config";
 import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 export function CTAButton({
@@ -10,7 +10,8 @@ export function CTAButton({
   size?: "lg" | "md" | "sm";
   showPrice?: boolean;
 }) {
-  const { purchaseEnabled, ctaState } = useCampaignState();
+  const { purchaseEnabled, ctaState, state } = useCampaignState();
+  const entryPriceCents = state?.entryPriceCents ?? null;
   const demo = isDemoMode();
 
   const cls = {
@@ -36,11 +37,11 @@ export function CTAButton({
         href="/participar"
         className={`group inline-flex items-center justify-center bg-gradient-to-r from-[var(--color-orange)] to-[#FF8A65] font-bold text-white shadow-[0_10px_30px_rgba(255,107,53,0.25)] transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-orange)] active:scale-[0.97] animate-cta-beacon ${cls}`}
       >
-        {showPrice ? (
+        {showPrice && entryPriceCents !== null ? (
           <>
             {ctaLabel("OPEN")}
             <span className="rounded-md bg-white/25 px-2.5 py-1 text-[11px] font-extrabold tabular-nums tracking-wide text-white">
-              {formatBRL(PRICE_UNIT_CENTS)}
+              {formatBRL(entryPriceCents)}
             </span>
           </>
         ) : (

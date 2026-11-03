@@ -11,11 +11,11 @@ import {
 import {
   isDemoMode,
   formatBRL,
-  PRICE_UNIT_CENTS,
   TOTAL_PRIZES_CENTS,
   RANKING_REWARDS,
   DEMO_CAMPAIGN_ID,
 } from "@/lib/campaign-config";
+import { useCampaignState } from "@/lib/use-campaign-state";
 import { CodeLoginForm } from "@/components/code-login-form";
 
 
@@ -54,9 +54,10 @@ export default function IndicarPage() {
     setTimeout(() => setCopied(false), 2000);
   }, [referralUrl]);
 
+  const entryPriceCents = useCampaignState().state?.entryPriceCents ?? null;
   const shareTitle = "Ação entre Amigos";
   const shareText = referralUrl
-    ? `Participe da Ação entre Amigos e concorra a ${formatBRL(TOTAL_PRIZES_CENTS)} em prêmios! Só ${formatBRL(PRICE_UNIT_CENTS)} por número. Sorteio pela Loteria Federal!`
+    ? `Participe da Ação entre Amigos e concorra a ${formatBRL(TOTAL_PRIZES_CENTS)} em prêmios! ${entryPriceCents !== null ? `Combos a partir de ${formatBRL(entryPriceCents)}. ` : ""}Sorteio pela Loteria Federal!`
     : "";
 
   const handleNativeShare = useCallback(async () => {

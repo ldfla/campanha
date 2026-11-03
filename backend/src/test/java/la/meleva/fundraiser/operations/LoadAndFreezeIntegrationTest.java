@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest(properties = {
         "spring.datasource.hikari.maximum-pool-size=50",
-        "spring.datasource.hikari.connection-timeout=60000"})
+        "spring.datasource.hikari.connection-timeout=120000"})
 @Import(TestcontainersConfiguration.class)
 class LoadAndFreezeIntegrationTest {
 

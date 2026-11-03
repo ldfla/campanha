@@ -9,7 +9,7 @@ test("compra simulada ponta a ponta até Meus números", async ({ page }) => {
   const phone = uniquePhone();
   await page.goto("/participar");
 
-  const offer = page.getByRole("button", { name: /R\$\s?1,00/ }).first();
+  const offer = page.getByRole("button", { name: /R\$\s?5,00/ }).first();
   await expect(offer).toBeVisible();
   await offer.click();
   await page.getByRole("button", { name: "Continuar" }).click();
@@ -31,8 +31,9 @@ test("compra simulada ponta a ponta até Meus números", async ({ page }) => {
   const body = (await response.json()) as { orderPublicId: string; numbers: string[]; amountCents: number };
 
   await expect(page.getByRole("heading", { name: "Pagamento via Pix" })).toBeVisible();
-  await expect(page.getByText("R$ 1,00").first()).toBeVisible();
-  expect(body.amountCents).toBe(100);
+  await expect(page.getByText("R$ 5,00").first()).toBeVisible();
+  expect(body.amountCents).toBe(500);
+  expect(body.numbers).toHaveLength(5);
   for (const number of body.numbers) {
     expect(number).toMatch(/^\d{5}$/);
     await expect(page.getByText(number, { exact: true })).toBeVisible();

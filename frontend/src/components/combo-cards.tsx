@@ -1,9 +1,16 @@
 "use client";
 
-import { COMBOS, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
+import { useEffect, useState } from "react";
+import { participations, type OfferResponse } from "@/lib/api-client";
+import { COMBOS, DEMO_CAMPAIGN_ID, formatBRL } from "@/lib/campaign-config";
 import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 const VISUAL = [
+  {
+    accent: "#3F9C7C",
+    tint: "rgba(63, 156, 124, 0.14)",
+    metal: "linear-gradient(135deg, #a9e0cb 0%, #3f9c7c 100%)",
+  },
   {
     accent: "#CD7F32",
     tint: "rgba(205, 127, 50, 0.14)",
@@ -29,6 +36,22 @@ const VISUAL = [
 export function ComboCards() {
   const { purchaseEnabled, ctaState } = useCampaignState();
   const blocked = !purchaseEnabled;
+  const [offers, setOffers] = useState<OfferResponse[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    participations
+      .offers(DEMO_CAMPAIGN_ID)
+      .then((list) => {
+        if (active) setOffers(list);
+      })
+      .catch(() => {
+        if (active) setOffers([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <section className="section bg-[var(--color-snow)] py-16 md:py-24">
@@ -40,19 +63,23 @@ export function ComboCards() {
           Quanto maior o combo, menor o valor por número
         </p>
 
-        <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:mt-12 lg:grid-cols-4 lg:gap-5">
-          {COMBOS.map((combo, i) => {
+        <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:mt-12 lg:grid-cols-5 lg:gap-4">
+          {offers.map((offer, i) => {
             const vis = VISUAL[i] ?? VISUAL[0];
+            const combo = COMBOS.find((c) => c.qty === offer.quantity);
+            const label = combo?.label ?? `Combo ${offer.quantity.toLocaleString("pt-BR")}`;
+            const badge = combo?.badge ?? null;
+            const popular = combo?.popular ?? false;
             return (
               <a
-                key={combo.id}
-                href={blocked ? undefined : `/participar?combo=${combo.id}`}
+                key={offer.id}
+                href={blocked ? undefined : `/participar?combo=${offer.id}`}
                 className={`group flex flex-col items-center rounded-2xl border-2 bg-white px-5 py-6 text-center transition-shadow ${
                   blocked
                     ? "cursor-not-allowed opacity-60"
                     : "hover:shadow-lg"
                 } ${
-                  combo.popular
+                  popular
                     ? "shadow-[0_10px_30px_rgba(224,180,0,0.18)]"
                     : "shadow-[0_2px_10px_rgba(11,43,38,0.05)]"
                 }`}
@@ -67,39 +94,42 @@ export function ComboCards() {
                   style={{ backgroundImage: vis.metal }}
                   aria-hidden="true"
                 >
-                  {combo.label.slice(0, 1)}
+                  {label.slice(0, 1)}
                 </span>
 
                 <span className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-ink-soft)]">
-                  {combo.label}
+                  {label}
                 </span>
 
-                {combo.badge ? (
+                {badge ? (
                   <span
                     className="mt-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide"
                     style={{
                       backgroundColor: vis.tint,
-                      color: combo.popular
+                      color: popular
                         ? "var(--color-gold-ink)"
                         : "var(--color-forest)",
                       border: `1px solid ${vis.accent}`,
                     }}
                   >
-                    {combo.badge}
+                    {badge}
                   </span>
                 ) : (
-                  <span className="mt-2 h-[22px]" aria-hidden="true" />
+                  <span className="mt-2 h-[26px]" aria-hidden="true" />
                 )}
 
                 <p className="mt-2 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-ink)]">
-                  {combo.qty.toLocaleString("pt-BR")} números
+                  {offer.quantity.toLocaleString("pt-BR")} números
                 </p>
 
-                <p className="mt-3 font-[family-name:var(--font-heading)] text-2xl font-bold tabular-nums text-[var(--color-ink)] md:text-3xl">
-                  {formatBRL(combo.totalCents)}
+                <p className="mt-3 font-[family-name:var(--font-heading)] text-2xl font-bold tabular-nums text-[var(--color-ink)]">
+                  {formatBRL(offer.totalCents)}
                 </p>
                 <p className="mt-1 text-xs text-[var(--color-ink-soft)]">
-                  {formatBRL(combo.unitCents)} / número
+                  {formatBRL(offer.unitCents)} / número
+                </p>
+                <p className="mt-1 h-4 text-xs font-semibold text-[var(--color-forest)]">
+                  {offer.discountPct > 0 ? `${offer.discountPct}% de desconto` : ""}
                 </p>
 
                 <span
@@ -115,18 +145,6 @@ export function ComboCards() {
             );
           })}
         </div>
-
-        {!blocked && (
-          <p className="mt-8 text-center">
-            <a
-              href="/participar"
-              className="text-sm font-medium text-[var(--color-iris)] underline-offset-4 hover:underline"
-            >
-              Ou compre a quantidade que quiser a{" "}
-              {formatBRL(PRICE_UNIT_CENTS)} cada
-            </a>
-          </p>
-        )}
       </div>
     </section>
   );

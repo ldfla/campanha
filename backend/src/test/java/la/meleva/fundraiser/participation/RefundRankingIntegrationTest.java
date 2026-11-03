@@ -68,8 +68,8 @@ class RefundRankingIntegrationTest {
         User buyer = users.save(new User("Bia", "Melo", "+551197770002"));
         Payment payment = paidCheckout(fixture, buyer, code);
 
-        assertThat(scoreOf(fixture, RankingScope.PARTICIPANT, "B.M. 0002")).isEqualTo(2);
-        assertThat(scoreOf(fixture, RankingScope.PROMOTER, "P.R. 0001")).isEqualTo(2);
+        assertThat(scoreOf(fixture, RankingScope.PARTICIPANT, "B.M. 0002")).isEqualTo(5);
+        assertThat(scoreOf(fixture, RankingScope.PROMOTER, "P.R. 0001")).isEqualTo(5);
         var sealed = rankings.snapshot(fixture.manager().getId(), fixture.campaign().getPublicId(),
                 new CreateSnapshotRequest(RankingScope.PROMOTER, null));
         String sealedPayload = rankings.export(null, fixture.campaign().getPublicId(), sealed.snapshotId()).payloadJson();
@@ -81,11 +81,11 @@ class RefundRankingIntegrationTest {
         assertThat(entries.findByCampaignIdAndUserId(fixture.campaign().getId(), buyer.getId()))
                 .extracting(ParticipationEntry::getStatus).containsOnly(ParticipationStatus.INVALIDATED);
         assertThat(numberStatusesOf(fixture, buyer)).containsOnly("INVALIDATED");
-        assertThat(refundAudits(fixture, buyer)).isEqualTo(2);
+        assertThat(refundAudits(fixture, buyer)).isEqualTo(5);
         var export = rankings.export(null, fixture.campaign().getPublicId(), sealed.snapshotId());
         assertThat(export.verified()).isTrue();
         assertThat(export.payloadJson()).isEqualTo(sealedPayload);
-        assertThat(participation.availableCount(fixture.campaign().getPublicId())).isEqualTo(10 - 1 - 2);
+        assertThat(participation.availableCount(fixture.campaign().getPublicId())).isEqualTo(10 - 1 - 5);
     }
 
     @Test
@@ -105,7 +105,7 @@ class RefundRankingIntegrationTest {
                 .extracting(ParticipationEntry::getStatus).containsOnly(ParticipationStatus.INVALIDATED);
         assertThat(entries.findByCampaignIdAndUserId(fixture.campaign().getId(), other.getId()))
                 .extracting(ParticipationEntry::getStatus).containsOnly(ParticipationStatus.FROZEN);
-        assertThat(refundAudits(fixture, buyer)).isEqualTo(2);
+        assertThat(refundAudits(fixture, buyer)).isEqualTo(5);
         RankingView participants = rankings.current(fixture.campaign().getPublicId(), RankingScope.PARTICIPANT, 50);
         assertThat(participants.entries()).extracting(RankingView.Row::pseudonym).containsExactly("D.R. 0012");
     }
@@ -151,7 +151,7 @@ class RefundRankingIntegrationTest {
         Campaign draft = new Campaign(organization.getId(), "Campanha " + slug, slug, CampaignMode.DEMO);
         draft.setNumberRange(0, 9);
         Campaign campaign = campaigns.save(draft);
-        PurchaseOffer offer = offers.save(new PurchaseOffer(campaign.getId(), 2, 250));
+        PurchaseOffer offer = offers.save(new PurchaseOffer(campaign.getId(), 5, 500));
         for (CampaignStatus next : List.of(CampaignStatus.LEGAL_REVIEW, CampaignStatus.AUTHORIZED,
                 CampaignStatus.SCHEDULED, CampaignStatus.OPEN)) {
             campaignService.transition(manager.getId(), campaign.getPublicId(), next);

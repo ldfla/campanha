@@ -33,7 +33,8 @@ O **seed local** (`LocalDemoSeed`, profile `local`) cria, de forma idempotente:
 - `acao-demo-local` — campanha **DEMO** (`OPEN`) com beneficiário e prêmio sintético.
 - `acao-capitalizacao-local` — campanha **CAPITALIZATION_PRIZE_TITLE** (ADR-0007, `OPEN`) com
   **autorização SUSEP sintética verificada**, **todos os gates aprovados**, **beneficiário** e
-  **ofertas/combos** já publicados (R$ 1,00 / R$ 9,50 / R$ 87,00).
+  **combos** já publicados (5, 10, 100, 1.000 e 5.000 números: R$ 5,00 / R$ 9,50 / R$ 87,00 / R$ 740,00 /
+  R$ 3.450,00) e 20.000 números. Um banco local mais antigo recebe as ofertas e os números que faltam ao subir.
 - Usuário admin local: telefone `+5511999990000` (exige MFA sandbox, código `000000`).
 
 > O CORS é restrito por padrão (nenhuma origem liberada). Sem `APP_CORS_ALLOWED_ORIGINS`, o navegador
