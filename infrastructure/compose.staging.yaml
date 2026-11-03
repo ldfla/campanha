@@ -1,53 +1,88 @@
-# Stack de STAGING (MVP em servidor, modo DEMO). Soberana para qualquer host Docker Compose
-# (ex.: Dockhand/Dokploy/Coolify/VPS). NUNCA libera operação real: `LIVE_OPERATIONS_ENABLED=false`.
+# Stack de STAGING/MVP em servidor (modo DEMO) — **endurecida** e baseada em **imagens imutáveis**.
+# As imagens do backend/frontend são buildadas no GitHub Actions e publicadas no GHCR
+# (ver `.github/workflows/images.yml`); esta stack apenas as baixa (`pull_policy: always`).
+# NUNCA libera operação real: `LIVE_OPERATIONS_ENABLED=false`.
 #
-# Uso:
-#   cp .env.staging.example .env.staging   # preencha os segredos
-#   docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml up -d --build
-#   GARAGE_CONTAINER=fundraiser-staging-garage ./scripts/s3-init.sh   # cria bucket/chave do object storage
+# Uso (ou no Dockhand: compose path = `compose.yaml`, na raiz):
+#   cp .env.staging.example .env.staging   # preencha os segredos e as IMAGE refs
+#   docker compose --env-file .env.staging -f infrastructure/compose.staging.yaml up -d
+#   GARAGE_CONTAINER=fundraiser-staging-garage ./scripts/s3-init.sh
 #
-# A exposição pública é feita pelo Cloudflare Tunnel (`cloudflared`): no painel da Cloudflare,
-# aponte o hostname do app para `http://frontend:3000` e o da API para `http://backend:8080`.
-# Nenhum serviço publica porta no host (rede interna do compose).
+# Exposição pública via Cloudflare Tunnel (`cloudflared`): app -> http://frontend:3000,
+# API -> http://backend:8080. Nenhum serviço publica porta no host (redes internas).
 
-name: fundraiser-staging
+name: fundraiser
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
 
 services:
   mysql:
-    image: mysql:8.4
-    container_name: fundraiser-staging-mysql
+    image: ${MYSQL_IMAGE:-mysql:8.4.11}
+    pull_policy: always
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME:-fundraiser}
       MYSQL_USER: ${DB_USERNAME:-fundraiser}
       MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --default-time-zone=+00:00
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD}
+    command:
+      - --default-time-zone=+00:00
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --binlog-format=ROW
+      - --log-bin-trust-function-creators=1
     volumes:
       - mysql_data:/var/lib/mysql
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+      - /var/run/mysqld:rw,noexec,nosuid,size=16m,mode=1777
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 256
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${DB_USERNAME:-fundraiser}", "-p${DB_PASSWORD}"]
-      interval: 10s
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD=$${MYSQL_PASSWORD} mysql --protocol=TCP -h 127.0.0.1 -u $${MYSQL_USER} -D $${MYSQL_DATABASE} -Nse 'SELECT 1' >/dev/null
+      interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 30
+      start_period: 30s
+    networks:
+      - data
+    logging: *logging
 
   garage:
-    image: dxflrs/garage:v2.5.0
-    container_name: fundraiser-staging-garage
+    image: ${GARAGE_IMAGE:-dxflrs/garage:v2.5.0}
+    pull_policy: always
     restart: unless-stopped
+    # Nome fixo para o `scripts/s3-init.sh` (init do bucket/chave).
+    container_name: fundraiser-garage
     command: /garage server
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
       - garage_data:/var/lib/garage
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 256
+    networks:
+      - data
+    logging: *logging
 
   backend:
-    build:
-      context: ../backend
-    image: fundraiser-backend:staging
-    container_name: fundraiser-staging-backend
+    image: ${BACKEND_IMAGE:?defina BACKEND_IMAGE com uma referência imutável}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       mysql:
@@ -69,22 +104,50 @@ services:
       APP_CPF_ENCRYPTION_KEY: ${APP_CPF_ENCRYPTION_KEY:?defina APP_CPF_ENCRYPTION_KEY}
       APP_CPF_HMAC_KEY: ${APP_CPF_HMAC_KEY:?defina APP_CPF_HMAC_KEY}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1024m
+    cpus: 2
+    pids_limit: 256
+    networks:
+      - data
+      - edge
+    logging: *logging
 
   frontend:
-    build:
-      context: ../frontend
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_CAMPAIGN_ID: ${NEXT_PUBLIC_CAMPAIGN_ID:-demo}
-    image: fundraiser-frontend:staging
-    container_name: fundraiser-staging-frontend
+    image: ${FRONTEND_IMAGE:?defina FRONTEND_IMAGE com uma referência imutável}
+    pull_policy: always
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /app/.next/cache:rw,noexec,nosuid,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    networks:
+      - edge
+    logging: *logging
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: fundraiser-staging-cloudflared
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
+    pull_policy: always
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
@@ -92,7 +155,24 @@ services:
     depends_on:
       - frontend
       - backend
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 1
+    pids_limit: 128
+    networks:
+      - edge
+    logging: *logging
 
 volumes:
   mysql_data:
   garage_data:
+
+networks:
+  edge:
+  data:

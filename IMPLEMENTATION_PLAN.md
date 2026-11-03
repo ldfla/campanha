@@ -902,7 +902,7 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P18.  
 **Entregáveis:** infraestrutura reproduzível e runbooks.
 
-- [x] `P19-01` Dockerfiles multi-stage e non-root, Compose local/staging/prod separados por perfis. `backend/Dockerfile` e `frontend/Dockerfile` (Next `standalone`), `infrastructure/compose.staging.yaml`.
+- [x] `P19-01` Dockerfiles multi-stage e non-root, Compose local/staging/prod separados por perfis. `backend/Dockerfile` e `frontend/Dockerfile` (Next `standalone`); imagens buildadas/published no GHCR (`.github/workflows/images.yml`); `infrastructure/compose.staging.yaml` endurecida (imagens imutáveis) + `compose.build.yaml` local.
 - [ ] `P19-02` TLS, headers, certificados, rede segregada, backup automático e storage privado. **PARCIAL**: rede interna sem portas publicadas + Cloudflare Tunnel; storage privado S3 (Garage); backup manual documentado — falta automação/agendamento.
 - [ ] `P19-03` Healthcheck, métricas e alertas para erros, filas, duplicidade e conciliação. **PARCIAL**: healthcheck do Docker em `/api/actuator/health`; alertas ainda ausentes.
 - [ ] `P19-04` Dashboards de disponibilidade, latência, falhas de PSP e alteração de autorização.
