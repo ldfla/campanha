@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.stream.Collectors;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
 import la.meleva.fundraiser.participation.purchase.ReservationPaymentLinkRepository;
@@ -33,9 +35,12 @@ class RefundedParticipationHandler {
     @EventListener
     void onRefund(PaymentRefundedEvent event) {
         links.findByOrderId(event.orderId()).ifPresent(link -> {
-            for (ParticipationEntry entry : entries.findByRequestId(link.getRequestId())) {
+            var requestEntries = entries.findByRequestId(link.getRequestId());
+            var numbersByEntry = numbers.findByEntryIdIn(requestEntries.stream().map(ParticipationEntry::getId).toList()).stream()
+                    .collect(Collectors.groupingBy(CampaignNumber::getEntryId));
+            for (ParticipationEntry entry : requestEntries) {
                 if (!entry.getCampaignId().equals(event.campaignId()) || !entry.invalidateRefunded()) continue;
-                numbers.findByEntryId(entry.getId()).forEach(CampaignNumber::invalidateRefunded);
+                numbersByEntry.getOrDefault(entry.getId(), List.of()).forEach(CampaignNumber::invalidateRefunded);
                 audits.save(new AuditEvent(null, "PARTICIPATION_REFUNDED", "participation_entry", entry.getId(),
                         sha256(event.campaignId() + ":" + entry.getId() + ":payment:" + event.paymentId())));
             }

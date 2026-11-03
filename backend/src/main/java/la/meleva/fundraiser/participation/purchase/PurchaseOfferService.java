@@ -1,5 +1,6 @@
 package la.meleva.fundraiser.participation.purchase;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import la.meleva.fundraiser.campaign.CampaignRepository;
@@ -38,15 +39,21 @@ public class PurchaseOfferService {
         Objects.requireNonNull(campaignPublicId, "campaignPublicId");
         var campaign = campaigns.findByPublicId(campaignPublicId)
                 .orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
-        return offers.findByCampaignIdAndActiveTrueOrderByIdAsc(campaign.getId(), PageRequest.of(0, MAX_OFFERS))
-                .stream().map(PurchaseOfferService::view).toList();
+        return views(campaign.getId());
+    }
+
+    private List<OfferView> views(Long campaignId) {
+        List<PurchaseOffer> active = offers.findByCampaignIdAndActiveTrueOrderByIdAsc(campaignId, PageRequest.of(0, MAX_OFFERS));
+        long baseUnitCents = active.stream().mapToLong(PurchaseOfferService::unitCents).max().orElse(0);
+        return active.stream().sorted(Comparator.comparingInt(PurchaseOffer::getQuantity))
+                .map(offer -> view(offer, baseUnitCents)).toList();
     }
 
     @Transactional
     public OfferView create(Long actorId, String campaignPublicId, int quantity, long totalCents) {
         Objects.requireNonNull(actorId, "actorId");
         Objects.requireNonNull(campaignPublicId, "campaignPublicId");
-        if (quantity < 1 || quantity > 100 || totalCents < 1) throw ErrorCode.VALIDATION_ERROR.toException();
+        if (!PurchaseOffer.validTerms(quantity, totalCents)) throw ErrorCode.VALIDATION_ERROR.toException();
         var campaign = campaigns.findLockedByPublicId(campaignPublicId)
                 .orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
         var actor = users.findById(actorId).filter(user -> user.isActive())
@@ -56,12 +63,21 @@ public class PurchaseOfferService {
                         || membership.getRole() == UserRole.SYSTEM_ADMIN);
         if (!allowed) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
         if (!campaign.getStatus().isEditable()) throw ErrorCode.CAMPAIGN_NOT_EDITABLE.toException();
-        return view(offers.save(new PurchaseOffer(campaign.getId(), quantity, totalCents)));
+        PurchaseOffer created = offers.saveAndFlush(new PurchaseOffer(campaign.getId(), quantity, totalCents));
+        return views(campaign.getId()).stream().filter(view -> view.id().equals(created.getPublicId())).findFirst()
+                .orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
     }
 
-    private static OfferView view(PurchaseOffer offer) {
-        return new OfferView(offer.getPublicId(), offer.getQuantity(), offer.getTotalCents(), "BRL");
+    private static long unitCents(PurchaseOffer offer) {
+        return Math.round((double) offer.getTotalCents() / offer.getQuantity());
     }
 
-    public record OfferView(String id, int quantity, long totalCents, String currency) { }
+    /** Desconto anunciado: comparação com o maior valor por número entre as ofertas ativas da campanha. */
+    private static OfferView view(PurchaseOffer offer, long baseUnitCents) {
+        long unit = unitCents(offer);
+        int discount = baseUnitCents == 0 ? 0 : (int) Math.round((baseUnitCents - unit) * 100.0 / baseUnitCents);
+        return new OfferView(offer.getPublicId(), offer.getQuantity(), offer.getTotalCents(), "BRL", unit, discount);
+    }
+
+    public record OfferView(String id, int quantity, long totalCents, String currency, long unitCents, int discountPct) { }
 }

@@ -98,7 +98,7 @@ public class Campaign {
         this.seriesCount = 1;
         this.numberMin = 0;
         this.numberMax = 99999;
-        this.maxEntriesPerUser = 100;
+        this.maxEntriesPerUser = 10_000;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }

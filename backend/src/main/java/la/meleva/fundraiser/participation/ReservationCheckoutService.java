@@ -4,7 +4,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import la.meleva.fundraiser.campaign.Campaign;
 import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
@@ -19,11 +24,13 @@ import la.meleva.fundraiser.payment.PaymentProvider;
 import la.meleva.fundraiser.payment.PaymentRepository;
 import la.meleva.fundraiser.payment.PaymentStatus;
 import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.referral.ReferralService;
 import la.meleva.fundraiser.shared.PhoneNumbers;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,13 +49,11 @@ public class ReservationCheckoutService {
     private final ReservationLeaseRepository leases;
     private final CampaignNumberRepository numbers;
     private final ParticipationEntryRepository entries;
-    private final EntryNumberAssignmentRepository assignments;
-    private final EligibilityEventRepository eligibility;
     private final EntityManager entityManager;
     private final Clock clock;
     private final UserRepository users;
     private final ReferralService referrals;
-    private final CampaignNumberBuyerRepository buyers;
+    private final JdbcTemplate jdbc;
     private final AuthorizationService authorizations;
 
     @Autowired
@@ -56,15 +61,15 @@ public class ReservationCheckoutService {
             PurchaseOfferRepository offers, ParticipationRequestRepository requests, ReservationPaymentLinkRepository links,
             OrderRepository orders, OrderService orderService, PaymentRepository payments, PaymentProvider provider,
             ReservationLeaseRepository leases, CampaignNumberRepository numbers, ParticipationEntryRepository entries,
-            EntryNumberAssignmentRepository assignments, EligibilityEventRepository eligibility, EntityManager entityManager,
-            UserRepository users, ReferralService referrals, CampaignNumberBuyerRepository buyers,
+            EntityManager entityManager,
+            UserRepository users, ReferralService referrals, JdbcTemplate jdbc,
             AuthorizationService authorizations) {
         this.reservations=reservations; this.campaigns=campaigns; this.offers=offers; this.requests=requests;
         this.links=links; this.orders=orders; this.orderService=orderService; this.payments=payments; this.provider=provider;
-        this.leases=leases; this.numbers=numbers; this.entries=entries; this.assignments=assignments;
-        this.eligibility=eligibility; this.entityManager=entityManager; this.clock=Clock.systemUTC();
+        this.leases=leases; this.numbers=numbers; this.entries=entries;
+        this.entityManager=entityManager; this.clock=Clock.systemUTC();
         this.users=Objects.requireNonNull(users, "users"); this.referrals=Objects.requireNonNull(referrals, "referrals");
-        this.buyers=Objects.requireNonNull(buyers, "buyers");
+        this.jdbc=Objects.requireNonNull(jdbc, "jdbc");
         this.authorizations=Objects.requireNonNull(authorizations, "authorizations");
     }
 
@@ -141,24 +146,55 @@ public class ReservationCheckoutService {
                 .flatMap(code -> referrals.promoterUserIdForActiveCode(campaign.getId(), code))
                 .filter(promoterId -> !promoterId.equals(userId))
                 .flatMap(users::findById)
-                .map(la.meleva.fundraiser.identity.User::getPhoneNumber)
+                .map(User::getPhoneNumber)
                 .map(ReservationCheckoutService::e164OrNull).orElse(null);
         String modality = ParticipationService.modality(request.getRequestedCount());
+        var numbersById = numbers.findAllById(active.stream().map(ReservationLease::getNumberId).toList()).stream()
+                .collect(Collectors.toMap(CampaignNumber::getId, Function.identity()));
+        var entriesById = entries.findAllById(numbersById.values().stream()
+                        .map(number -> Objects.requireNonNull(number.getEntryId(), "reservation.entryId")).toList()).stream()
+                .collect(Collectors.toMap(ParticipationEntry::getId, Function.identity()));
         for (var lease : active) {
-            var number = numbers.findById(lease.getNumberId()).orElseThrow(ErrorCode.NUMBER_NOT_AVAILABLE::toException);
+            var number = numbersById.get(lease.getNumberId());
+            if (number == null) throw ErrorCode.NUMBER_NOT_AVAILABLE.toException();
             Long entryId = Objects.requireNonNull(number.getEntryId(), "reservation.entryId");
-            var entry = entries.findById(entryId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+            var entry = entriesById.get(entryId);
+            if (entry == null) throw ErrorCode.RESOURCE_NOT_FOUND.toException();
             if (!request.getId().equals(entry.getRequestId()) || !campaign.getId().equals(number.getCampaignId())
                     || entry.getStatus()!=ParticipationStatus.REQUESTED) throw new IllegalStateException("reservation.entry_mismatch");
             number.assignReservation(entryId); entry.markAssigned(); lease.consume(now);
             number.recordSale(now, modality, request.getPublicId(), charity, referrerPhone);
-            buyers.save(new CampaignNumberBuyer(number.getId(), campaign.getId(), userId,
-                    e164OrFail(buyer.getPhoneNumber()), buyer.getDisplayName(), buyer.getSurname()));
-            assignments.save(new EntryNumberAssignment(entryId, number.getId()));
-            eligibility.save(new EligibilityEvent(entryId, 1, "ELIGIBLE", "DEMO_PAYMENT_CONFIRMED"));
-            link.referralCode().ifPresent(code -> referrals.attributeIfValid(campaign.getId(), code, entryId));
         }
+        recordAssignmentsInBulk(request.getId(), campaign.getId(), userId, buyer, now);
+        link.referralCode().ifPresent(code -> referrals.attributeAllIfValid(campaign.getId(), code, request.getId(),
+                List.copyOf(entriesById.values()), now));
         request.markAssigned();
+    }
+
+    /**
+     * Um comando por tabela, derivado das reservas do pedido: inserir número a número deixaria a campanha travada
+     * por milhares de idas ao banco nos combos grandes. As chaves únicas continuam impedindo duplicidade.
+     */
+    private void recordAssignmentsInBulk(Long requestId, Long campaignId, Long userId, User buyer, Instant now) {
+        var identity = new CampaignNumberBuyer(0L, campaignId, userId, e164OrFail(buyer.getPhoneNumber()),
+                buyer.getDisplayName(), buyer.getSurname());
+        // Mesmo tratamento do Hibernate (jdbc.time_zone=UTC): o valor vai em UTC, sem depender do fuso da JVM.
+        LocalDateTime at = LocalDateTime.ofInstant(now, ZoneOffset.UTC);
+        jdbc.update("""
+                INSERT INTO campaign_number_buyers (number_id, campaign_id, buyer_user_id, buyer_phone,
+                    buyer_first_name, buyer_surname, buyer_pseudonym, created_at)
+                SELECT l.number_id, l.campaign_id, ?, ?, ?, ?, ?, ? FROM reservation_leases l WHERE l.request_id = ?""",
+                userId, identity.getBuyerPhone(), identity.getBuyerFirstName(), identity.getBuyerSurname(),
+                identity.getBuyerPseudonym(), at, requestId);
+        jdbc.update("""
+                INSERT INTO entry_number_assignments (entry_id, campaign_number_id, assigned_at)
+                SELECT n.entry_id, n.id, ? FROM reservation_leases l JOIN campaign_numbers n ON n.id = l.number_id
+                WHERE l.request_id = ?""", at, requestId);
+        jdbc.update("""
+                INSERT INTO eligibility_events (entry_id, rule_version, result, reason_code, checked_at)
+                SELECT n.entry_id, 1, 'ELIGIBLE', 'DEMO_PAYMENT_CONFIRMED', ?
+                FROM reservation_leases l JOIN campaign_numbers n ON n.id = l.number_id
+                WHERE l.request_id = ?""", at, requestId);
     }
 
     /** ADR-0007: capitalização premiável só opera (sandbox) com autorização verificada e vigente. */

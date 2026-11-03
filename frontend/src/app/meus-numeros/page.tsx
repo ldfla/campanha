@@ -143,7 +143,7 @@ export default function MeusNumerosPage() {
                 <div className="bg-white rounded-2xl border border-black/[0.06] overflow-hidden">
                   <div className="px-5 py-3.5 border-b border-black/[0.04] flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-[var(--color-midnight)]">Seus números</h2>
-                    <span className="text-xs text-[var(--color-midnight)]/35">{numbers.length} total</span>
+                    <span className="text-xs text-[var(--color-midnight)]/35">{(confirmed + pending).toLocaleString("pt-BR")} total</span>
                   </div>
                   <div className="divide-y divide-black/[0.03]">
                     {numbers.map((n) => {

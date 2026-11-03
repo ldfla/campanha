@@ -2,6 +2,9 @@ package la.meleva.fundraiser.shared;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import la.meleva.fundraiser.campaign.Campaign;
 import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignPrize;
@@ -21,13 +24,19 @@ import la.meleva.fundraiser.identity.OrganizationRepository;
 import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
+import la.meleva.fundraiser.participation.CampaignNumber;
+import la.meleva.fundraiser.participation.CampaignNumberRepository;
 import la.meleva.fundraiser.participation.InitialPrizeLoadService;
 import la.meleva.fundraiser.participation.ParticipationService;
 import la.meleva.fundraiser.participation.beneficiary.BeneficiaryService;
+import la.meleva.fundraiser.participation.purchase.PurchaseOffer;
+import la.meleva.fundraiser.participation.purchase.PurchaseOfferRepository;
 import la.meleva.fundraiser.participation.purchase.PurchaseOfferService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +57,19 @@ class LocalDemoSeed implements ApplicationRunner {
 
     private static final String DEMO_PHONE = "+5511999990000";
     private static final String ORG_NAME = "Organização Demonstração Local";
+    private static final int LOCAL_MAX_NUMBER = 19_999;
+    /** Quantidade → total em centavos: R$ 1,00 por número no combo de 5, com 5%, 13%, 26% e 31% de desconto nos demais. */
+    private static final Map<Integer, Long> COMBOS = orderedCombos();
+
+    private static Map<Integer, Long> orderedCombos() {
+        var combos = new LinkedHashMap<Integer, Long>();
+        combos.put(5, 500L);
+        combos.put(10, 950L);
+        combos.put(100, 8_700L);
+        combos.put(1_000, 74_000L);
+        combos.put(5_000, 345_000L);
+        return combos;
+    }
 
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
@@ -60,6 +82,9 @@ class LocalDemoSeed implements ApplicationRunner {
     private final ParticipationService participationService;
     private final BeneficiaryService beneficiaryService;
     private final PurchaseOfferService purchaseOfferService;
+    private final PurchaseOfferRepository purchaseOfferRepository;
+    private final CampaignNumberRepository campaignNumberRepository;
+    private final JdbcTemplate jdbc;
     private final InitialPrizeLoadService prizeLoadService;
 
     LocalDemoSeed(OrganizationRepository organizationRepository, UserRepository userRepository,
@@ -68,7 +93,12 @@ class LocalDemoSeed implements ApplicationRunner {
                   CampaignAuthorizationRepository authorizationRepository,
                   ApprovalRequestRepository approvalRequestRepository, CampaignService campaignService,
                   ParticipationService participationService, BeneficiaryService beneficiaryService,
-                  PurchaseOfferService purchaseOfferService, InitialPrizeLoadService prizeLoadService) {
+                  PurchaseOfferService purchaseOfferService, PurchaseOfferRepository purchaseOfferRepository,
+                  CampaignNumberRepository campaignNumberRepository, JdbcTemplate jdbc,
+                  InitialPrizeLoadService prizeLoadService) {
+        this.purchaseOfferRepository = purchaseOfferRepository;
+        this.campaignNumberRepository = campaignNumberRepository;
+        this.jdbc = jdbc;
         this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -118,11 +148,15 @@ class LocalDemoSeed implements ApplicationRunner {
     }
 
     private void seedCapitalizationCampaign(Organization organization, Long adminId) {
-        if (campaignRepository.findBySlug("acao-capitalizacao-local").isPresent()) return;
+        var existing = campaignRepository.findBySlug("acao-capitalizacao-local");
+        if (existing.isPresent()) {
+            upgradeToCurrentCombos(existing.get());
+            return;
+        }
 
         var campaign = campaignRepository.save(new Campaign(organization.getId(),
                 "Título de capitalização (local)", "acao-capitalizacao-local", CampaignMode.CAPITALIZATION_PRIZE_TITLE));
-        campaign.setNumberRange(0, 999);
+        campaign.setNumberRange(0, LOCAL_MAX_NUMBER);
         campaignRepository.save(campaign);
         participationService.initializeSeries(campaign.getPublicId());
 
@@ -133,10 +167,8 @@ class LocalDemoSeed implements ApplicationRunner {
 
         beneficiaryService.create(adminId, campaign.getPublicId(), ORG_NAME);
 
-        // Combos: base R$ 1,00/número; 10 com 5% e 100 com 13% de desconto (referência de negócio).
-        purchaseOfferService.create(adminId, campaign.getPublicId(), 1, 100L);
-        purchaseOfferService.create(adminId, campaign.getPublicId(), 10, 950L);
-        purchaseOfferService.create(adminId, campaign.getPublicId(), 100, 8_700L);
+        COMBOS.forEach((quantity, totalCents) ->
+                purchaseOfferService.create(adminId, campaign.getPublicId(), quantity, totalCents));
 
         // Autorização SUSEP (sintética, apenas local) verificada e vigente.
         var authorization = authorizationRepository.save(new CampaignAuthorization(campaign.getId(), "ViaCap",
@@ -153,6 +185,23 @@ class LocalDemoSeed implements ApplicationRunner {
         }
 
         open(adminId, campaign);
+    }
+
+    /** Banco local criado antes dos combos atuais: a campanha já aberta recebe as ofertas e os números que faltam. */
+    private void upgradeToCurrentCombos(Campaign campaign) {
+        var current = purchaseOfferRepository.findByCampaignIdAndActiveTrueOrderByIdAsc(campaign.getId(), PageRequest.of(0, 100));
+        COMBOS.forEach((quantity, totalCents) -> {
+            if (current.stream().noneMatch(offer -> offer.getQuantity() == quantity)) {
+                purchaseOfferRepository.save(new PurchaseOffer(campaign.getId(), quantity, totalCents));
+            }
+        });
+        if (campaign.getNumberMax() >= LOCAL_MAX_NUMBER) return;
+        var missing = new ArrayList<CampaignNumber>();
+        for (int value = campaign.getNumberMax() + 1; value <= LOCAL_MAX_NUMBER; value++) {
+            missing.add(new CampaignNumber(campaign.getId(), "A", value));
+        }
+        campaignNumberRepository.saveAll(missing);
+        jdbc.update("UPDATE campaigns SET number_max = ? WHERE id = ?", LOCAL_MAX_NUMBER, campaign.getId());
     }
 
     private void open(Long adminId, Campaign campaign) {

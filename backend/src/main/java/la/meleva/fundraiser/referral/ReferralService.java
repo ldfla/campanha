@@ -3,6 +3,9 @@ package la.meleva.fundraiser.referral;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -10,6 +13,7 @@ import la.meleva.fundraiser.participation.ParticipationEntry;
 import la.meleva.fundraiser.participation.ParticipationEntryRepository;
 import la.meleva.fundraiser.participation.ParticipationStatus;
 import la.meleva.fundraiser.shared.ErrorCode;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +26,12 @@ public class ReferralService {
     private final ReferralAttributionRepository attributionRepository;
     private final ParticipationEntryRepository entryRepository;
 
+    private final JdbcTemplate jdbc;
+
     ReferralService(ReferralLinkRepository linkRepository, ReferralClickRepository clickRepository,
-                    ReferralAttributionRepository attributionRepository, ParticipationEntryRepository entryRepository) {
+                    ReferralAttributionRepository attributionRepository, ParticipationEntryRepository entryRepository,
+                    JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
         this.linkRepository = linkRepository; this.clickRepository = clickRepository;
         this.attributionRepository = attributionRepository; this.entryRepository = entryRepository;
     }
@@ -57,6 +65,35 @@ public class ReferralService {
                 .filter(link -> link.getCampaignId().equals(campaignId))
                 .filter(link -> promoterHasQuota(campaignId, link.getPromoterUserId()))
                 .map(link -> attributeKnownLink(campaignId, link, entryId));
+    }
+
+    /**
+     * Atribui as entradas de um mesmo pedido a um código já validado uma única vez. Consultar por entrada faria o
+     * Hibernate reavaliar todo o contexto a cada consulta, com custo quadrático em combos grandes.
+     */
+    public void attributeAllIfValid(Long campaignId, String code, Long requestId, List<ParticipationEntry> entries, Instant now) {
+        Objects.requireNonNull(campaignId, "campaignId");
+        Objects.requireNonNull(code, "code");
+        Objects.requireNonNull(requestId, "requestId");
+        Objects.requireNonNull(entries, "entries");
+        Objects.requireNonNull(now, "now");
+        var link = linkRepository.findByCode(code).filter(ReferralLink::isActive)
+                .filter(candidate -> candidate.getCampaignId().equals(campaignId))
+                .filter(candidate -> promoterHasQuota(campaignId, candidate.getPromoterUserId()));
+        if (link.isEmpty()) return;
+        Long linkId = link.get().getId();
+        Long promoterId = link.get().getPromoterUserId();
+        var entryIds = entries.stream().map(ParticipationEntry::getId).toList();
+        if (attributionRepository.existsByCampaignIdAndEntryIdIn(campaignId, entryIds)) throw ErrorCode.REFERRAL_ALREADY_ATTRIBUTED.toException();
+        for (ParticipationEntry entry : entries) {
+            if (!entry.getCampaignId().equals(campaignId) || entry.getStatus() != ParticipationStatus.ASSIGNED) throw ErrorCode.PARTICIPATION_NOT_ELIGIBLE.toException();
+            if (entry.getUserId().equals(promoterId)) throw ErrorCode.REFERRAL_SELF_REFERRAL.toException();
+        }
+        jdbc.update("""
+                INSERT INTO referral_attributions (campaign_id, referral_link_id, referred_user_id, entry_id, status, attributed_at, created_at)
+                SELECT e.campaign_id, ?, e.user_id, e.id, 'ATTRIBUTED', ?, ? FROM participation_entries e
+                WHERE e.request_id = ? AND e.campaign_id = ?""",
+                linkId, LocalDateTime.ofInstant(now, ZoneOffset.UTC), LocalDateTime.ofInstant(now, ZoneOffset.UTC), requestId, campaignId);
     }
 
     /** O divulgador só pode indicar se já tiver ao menos uma cota comprada (entrada elegível) na campanha. */

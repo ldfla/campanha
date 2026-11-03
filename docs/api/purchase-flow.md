@@ -28,10 +28,11 @@ Resposta: `ParticipationAllocation` (inalterada). O voto é persistido uma únic
 
 ## `GET /participations/campaigns/{campaignId}/offers`
 
-Lista as ofertas ativas da campanha com o preço definido no servidor.
+Lista as ofertas ativas da campanha, por quantidade crescente, com preço, valor por número e desconto definidos
+no servidor. O desconto compara com o maior valor por número entre as ofertas ativas.
 
 ```json
-[ { "id": "…uuid…", "quantity": 2, "totalCents": 250, "currency": "BRL" } ]
+[ { "id": "…uuid…", "quantity": 10, "totalCents": 950, "currency": "BRL", "unitCents": 95, "discountPct": 5 } ]
 ```
 
 ## `POST /participations/campaigns/{campaignId}/offers`
@@ -39,10 +40,10 @@ Lista as ofertas ativas da campanha com o preço definido no servidor.
 `CAMPAIGN_MANAGER` ou `SYSTEM_ADMIN`. Só em campanha editável (`DRAFT`…`SCHEDULED`).
 
 ```json
-{ "quantity": 2, "totalCents": 250 }
+{ "quantity": 10, "totalCents": 950 }
 ```
 
-Validação: `quantity` 1..100 e `totalCents` ≥ 1, senão `400`. Fora da janela editável →
+Validação: `quantity` 5..5000 e `totalCents` ≥ 500 (compra mínima de R$ 5,00, D-012), senão `400`. Fora da janela editável →
 `409 CAMPAIGN_NOT_EDITABLE`. Papel insuficiente → `403`.
 
 ## `POST /participations/campaigns/{campaignId}/checkout`

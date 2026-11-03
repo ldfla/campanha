@@ -93,8 +93,10 @@ class PublicCampaignStateIntegrationTest {
 
         mvc.perform(get("/participations/campaigns/{id}/offers", campaign.getPublicId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].quantity").value(1))
-                .andExpect(jsonPath("$[0].totalCents").value(100));
+                .andExpect(jsonPath("$[0].quantity").value(5))
+                .andExpect(jsonPath("$[0].totalCents").value(500))
+                .andExpect(jsonPath("$[0].unitCents").value(100))
+                .andExpect(jsonPath("$[0].discountPct").value(0));
         mvc.perform(get("/participations/campaigns/{id}/beneficiaries", campaign.getPublicId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Entidade pública"));
@@ -123,7 +125,7 @@ class PublicCampaignStateIntegrationTest {
         campaign.setNumberRange(0, capacity - 1);
         Campaign saved = campaigns.save(campaign);
         participations.initializeSeries(saved.getPublicId());
-        offers.save(new PurchaseOffer(saved.getId(), 1, 100));
+        offers.save(new PurchaseOffer(saved.getId(), 5, 500));
         List<CampaignStatus> path = switch (target) {
             case DRAFT -> List.of();
             case OPEN -> List.of(CampaignStatus.LEGAL_REVIEW, CampaignStatus.AUTHORIZED, CampaignStatus.SCHEDULED, CampaignStatus.OPEN);

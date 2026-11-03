@@ -67,7 +67,7 @@ class PurchaseFlowControllerIntegrationTest {
         var buyerSession = login(buyer.phone());
 
         var promoter = users.save(new User("Divulgadora", "Compra", "+5511988880003"));
-        var campaign = draftCampaign(organization, "purchase-flow", 5);
+        var campaign = draftCampaign(organization, "purchase-flow", 10);
         var referralCode = referrals.link(campaign.getId(), promoter.getId()).getCode();
         var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade real"));
 
@@ -76,15 +76,15 @@ class PurchaseFlowControllerIntegrationTest {
 
         // Ofertas com preço do servidor: só o gestor cria; participante recebe 403.
         mvc.perform(post(offersPath, campaign.getPublicId()).cookie(managerSession).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2,\"totalCents\":250}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":5,\"totalCents\":500}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.quantity").value(2))
-                .andExpect(jsonPath("$.totalCents").value(250));
+                .andExpect(jsonPath("$.quantity").value(5))
+                .andExpect(jsonPath("$.totalCents").value(500));
         mvc.perform(post(offersPath, campaign.getPublicId()).cookie(buyerSession).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2,\"totalCents\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":5,\"totalCents\":1}"))
                 .andExpect(status().isForbidden());
         var offers = mvc.perform(get(offersPath, campaign.getPublicId()).cookie(buyerSession))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].totalCents").value(250)).andReturn();
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].totalCents").value(500)).andReturn();
         String offerId = JsonPath.read(offers.getResponse().getContentAsString(), "$[0].id");
 
         open(campaign);
@@ -102,13 +102,13 @@ class PurchaseFlowControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content(checkoutBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.simulation").value(true))
-                .andExpect(jsonPath("$.amountCents").value(250))
-                .andExpect(jsonPath("$.numbers.length()").value(2)).andReturn();
+                .andExpect(jsonPath("$.amountCents").value(500))
+                .andExpect(jsonPath("$.numbers.length()").value(5)).andReturn();
         String requestPublicId = JsonPath.read(started.getResponse().getContentAsString(), "$.requestPublicId");
         String orderPublicId = JsonPath.read(started.getResponse().getContentAsString(), "$.orderPublicId");
 
         // Reserva ainda não atribui números nem pontua indicação.
-        assertThat(countNumbers(campaign.getId(), NumberStatus.RESERVED)).isEqualTo(2);
+        assertThat(countNumbers(campaign.getId(), NumberStatus.RESERVED)).isEqualTo(5);
         assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isZero();
 
         String confirmPath = "/participations/campaigns/{campaignId}/checkout/{requestId}/confirm";
@@ -129,8 +129,8 @@ class PurchaseFlowControllerIntegrationTest {
         mvc.perform(post(confirmPath, campaign.getPublicId(), requestPublicId).cookie(buyerSession).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        assertThat(countNumbers(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(3);
-        assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(2);
+        assertThat(countNumbers(campaign.getId(), NumberStatus.ASSIGNED)).isEqualTo(6);
+        assertThat(referrals.metrics(campaign.getId(), promoter.getId()).participations()).isEqualTo(5);
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM beneficiary_selections WHERE request_id=(SELECT id FROM participation_requests WHERE public_id=?) AND beneficiary_id=?",
                 Long.class, requestPublicId, beneficiary.getId())).isEqualTo(1L);
@@ -147,7 +147,7 @@ class PurchaseFlowControllerIntegrationTest {
 
         var offer = mvc.perform(post("/participations/campaigns/{campaignId}/offers", campaign.getPublicId())
                         .cookie(managerSession).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"quantity\":1,\"totalCents\":65}"))
+                        .content("{\"quantity\":5,\"totalCents\":500}"))
                 .andExpect(status().isCreated()).andReturn();
         String offerId = JsonPath.read(offer.getResponse().getContentAsString(), "$.id");
         var beneficiary = beneficiaries.save(new BeneficiaryEntity(campaign.getId(), "Entidade promo"));

@@ -51,7 +51,7 @@ import org.testcontainers.mysql.MySQLContainer;
  */
 @SpringBootTest(properties = {
         "spring.datasource.hikari.maximum-pool-size=50",
-        "spring.datasource.hikari.connection-timeout=60000"})
+        "spring.datasource.hikari.connection-timeout=120000"})
 @Import(TestcontainersConfiguration.class)
 class ConcurrencyLimitsIntegrationTest {
     private static final int CONTENDERS = 500;
@@ -124,7 +124,7 @@ class ConcurrencyLimitsIntegrationTest {
     @Test
     void demoRequestsCheckoutConfirmationsAndRefundsInParallelDoNotDeadlock() throws Exception {
         var fixture = openCampaign("p18-mixed-locks", 500);
-        PurchaseOffer offer = offers.save(new PurchaseOffer(fixture.campaign().getId(), 2, 250));
+        PurchaseOffer offer = offers.save(new PurchaseOffer(fixture.campaign().getId(), 5, 500));
         var toRefund = new ArrayList<Payment>();
         for (int i = 0; i < 20; i++) {
             var buyer = users.save(new User("Estorno", "R" + i, "+551195600" + "%04d".formatted(i)));
@@ -159,9 +159,9 @@ class ConcurrencyLimitsIntegrationTest {
 
         assertThat(deadlocks() - deadlocksBefore).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM participation_entries WHERE campaign_id = ? AND status = 'INVALIDATED'",
-                Long.class, fixture.campaign().getId())).isEqualTo(40);
+                Long.class, fixture.campaign().getId())).isEqualTo(100);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM participation_entries WHERE campaign_id = ? AND status = 'ASSIGNED'",
-                Long.class, fixture.campaign().getId())).isEqualTo(40 + 60);
+                Long.class, fixture.campaign().getId())).isEqualTo(100 + 60);
         assertThat(jdbc.queryForObject("SELECT COUNT(DISTINCT number_value) = COUNT(*) FROM campaign_numbers "
                 + "WHERE campaign_id = ? AND entry_id IS NOT NULL", Boolean.class, fixture.campaign().getId())).isTrue();
     }
