@@ -64,14 +64,19 @@ services:
     logging: *logging
 
   garage:
-    image: ${GARAGE_IMAGE:-dxflrs/garage:v2.5.0}
+    image: ${GARAGE_IMAGE:?defina GARAGE_IMAGE com uma referência imutável}
     pull_policy: always
     restart: unless-stopped
-    # Nome fixo para o `scripts/s3-init.sh` (init do bucket/chave).
+    # Nome fixo (útil para debug/`s3-init.sh` local).
     container_name: fundraiser-garage
-    command: /garage server
+    # Single-node: com as envs abaixo, o Garage cria layout, chave S3 e bucket automaticamente
+    # (config embutida na imagem — não depende de arquivo no host).
+    command: /garage server --single-node --default-bucket
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: ${APP_STORAGE_S3_ACCESS_KEY:?defina APP_STORAGE_S3_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${APP_STORAGE_S3_SECRET_KEY:?defina APP_STORAGE_S3_SECRET_KEY}
+      GARAGE_DEFAULT_BUCKET: ${APP_STORAGE_S3_BUCKET:-fundraiser-private}
     volumes:
-      - ./infrastructure/garage.toml:/etc/garage.toml:ro
       - garage_data:/var/lib/garage
     read_only: true
     tmpfs:
