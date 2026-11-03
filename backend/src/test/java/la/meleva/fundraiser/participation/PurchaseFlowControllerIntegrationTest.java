@@ -113,7 +113,7 @@ class PurchaseFlowControllerIntegrationTest {
 
         String confirmPath = "/participations/campaigns/{campaignId}/checkout/{requestId}/confirm";
         mvc.perform(post(confirmPath, campaign.getPublicId(), requestPublicId).cookie(buyerSession).with(csrf()))
-                .andExpect(status().isBadGateway());
+                .andExpect(status().isConflict());
 
         // Reconciliação do provedor mock confirma a cobrança e libera a atribuição.
         Long paymentId = jdbc.queryForObject(

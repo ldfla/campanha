@@ -45,7 +45,7 @@ public class ComplianceManagementController {
     public ResponseEntity<Long> createRegulation(@AuthenticationPrincipal AppUserDetails principal,
             @PathVariable String campaignId, @Valid @org.springframework.web.bind.annotation.RequestBody CreateRegulationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(managementService.createRegulation(principal.userId(), campaignId, request.documentSha256(), request.documentUri()).getId());
+                .body(managementService.createRegulation(principal.userId(), campaignId, request.documentSha256(), request.documentUri(), request.surpriseRequired()).getId());
     }
 
     @PostMapping("/authorizations")

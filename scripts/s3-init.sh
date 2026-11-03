@@ -4,7 +4,7 @@
 # A imagem oficial do Garage é distroless (não tem shell), então o init roda no host via
 # `docker exec`. Execute uma vez após subir a stack:
 #
-#   docker compose -f infrastructure/compose.yaml -f infrastructure/compose.s3.yaml up -d
+#   docker compose -f infrastructure/compose.local.yaml -f infrastructure/compose.local.s3.yaml up -d
 #   ./scripts/s3-init.sh
 #
 # Idempotente: pode ser executado mais de uma vez sem efeito colateral.

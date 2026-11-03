@@ -33,6 +33,7 @@ O cadastro inicial deve obrigar a captura do Nome, Sobrenome e Identificador pes
 6. Pode decidir detalhes internos reversíveis e de baixo risco; **não** ative pagamentos, divulgue campanhas, use segredos, realize deploy, envie comunicados reais, altere documentos legais ou execute ações financeiras sem aprovação humana explícita.
 7. Se faltar credencial, autorização ou provedor, **use adaptadores mock/sandbox** e documente o bloqueio. Não paralise todo o trabalho por uma dependência externa; avance em módulos independentes.
 8. Nunca altere status legal diretamente no banco como substituto do fluxo de aprovação do produto.
+9. **Isolamento de escopo (obrigatório e sem exceção):** nenhuma ação pode ler, criar, modificar ou remover **arquivos, dados ou recursos de outros projetos/workspaces**. Isso inclui, explicitamente, volumes, contêineres, imagens e redes do Docker, branches e worktrees do git, arquivos em diretórios temporários ou compartilhados (`/tmp`, diretório-pai do workspace) e chaves em serviços externos que **não** pertençam a este projeto. Toda operação — em especial as **destrutivas** (`rm`, `docker rmi/volume rm/container rm/prune`, `git branch -D`, `git worktree remove`, deleções de dados) — deve ser **restrita ao escopo deste repositório** e a recursos que o agente criou ou que pertencem comprovadamente a ele. Em ambientes compartilhados, **filtre sempre por prefixo/nome do projeto** (ex.: `campanha`, `fundraiser`) antes de qualquer remoção e **nunca** use comandos amplos como `docker volume prune`/`docker system prune` que atinjam recursos alheios. Na **dúvida** sobre a propriedade de um recurso, **não remova**: reporte e peça confirmação.
 
 ## 3. Fluxo obrigatório de trabalho
 
@@ -257,6 +258,7 @@ Falta de gate impede **produção real**, não testes locais e homologação.
 - Não hardcode credenciais, nomes de empresas, CPF, valores de gateway, datas oficiais de extração, certificados ou resultados vencedores reais.
 - Mostre configurações reais em `.env.example`, com valores não sensíveis e seguros para desenvolvimento.
 - Se houver ambiguidade, escolha a alternativa mais segura e reversível, registre-a e continue.
+- **Nunca toque em recursos de outros projetos/workspaces** (arquivos, dados, volumes/contêineres/imagens Docker, branches/worktrees, chaves). Limite toda operação ao escopo deste repositório, filtre por nome/prefixo do projeto e, na dúvida sobre a propriedade, **não remova — pergunte**. Prefira comandos específicos a `prune`/remoções amplas.
 - Ao encerrar a implementação, produza `README.md`, instruções locais testadas, OpenAPI, documentação de infraestrutura, matriz de rastreabilidade e relatório das gates externos. **Não afirmar que houve autorização jurídica.**
 
 ## 12. Referências normativas e técnicas a revisar antes do lançamento

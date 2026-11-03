@@ -122,3 +122,4 @@ export function formatBRL(cents: number): string {
 export function isDemoMode(): boolean {
   return CAMPAIGN_MODE === "DEMO";
 }
+

@@ -1,0 +1,127 @@
+name: images
+
+# Builda as imagens Linux (backend e frontend) e publica no GHCR, para a stack de staging usar
+# referências IMUTÁVEIS (tags `sha-<commit>`). Ver `compose.yaml`.
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/campanha-backend
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          # Servidores VPS normalmente são amd64. Para ARM, acrescente `,linux/arm64`
+          # (e adicione `docker/setup-qemu-action@v3` antes do buildx).
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/campanha-frontend
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          platforms: linux/amd64
+          # `NEXT_PUBLIC_*` é embutido no bundle em tempo de build — defina como variáveis do
+          # repositório (Settings > Variables) o URL público da API desta implantação.
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api' }}
+            NEXT_PUBLIC_CAMPAIGN_ID=${{ vars.NEXT_PUBLIC_CAMPAIGN_ID || 'demo' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  garage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/campanha-garage
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+      - uses: docker/build-push-action@v6
+        with:
+          # Config do Garage embutida (infrastructure/garage.toml) — evita bind mount do repo.
+          context: ./infrastructure
+          file: garage.Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Publica um artefato com as tags imutáveis (para copiar no `.env.staging`).
+  publish-ref:
+    needs: [backend, frontend, garage]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "BACKEND_IMAGE=ghcr.io/${{ github.repository_owner }}/campanha-backend:sha-${GITHUB_SHA}"
+            echo "FRONTEND_IMAGE=ghcr.io/${{ github.repository_owner }}/campanha-frontend:sha-${GITHUB_SHA}"
+            echo "GARAGE_IMAGE=ghcr.io/${{ github.repository_owner }}/campanha-garage:sha-${GITHUB_SHA}"
+          } | tee image-refs.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: image-refs
+          path: image-refs.txt

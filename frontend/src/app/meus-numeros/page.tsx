@@ -156,8 +156,15 @@ export default function MeusNumerosPage() {
                           <span className="font-mono text-lg font-bold text-[var(--color-midnight)] tabular-nums tracking-wider">
                             {n.formattedNumber}
                           </span>
-                          <span className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full ${status.color}`}>
-                            {status.text}
+                          <span className="flex items-center gap-2">
+                            {n.prizeCents > 0 && (
+                              <span className="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                                🎉 Prêmio {formatBRL(n.prizeCents)}
+                              </span>
+                            )}
+                            <span className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full ${status.color}`}>
+                              {status.text}
+                            </span>
                           </span>
                         </div>
                       );

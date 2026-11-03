@@ -65,6 +65,26 @@ Uma tarefa só pode ser marcada concluída se tiver implementação funcional (n
   `docs/operations/object-storage.md`; init por `scripts/s3-init.sh`.
 - **Limpeza:** branches órfãos removidos; prompts `CODEX*.md` (obsoletos) e `.claude/` removidos.
 
+### Rodada de segurança e deploy (2026-11-01)
+- **SEC-0002** (revelação DEMO) — **CLOSED**: reteste independente pela API e com **vínculo revogado**.
+- **SEC-0003** (abertura sem prova de compromisso) — **CLOSED**: requisito **derivado do regulamento**,
+  **gate no domínio** (`Campaign.transitionTo`) e **prova de publicação** (`surprise_commitment_published_at`,
+  migração `V023`); testes de HTTP e concorrência. Detalhes em `docs/security/SECURITY-FINDINGS.md`.
+- **Backend:** `./mvnw -B verify` → **230 testes, 0 falhas**.
+- **Deploy (P19 mínimo):** `backend/Dockerfile` e `frontend/Dockerfile` (Next `standalone`),
+  `infrastructure/compose.staging.yaml` (backend+frontend+MySQL+Garage+**Cloudflare Tunnel**),
+  perfil `staging`, `README.md`, `docs/operations/deploy-staging.md` e `.env.staging.example`.
+
+### Finalização SEC-0006 e P20 (2026-11-01)
+- **SEC-0006** — **CLOSED**: revelação DEMO exige **duas revisões independentes registradas**
+  (`federal_result_reviews`) + **hash da fonte**, não apenas a flag `verified_by_two`.
+- **P20 (Fase 2)** — achados remanescentes fechados:
+  - **F11**: atribuição **aleatória/equitativa** (`NumberAllocator`, início `SecureRandom` + varredura circular).
+  - **F16**: CTA decidido por **capabilities do servidor** (`campaignAllowsParticipation`); residual em textos de marketing.
+  - **F17**: pagamento não conciliado → **409** (`PAYMENT_NOT_RECONCILED`); 502 só para erro real do provedor.
+  - **F20**: API de pedidos não expõe mais o `paymentId` interno (`OrderView`).
+  - Relatório: `docs/security/red-team/P20-findings.md` (Fase 2).
+
 ---
 
 # 1. Visão do produto e especificação comercial de referência
@@ -882,14 +902,14 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P18.  
 **Entregáveis:** infraestrutura reproduzível e runbooks.
 
-- [ ] `P19-01` Dockerfiles multi-stage e non-root, Compose local/staging/prod separados por perfis.
-- [ ] `P19-02` TLS, headers, certificados, rede segregada, backup automático e storage privado.
-- [ ] `P19-03` Healthcheck, métricas e alertas para erros, filas, duplicidade e conciliação.
+- [x] `P19-01` Dockerfiles multi-stage e non-root, Compose local/staging/prod separados por perfis. `backend/Dockerfile` e `frontend/Dockerfile` (Next `standalone`); imagens buildadas/published no GHCR (`.github/workflows/images.yml`); `infrastructure/compose.staging.yaml` endurecida (imagens imutáveis) + `compose.build.yaml` local.
+- [ ] `P19-02` TLS, headers, certificados, rede segregada, backup automático e storage privado. **PARCIAL**: rede interna sem portas publicadas + Cloudflare Tunnel; storage privado S3 (Garage); backup manual documentado — falta automação/agendamento.
+- [ ] `P19-03` Healthcheck, métricas e alertas para erros, filas, duplicidade e conciliação. **PARCIAL**: healthcheck do Docker em `/api/actuator/health`; alertas ainda ausentes.
 - [ ] `P19-04` Dashboards de disponibilidade, latência, falhas de PSP e alteração de autorização.
-- [ ] `P19-05` Runbooks deploy/rollback/restore/rotação de chaves/incidente/apuração contestada.
+- [x] `P19-05` Runbooks deploy/rollback/restore/rotação de chaves/incidente/apuração contestada. `docs/operations/deploy-staging.md` (+ `backup-restore.md`, `incident-response.md`).
 - [ ] `P19-06` Teste de mudança de configuração para ver se gates continuam bloqueando LIVE.
-- [ ] `P19-07` Processo de migrações backward-compatible e checagem de integridade pré-release.
-- [ ] `P19-08` Preparar ambiente de produção sem ativar campanhas reais, cobrança ou comunicação externa.
+- [ ] `P19-07` Processo de migrações backward-compatible e checagem de integridade pré-release. **PARCIAL**: Flyway forward-only e backup pré-deploy documentados.
+- [x] `P19-08` Preparar ambiente de produção sem ativar campanhas reais, cobrança ou comunicação externa. Perfil `staging` (`LIVE_OPERATIONS_ENABLED=false`, pagamento mock, `cookie.secure`, `forward-headers`).
 
 **Aceite:** execução replicável no ambiente documentado, operação bloqueada até aprovações.
 
@@ -898,14 +918,14 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P00–P19.  
 **Entregáveis:** release candidate técnico em DEMO com evidências.
 
-- [ ] `P20-01` Rodar suíte completa (backend, frontend, E2E, carga e scanners permitidos).
-- [ ] `P20-02` Gerar OpenAPI final, diagramas C4, ERD, ADRs e matriz de rastreabilidade.
-- [ ] `P20-03` Criar README com instalação testada, modo DEMO e comandos operacionais.
+- [ ] `P20-01` Rodar suíte completa (backend, frontend, E2E, carga e scanners permitidos). **PARCIAL**: backend `./mvnw -B verify` e frontend (`lint`/`typecheck`/`build`) verdes; E2E (P17) e scanners externos pendentes.
+- [ ] `P20-02` Gerar OpenAPI final, diagramas C4, ERD, ADRs e matriz de rastreabilidade. **PARCIAL**: ADRs e OpenAPI existentes; ERD/C4/matriz pendentes.
+- [x] `P20-03` Criar README com instalação testada, modo DEMO e comandos operacionais. `README.md` (raiz) + `docs/operations/local-mvp.md` + `docs/operations/deploy-staging.md`.
 - [ ] `P20-04` Revisar LGPD, políticas de retenção, banners, acessibilidade e privacidade.
 - [ ] `P20-05` Revalidar que cobrança Pix e publicações reais seguem desativadas sem gates. **PARCIAL (P20)**: participação gratuita fora de DEMO → 403 e pedido com valor do cliente → 403 (re-teste ao vivo), adaptadores DEMO recusam `LIVE_OPERATIONS_ENABLED=true`; falta o teste de configuração alterada (P19-06) e publicações.
 - [ ] `P20-06` Verificar entrega do kit e fotos como dados reais somente com documentação legítima.
 - [x] `P20-07` Publicar checklist das aprovações humanas pendentes (`G-LEGAL`, etc.). `docs/compliance/gates-checklist.md` (nenhum gate marcado; evidência em `docs/progress/P20.md`).
-- [ ] `P20-08` Entregar relatório final de cobertura, performance, segurança, pendências e limitações.
+- [x] `P20-08` Entregar relatório final de cobertura, performance, segurança, pendências e limitações. `docs/security/red-team/P20-findings.md` (Fase 1 + **Fase 2**: F11/F16/F17/F20 fechados) e `docs/security/SECURITY-FINDINGS.md` (SEC-0002/0003/0006 fechados).
 
 **Aceite:** release candidate técnico testável em DEMO; nenhum lançamento ao público ou movimentação de dinheiro presumidos.
 

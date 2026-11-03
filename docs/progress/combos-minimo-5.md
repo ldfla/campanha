@@ -5,7 +5,7 @@
 
 - **Tarefas concluídas e arquivos alterados:**
   - Ofertas de 5 (R$ 5,00), 10 (R$ 9,50, 5%), 100 (R$ 87,00, 13%), 1.000 (R$ 740,00, 26%) e 5.000 (R$ 3.450,00, 31%).
-  - Mínimo de 5 números e R$ 5,00, máximo de 5.000: `PurchaseOffer`, `PurchaseOfferService` e migração `V024`.
+  - Mínimo de 5 números e R$ 5,00, máximo de 5.000: `PurchaseOffer`, `PurchaseOfferService` e migração `V025`.
     Ofertas antigas abaixo do mínimo ficam inativas, sem apagar histórico.
   - `GET .../offers` passa a devolver `unitCents` e `discountPct`, por quantidade crescente; `GET /campaigns/public/{id}`
     devolve `entryPriceCents`. `ComboCards`, CTAs e texto de indicação consomem esses valores; `PRICE_UNIT_CENTS` removido.
@@ -44,7 +44,7 @@
 
   Cobertura JaCoCo não medida.
 
-- **Contratos/ADRs/migrações alterados:** migração `V024`; campos novos em ofertas e no estado público; `quantity` 5..5000 e
+- **Contratos/ADRs/migrações alterados:** migração `V025`; campos novos em ofertas e no estado público; `quantity` 5..5000 e
   `totalCents` ≥ 500 na criação de oferta; propriedades `hibernate.jdbc.batch_size=100` e `order_updates=true`; D-012.
 
 - **Riscos, limitações e bloqueios:**

@@ -1,0 +1,18 @@
+# Override para BUILDAR as imagens localmente (dev/homologação), sem o registry.
+# A stack base (`compose.yaml`) usa imagens imutáveis; aqui adicionamos `build:`.
+#
+#   docker compose --env-file .env.staging -f compose.yaml -f compose.build.yaml up -d --build
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-fundraiser-backend:local}
+    build:
+      context: ./backend
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-fundraiser-frontend:local}
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+        NEXT_PUBLIC_CAMPAIGN_ID: ${NEXT_PUBLIC_CAMPAIGN_ID:-demo}

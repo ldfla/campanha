@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * locais e recusa iniciar com operação real habilitada (falha fechada).
  */
 @Component
-@Profile({"default", "local", "test"})
+@Profile({"default", "local", "staging", "test"})
 class DemoMfaCodeVerifier implements MfaCodeVerifier {
     private static final byte[] DEMO_CODE = "000000".getBytes(StandardCharsets.US_ASCII);
 

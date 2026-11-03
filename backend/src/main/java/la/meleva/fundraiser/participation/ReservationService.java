@@ -48,6 +48,7 @@ public class ReservationService {
     private final BeneficiarySelectionRepository selections;
     private final AuthorizationService authorizations;
     private final JdbcTemplate jdbc;
+    private final NumberAllocator numberAllocator;
 
     @Autowired
     public ReservationService(CampaignRepository campaigns, CampaignNumberRepository numbers,
@@ -55,8 +56,8 @@ public class ReservationService {
                               ReservationLeaseRepository leases, UserRepository users,
                               OutboxEventRepository outbox, EntityManager entityManager,
                               BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections,
-                              AuthorizationService authorizations, JdbcTemplate jdbc) {
-        this(campaigns, numbers, requests, entries, leases, users, outbox, entityManager, beneficiaries, selections, authorizations, jdbc, Clock.systemUTC());
+                              AuthorizationService authorizations, JdbcTemplate jdbc, NumberAllocator numberAllocator) {
+        this(campaigns, numbers, requests, entries, leases, users, outbox, entityManager, beneficiaries, selections, authorizations, jdbc, numberAllocator, Clock.systemUTC());
     }
 
     ReservationService(CampaignRepository campaigns, CampaignNumberRepository numbers,
@@ -64,7 +65,7 @@ public class ReservationService {
                        ReservationLeaseRepository leases, UserRepository users,
                        OutboxEventRepository outbox, EntityManager entityManager,
                        BeneficiaryRepository beneficiaries, BeneficiarySelectionRepository selections,
-                       AuthorizationService authorizations, JdbcTemplate jdbc, Clock clock) {
+                       AuthorizationService authorizations, JdbcTemplate jdbc, NumberAllocator numberAllocator, Clock clock) {
         this.campaigns = campaigns; this.numbers = numbers; this.requests = requests; this.entries = entries;
         this.leases = leases; this.users = users; this.outbox = outbox; this.entityManager = entityManager;
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -72,6 +73,7 @@ public class ReservationService {
         this.selections = Objects.requireNonNull(selections, "selections");
         this.authorizations = Objects.requireNonNull(authorizations, "authorizations");
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+        this.numberAllocator = Objects.requireNonNull(numberAllocator, "numberAllocator");
     }
 
     @Transactional
@@ -115,7 +117,7 @@ public class ReservationService {
         long current = entries.countByCampaignIdAndUserIdAndStatusNotIn(campaign.getId(), userId,
                 List.of(ParticipationStatus.REJECTED, ParticipationStatus.INVALIDATED));
         if (current + count > campaign.getMaxEntriesPerUser()) throw ErrorCode.PARTICIPATION_LIMIT_EXCEEDED.toException();
-        var available = numbers.lockAvailableByCampaignId(campaign.getId(), PageRequest.of(0, count));
+        var available = numberAllocator.lockAvailable(campaign, count);
         if (available.size() != count) throw ErrorCode.NUMBER_POOL_EXHAUSTED.toException();
         var request = requests.saveAndFlush(new ParticipationRequest(campaign.getId(), userId, key, count));
         selections.save(new BeneficiarySelection(request.getId(), beneficiary.getId()));

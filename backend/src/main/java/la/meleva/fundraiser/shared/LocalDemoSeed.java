@@ -26,6 +26,7 @@ import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.participation.CampaignNumber;
 import la.meleva.fundraiser.participation.CampaignNumberRepository;
+import la.meleva.fundraiser.participation.InitialPrizeLoadService;
 import la.meleva.fundraiser.participation.ParticipationService;
 import la.meleva.fundraiser.participation.beneficiary.BeneficiaryService;
 import la.meleva.fundraiser.participation.purchase.PurchaseOffer;
@@ -51,7 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
  * O seed é idempotente por slug.
  */
 @Component
-@Profile("local")
+@Profile({"local", "staging"})
 class LocalDemoSeed implements ApplicationRunner {
 
     private static final String DEMO_PHONE = "+5511999990000";
@@ -84,6 +85,7 @@ class LocalDemoSeed implements ApplicationRunner {
     private final PurchaseOfferRepository purchaseOfferRepository;
     private final CampaignNumberRepository campaignNumberRepository;
     private final JdbcTemplate jdbc;
+    private final InitialPrizeLoadService prizeLoadService;
 
     LocalDemoSeed(OrganizationRepository organizationRepository, UserRepository userRepository,
                   MembershipRepository membershipRepository, CampaignRepository campaignRepository,
@@ -92,7 +94,8 @@ class LocalDemoSeed implements ApplicationRunner {
                   ApprovalRequestRepository approvalRequestRepository, CampaignService campaignService,
                   ParticipationService participationService, BeneficiaryService beneficiaryService,
                   PurchaseOfferService purchaseOfferService, PurchaseOfferRepository purchaseOfferRepository,
-                  CampaignNumberRepository campaignNumberRepository, JdbcTemplate jdbc) {
+                  CampaignNumberRepository campaignNumberRepository, JdbcTemplate jdbc,
+                  InitialPrizeLoadService prizeLoadService) {
         this.purchaseOfferRepository = purchaseOfferRepository;
         this.campaignNumberRepository = campaignNumberRepository;
         this.jdbc = jdbc;
@@ -107,6 +110,7 @@ class LocalDemoSeed implements ApplicationRunner {
         this.participationService = participationService;
         this.beneficiaryService = beneficiaryService;
         this.purchaseOfferService = purchaseOfferService;
+        this.prizeLoadService = prizeLoadService;
     }
 
     @Override
@@ -136,6 +140,9 @@ class LocalDemoSeed implements ApplicationRunner {
         beneficiaryService.create(adminId, campaign.getPublicId(), ORG_NAME);
         campaignPrizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS,
                 "Item sintético para desenvolvimento local", 0L, 1, 0));
+
+        // Carga inicial de prêmios-surpresa (10 de R$ 100 + 100 de R$ 10) antes de abrir.
+        prizeLoadService.load(adminId, campaign.getPublicId());
 
         open(adminId, campaign);
     }

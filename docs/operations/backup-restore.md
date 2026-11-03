@@ -2,7 +2,7 @@
 
 > Procedimento operacional. A **execução** de backup/restauração em produção depende do `G-OPERATIONS`.
 > Localmente, o banco de testes é efêmero (Testcontainers); o ensaio de restauração usa o MySQL do
-> `infrastructure/compose.yaml`.
+> `infrastructure/compose.local.yaml`.
 
 ## Backup
 ```
@@ -19,7 +19,7 @@ DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=fundraiser DB_USER=fundraiser \
   na linha de comando e no histórico; sem ele a senha é pedida no terminal.
 
 ## Restauração
-1. Subir um MySQL limpo: `docker compose -f infrastructure/compose.yaml up -d mysql`.
+1. Subir um MySQL limpo: `docker compose -f infrastructure/compose.local.yaml up -d mysql`.
 2. Conferir o dump contra o hash guardado offline:
    `./scripts/backup-mysql.sh verify /var/backups/fundraiser-YYYY-MM-DD.sql`.
 3. `DB_NAME=fundraiser_restore ./scripts/backup-mysql.sh restore /var/backups/fundraiser-YYYY-MM-DD.sql`
