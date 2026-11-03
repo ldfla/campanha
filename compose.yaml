@@ -1,0 +1,7 @@
+# Entrypoint de stack para gerenciadores que procuram um compose na raiz do repositório
+# (ex.: Dockhand, Dokploy, Coolify). A definição real está em infrastructure/compose.staging.yaml.
+#
+# Variáveis de ambiente: veja `.env.staging.example` (copie para o env do stack no Dockhand).
+name: fundraiser-staging
+include:
+  - path: infrastructure/compose.staging.yaml

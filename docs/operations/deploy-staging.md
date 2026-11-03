@@ -9,6 +9,26 @@
 - Domínio na Cloudflare e um **Cloudflare Tunnel** (Zero Trust → Networks → Tunnels) com token.
 - Porta de saída liberada para o Cloudflare (não é preciso abrir portas de entrada).
 
+## Arquivos da stack (onde está o quê)
+- **`compose.yaml`** (raiz) — entrypoint para gerenciadores de stack que procuram um compose na raiz
+  (ex.: **Dockhand**, Dokploy, Coolify). Usa `include` e aponta para a definição real.
+- **`infrastructure/compose.staging.yaml`** — definição da stack: `mysql`, `garage` (S3), `backend`,
+  `frontend` e `cloudflared` (túnel Cloudflare). Nenhuma porta é publicada no host.
+- **`backend/Dockerfile`** e **`frontend/Dockerfile`** — imagens que a stack builda (multi-stage,
+  non-root; o frontend em `output: "standalone"`).
+- **`.env.staging.example`** — variáveis/segredos da stack. **`scripts/s3-init.sh`** — cria bucket/chave
+  do object storage. **`docs/operations/object-storage.md`** — storage.
+
+## Dockhand (stack)
+1. Crie um stack a partir deste repositório e aponte o **compose path** para **`compose.yaml`** (raiz)
+   — ou, se preferir, para `infrastructure/compose.staging.yaml`.
+2. Cole as variáveis de `.env.staging.example` no **ambiente** do stack (ou aponte o env-file).
+3. Faça o deploy (a stack builda `backend`/`frontend` das Dockerfiles e sobe tudo).
+4. Rode o init do object storage uma vez (via terminal do host ou Web Console):
+   `GARAGE_CONTAINER=fundraiser-staging-garage ./scripts/s3-init.sh`.
+5. No painel da Cloudflare, aponte o hostname do app → `http://frontend:3000` e o da API → `http://backend:8080`.
+
+
 ## 1. Provisionar segredos
 ```bash
 cp .env.staging.example .env.staging
