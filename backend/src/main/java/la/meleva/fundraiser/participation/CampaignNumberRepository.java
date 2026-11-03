@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 
 public interface CampaignNumberRepository extends JpaRepository<CampaignNumber, Long> {
@@ -19,13 +21,10 @@ public interface CampaignNumberRepository extends JpaRepository<CampaignNumber, 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' order by n.numberValue asc")
-    List<CampaignNumber> lockAvailableByCampaignId(Long campaignId, org.springframework.data.domain.Pageable pageable);
+    List<CampaignNumber> lockAvailableByCampaignId(Long campaignId, Pageable pageable);
 
+    /** Trava um conjunto de valores candidatos distintos (sorteio uniforme) que ainda estejam disponíveis. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' and n.numberValue >= :start order by n.numberValue asc")
-    List<CampaignNumber> lockAvailableFrom(Long campaignId, int start, org.springframework.data.domain.Pageable pageable);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' and n.numberValue < :start order by n.numberValue asc")
-    List<CampaignNumber> lockAvailableBelow(Long campaignId, int start, org.springframework.data.domain.Pageable pageable);
+    @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' and n.numberValue in :values order by n.numberValue asc")
+    List<CampaignNumber> lockAvailableByValues(Long campaignId, Collection<Integer> values);
 }

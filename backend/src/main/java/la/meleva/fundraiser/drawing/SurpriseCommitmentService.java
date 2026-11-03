@@ -5,8 +5,11 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
+import la.meleva.fundraiser.campaign.Campaign;
+import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
 import la.meleva.fundraiser.campaign.CampaignStatus;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import la.meleva.fundraiser.identity.Membership;
 import la.meleva.fundraiser.identity.MembershipRepository;
 import la.meleva.fundraiser.identity.UserRole;
@@ -27,11 +30,12 @@ public class SurpriseCommitmentService {
     private final SurpriseRevealApprovalRepository approvals;
     private final JdbcTemplate jdbc;
     private final String encodedKey;
+    private final AuthorizationService authorizations;
     private final SecureRandom random = new SecureRandom();
 
-    public SurpriseCommitmentService(CampaignRepository campaigns, SurpriseCommitmentRepository commitments, MembershipRepository memberships, UserRepository users, AuditEventRepository audits, SurpriseRevealApprovalRepository approvals, JdbcTemplate jdbc,
+    public SurpriseCommitmentService(CampaignRepository campaigns, SurpriseCommitmentRepository commitments, MembershipRepository memberships, UserRepository users, AuditEventRepository audits, SurpriseRevealApprovalRepository approvals, JdbcTemplate jdbc, AuthorizationService authorizations,
             @Value("${app.surprise.encryption-key:}") String encodedKey) {
-        this.campaigns=campaigns; this.commitments=commitments; this.memberships=memberships; this.users=users; this.audits=audits; this.approvals=approvals; this.jdbc=jdbc; this.encodedKey=encodedKey;
+        this.campaigns=campaigns; this.commitments=commitments; this.memberships=memberships; this.users=users; this.audits=audits; this.approvals=approvals; this.jdbc=jdbc; this.encodedKey=encodedKey; this.authorizations=authorizations;
     }
 
     @Transactional
@@ -55,7 +59,7 @@ public class SurpriseCommitmentService {
     public void approveReveal(Long actorId,String campaignId,SurpriseRevealApproval.ApprovalRole role) {
         java.util.Objects.requireNonNull(role,"role");
         var campaign=campaigns.findLockedByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
-        if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        requireModeAuthorized(campaign);
         if(campaign.getStatus()!=CampaignStatus.DRAWN && campaign.getStatus()!=CampaignStatus.AWARDS_PENDING && campaign.getStatus()!=CampaignStatus.CLOSED) throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
         requireMembership(actorId,campaign.getOrganizationId(),UserRole.valueOf(role.name()));
         requirePublishedEvidence(campaign.getId());
@@ -75,7 +79,7 @@ public class SurpriseCommitmentService {
     public void enable(Long actorId,String campaignId) {
         var campaign=campaigns.findLockedByPublicId(campaignId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
         requireMembership(actorId,campaign.getOrganizationId(),UserRole.CAMPAIGN_MANAGER,UserRole.SYSTEM_ADMIN);
-        if(!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        requireModeAuthorized(campaign);
         if(!campaign.isSurpriseEnabled()) {
             campaign.enableSurprise();
             try { var hash=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((campaignId+":SURPRISE_ENABLED").getBytes(StandardCharsets.UTF_8))); audits.save(new AuditEvent(actorId,"SURPRISE_ENABLED","campaign",campaign.getId(),hash)); }
@@ -121,6 +125,18 @@ public class SurpriseCommitmentService {
     private PublishedCommitment publishedView(SurpriseCommitment commitment,String campaignId) {
         if(commitment.getProofNumberMin()==null || commitment.getProofNumberMax()==null || commitment.getProofRegulationVersion()==null) throw ErrorCode.DRAW_SURPRISE_COMMITMENT_FAILED.toException();
         return new PublishedCommitment(commitment.getCommitmentSha256(),new SurpriseProof.Context(campaignId,commitment.getRuleVersion(),commitment.getProofRegulationVersion(),commitment.getProofNumberMin(),commitment.getProofNumberMax(),commitment.getCommittedAt()),SurpriseProof.DEMO_RELEASE_POLICY,true);
+    }
+
+    /**
+     * ADR-0007: DEMO sempre opera; o título de capitalização premiável só com autorização SUSEP
+     * verificada e vigente (fail-closed). Nunca liberar por um simples flag/modo.
+     */
+    private void requireModeAuthorized(Campaign campaign) {
+        if (!campaign.getMode().isDemo()
+                && (campaign.getMode() != CampaignMode.CAPITALIZATION_PRIZE_TITLE
+                    || !authorizations.hasEffectiveAuthorization(campaign.getId()))) {
+            throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        }
     }
 
     private void requireMembership(Long actorId,Long organizationId,UserRole... roles) {

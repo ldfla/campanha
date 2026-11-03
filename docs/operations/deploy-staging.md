@@ -6,8 +6,9 @@
 
 ## Arquivos da stack (onde está o quê)
 - **`compose.yaml`** (raiz) — **stack completa e autocontida** (é o arquivo que o Dockhand usa):
-  `mysql`, `garage` (S3), `backend`, `frontend`, `cloudflared`. Imagens imutáveis, endurecida;
-  nenhuma porta publicada no host.
+  `mysql`, `garage` (S3), `fundraiser-backend`, `fundraiser-frontend` e `cloudflared` (opcional,
+  profile `tunnel`). Imagens imutáveis, endurecida; o backend e o frontend são publicados **só no
+  loopback** (`127.0.0.1:8080`/`127.0.0.1:3000`) para um túnel **externo** alcançá-los.
 - **`compose.build.yaml`** (raiz) — *override opcional* para buildar as imagens localmente.
 - **`infrastructure/compose.local.yaml`** — compose **local de desenvolvimento** (MySQL + Mailpit);
   o backend/frontend locais rodam via `./mvnw` e `npm`.
@@ -42,8 +43,9 @@ openssl rand -base64 32   # SURPRISE_ENCRYPTION_KEY
 openssl rand -base64 32   # APP_CPF_ENCRYPTION_KEY
 openssl rand -base64 32   # APP_CPF_HMAC_KEY
 ```
-Preencha também `BACKEND_IMAGE`, `FRONTEND_IMAGE` (tags `sha-...`), `DB_ROOT_PASSWORD`, `DB_PASSWORD`,
-`CLOUDFLARE_TUNNEL_TOKEN` e `APP_STORAGE_S3_ACCESS_KEY`/`APP_STORAGE_S3_SECRET_KEY`.
+Preencha também `BACKEND_IMAGE`, `FRONTEND_IMAGE` (tags `sha-...`), `DB_ROOT_PASSWORD`, `DB_PASSWORD`
+e `APP_STORAGE_S3_ACCESS_KEY`/`APP_STORAGE_S3_SECRET_KEY`. `CLOUDFLARE_TUNNEL_TOKEN` só é necessário
+se você usar o `cloudflared` embutido (`--profile tunnel`).
 O `.env.staging` está no `.gitignore`.
 
 ## 3. Subir a stack
@@ -54,9 +56,9 @@ O `.env.staging` está no `.gitignore`.
 ```bash
 docker compose --env-file .env.staging -f compose.yaml up -d
 ```
-Serviços: `mysql`, `garage`, `backend`, `frontend`, `cloudflared` — todos endurecidos
+Serviços: `mysql`, `garage`, `fundraiser-backend`, `fundraiser-frontend` — endurecidos
 (`read_only`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit`/`cpus`/`pids_limit`, logging rotativo,
-redes `edge`/`data` separadas).
+redes `edge`/`data` separadas). O `cloudflared` é opcional: `... up -d --profile tunnel`.
 
 > **Build local (sem GHCR):** `docker compose --env-file .env.staging -f compose.yaml -f compose.build.yaml up -d --build`.
 
@@ -67,9 +69,18 @@ O serviço `garage` sobe em modo **single-node** (`--single-node --default-bucke
 **Não é preciso rodar `s3-init.sh` no servidor** (esse script é só para o compose local).
 
 ## 5. Publicar no Cloudflare Tunnel
-No painel da Cloudflare (túnel gerenciado), aponte as rotas de ingress:
-- hostname do app → `http://frontend:3000`
-- hostname da API  → `http://backend:8080`  (o backend usa context-path `/api`)
+Se você usa um **cloudflared externo** (fora desta stack — caso comum, um túnel para vários
+serviços), aponte as rotas de ingress para o **loopback do host**:
+- hostname do app → `http://127.0.0.1:3000`
+- hostname da API  → `http://127.0.0.1:8080`  (o backend usa context-path `/api`)
+
+> Um cloudflared **em container** só alcança esse loopback se estiver em `network_mode: host` (ou for
+> um processo no host). Se o seu túnel for um container em rede **bridge**, use uma **rede Docker
+> externa** compartilhada e aponte para `http://fundraiser-backend:8080` /
+> `http://fundraiser-frontend:3000`.
+>
+> Se usar o `cloudflared` **embutido** (`--profile tunnel`), aponte para os nomes de serviço
+> (`http://fundraiser-frontend:3000`, `http://fundraiser-backend:8080`).
 
 O URL público da API vai no **build** do frontend (`NEXT_PUBLIC_API_URL`). Ao mudar, atualize a
 variável do repositório e rode o workflow de imagens de novo.

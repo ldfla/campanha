@@ -31,7 +31,7 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 - Pré-condições: campanha fictícia com prêmios-surpresa e sem compromisso criada antes da abertura.
 - Reprodução sugerida: tentar abrir campanha DEMO sem compromisso e observar resultado; repetir com compromisso publicado.
 - Observado na análise estática: a abertura não exige compromisso e sua criação só ocorre em `DRAFT`. Esperado: impedir abertura quando o regulamento exige surpresa sem compromisso anterior.
-- Impacto: falta de prova de fixação prévia. Mitigação parcial: marcação explícita de surpresa e bloqueio de saída de rascunho/agendamento/abertura sem compromisso. Reteste independente em 31/10/2026 confirmou os caminhos direto negativo e positivo em MySQL 8.4. O finding permanece OPEN: a marcação não é derivada do regulamento, a publicação externa não foi comprovada e a entidade expõe transição interna sem gate. Não foi testada concorrência ou via HTTP nesta rodada.
+- Impacto: falta de prova de fixação prévia. Correção (ver “Reteste SEC-0003”): a surpresa passa a ser **derivada do regulamento** (`campaign_regulations.surprise_required`), a entidade `Campaign` recusa `LEGAL_REVIEW`/`SCHEDULED`/`OPEN` sem compromisso **publicado** (gate no domínio, sem atalho pela entidade) e o caminho via **HTTP** foi retestado, inclusive **concorrência** (8 commits → 1 publicação). Não é tecnicamente possível provar **publicação externa** (espelhos/terceiros).
 
 ## SEC-0004 — Hash sem vínculo ao contexto da campanha
 

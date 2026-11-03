@@ -4,10 +4,16 @@ on:
   push:
     paths:
       - "backend/**"
+      - "infrastructure/**"
+      - "compose.yaml"
+      - "compose.build.yaml"
       - ".github/workflows/backend.yml"
   pull_request:
     paths:
       - "backend/**"
+      - "infrastructure/**"
+      - "compose.yaml"
+      - "compose.build.yaml"
       - ".github/workflows/backend.yml"
 
 jobs:

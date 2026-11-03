@@ -53,8 +53,10 @@
   - Fluxo de 5.000 pela interface não testado no E2E; coberto no serviço. Combo de 1.000 não medido à parte.
   - `frontend/src/app/regulamento/page.tsx` continua dizendo "Cada número custa R$ 1,00". Não alterado: documento legal
     depende de aprovação humana.
-  - A reserva pega os menores números disponíveis (`order by numberValue`), mas o regulamento fala em atribuição aleatória.
-    Comportamento anterior a esta mudança, mais visível em combos grandes. Não alterado.
+  - ~~A reserva pega os menores números disponíveis (`order by numberValue`)~~ **Corrigido**: a reserva passou a
+    sortear **uniformemente** entre os disponíveis (`NumberAllocator.distinctCandidates` + `lockAvailableByValues`),
+    com a exclusividade garantida pela trava da campanha (100+ reservas concorrentes sem duplicidade, coberto por
+    `ReservationServiceIntegrationTest.oneHundredConcurrentReservationsHaveNoDuplicateNumbers`).
   - Limite de 10.000 números por participante é escolha reversível, a confirmar.
   - `docs/compliance/gates-*` seguem com os valores registrados pelos gates (R$ 1,00 e R$ 0,56).
 

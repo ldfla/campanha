@@ -19,7 +19,9 @@ import java.util.Set;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
 import la.meleva.fundraiser.campaign.Campaign;
+import la.meleva.fundraiser.campaign.CampaignMode;
 import la.meleva.fundraiser.campaign.CampaignRepository;
+import la.meleva.fundraiser.compliance.AuthorizationService;
 import la.meleva.fundraiser.identity.MembershipRepository;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
@@ -60,27 +62,36 @@ public class InitialPrizeLoadService {
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final SecureRandom random;
+    private final AuthorizationService authorizations;
 
     @Autowired
     public InitialPrizeLoadService(CampaignRepository campaigns, CampaignNumberRepository numbers,
                                    CampaignPrizeLoadRepository loads, MembershipRepository memberships,
-                                   UserRepository users, AuditEventRepository audits, JdbcTemplate jdbc) {
-        this(campaigns, numbers, loads, memberships, users, audits, jdbc, Clock.systemUTC(), new SecureRandom());
+                                   UserRepository users, AuditEventRepository audits, JdbcTemplate jdbc,
+                                   AuthorizationService authorizations) {
+        this(campaigns, numbers, loads, memberships, users, audits, jdbc, authorizations, Clock.systemUTC(), new SecureRandom());
     }
 
     InitialPrizeLoadService(CampaignRepository campaigns, CampaignNumberRepository numbers,
                             CampaignPrizeLoadRepository loads, MembershipRepository memberships,
                             UserRepository users, AuditEventRepository audits, JdbcTemplate jdbc,
-                            Clock clock, SecureRandom random) {
+                            AuthorizationService authorizations, Clock clock, SecureRandom random) {
         this.campaigns = campaigns; this.numbers = numbers; this.loads = loads; this.memberships = memberships;
         this.users = users; this.audits = audits; this.jdbc = jdbc; this.clock = clock; this.random = random;
+        this.authorizations = authorizations;
     }
 
     @Transactional
     public LoadView load(Long actorId, String campaignPublicId) {
         var campaign = campaigns.findLockedByPublicId(campaignPublicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
         requireManager(actorId, campaign);
-        if (!campaign.getMode().isDemo()) throw ErrorCode.CAMPAIGN_NOT_AUTHORIZED.toException();
+        // ADR-0007: DEMO sempre opera; o título de capitalização premiável só com autorização SUSEP
+        // verificada e vigente (fail-closed). Nunca liberar por flag/modo.
+        if (!campaign.getMode().isDemo()
+                && (campaign.getMode() != CampaignMode.CAPITALIZATION_PRIZE_TITLE
+                    || !authorizations.hasEffectiveAuthorization(campaign.getId()))) {
+            throw ErrorCode.CAMPAIGN_OPERATION_BLOCKED.toException();
+        }
         if (!campaign.getStatus().isEditable()) throw ErrorCode.CAMPAIGN_NOT_EDITABLE.toException();
         var existing = loads.findByCampaignId(campaign.getId());
         if (existing.isPresent()) return view(existing.get());

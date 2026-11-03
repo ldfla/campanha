@@ -1,0 +1,150 @@
+name: frontend
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  # Typecheck, lint e build do frontend. É o check obrigatório de PR.
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  # E2E Playwright contra a stack local DEMO (backend profile `local` + MySQL + frontend).
+  # Sobe o backend real com o seed local (campanha `acao-capitalizacao-local`), como em
+  # docs/operations/local-mvp.md. É pesado (build do backend + MySQL), por isso roda sob demanda
+  # (`workflow_dispatch`) ou em PRs rotulados com `run-e2e`, e não em todo PR.
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4.11
+        env:
+          MYSQL_DATABASE: fundraiser
+          MYSQL_USER: fundraiser
+          # Valores efêmeros por execução (não são segredos versionados).
+          MYSQL_PASSWORD: ${{ github.run_id }}
+          MYSQL_ROOT_PASSWORD: ${{ github.run_id }}
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_NAME: fundraiser
+      DB_USERNAME: fundraiser
+      DB_PASSWORD: ${{ github.run_id }}
+      SPRING_PROFILES_ACTIVE: local
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:3000
+      APP_STORAGE_PROVIDER: memory
+      # As chaves de criptografia são geradas por execução no passo "Generate ephemeral DEMO keys".
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+      E2E_BASE_URL: http://localhost:3000
+      E2E_API_URL: http://localhost:8080/api
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build backend (skip tests)
+        working-directory: backend
+        run: ./mvnw -B -DskipTests package
+
+      - name: Generate ephemeral DEMO keys
+        run: |
+          {
+            echo "SURPRISE_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "APP_CPF_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "APP_CPF_HMAC_KEY=$(openssl rand -base64 32)"
+          } >>"$GITHUB_ENV"
+
+      - name: Start backend (profile local, seed DEMO)
+        working-directory: backend
+        run: |
+          nohup java -jar target/*.jar >"$RUNNER_TEMP/backend.log" 2>&1 &
+          echo $! >"$RUNNER_TEMP/backend.pid"
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/api/actuator/health >/dev/null; then
+              echo "backend up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "backend não subiu; log:"; cat "$RUNNER_TEMP/backend.log"; exit 1
+
+      - name: Resolve seeded campaign publicId
+        run: |
+          public_id=$(curl -fsS http://localhost:8080/api/campaigns/slug/acao-capitalizacao-local | jq -r .id)
+          test -n "$public_id" && test "$public_id" != "null"
+          echo "NEXT_PUBLIC_CAMPAIGN_ID=$public_id" >>"$GITHUB_ENV"
+
+      - name: Install frontend deps and Playwright browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Build and start frontend
+        working-directory: frontend
+        run: |
+          npm run build
+          nohup npm run start >"$RUNNER_TEMP/frontend.log" 2>&1 &
+          echo $! >"$RUNNER_TEMP/frontend.pid"
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000 >/dev/null; then echo "frontend up"; exit 0; fi
+            sleep 2
+          done
+          echo "frontend não subiu; log:"; cat "$RUNNER_TEMP/frontend.log"; exit 1
+
+      - name: Run Playwright E2E
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-logs
+          path: |
+            ${{ runner.temp }}/backend.log
+            ${{ runner.temp }}/frontend.log
+            frontend/test-results
+          if-no-files-found: ignore

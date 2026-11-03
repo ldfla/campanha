@@ -52,13 +52,25 @@ public class SecurityConfig {
      * fica invisível para as páginas do frontend e todo POST protegido recebe 403.
      */
     static CookieCsrfTokenRepository csrfTokenRepository() {
+        return csrfTokenRepository("");
+    }
+
+    /**
+     * O domínio é opcional: é necessário quando a API fica num subdomínio do site (ex.: API em
+     * `api.meleva.la`, site em `app.meleva.la`) — sem `Domain`, o JS do site não lê o cookie.
+     */
+    static CookieCsrfTokenRepository csrfTokenRepository(String cookieDomain) {
         var repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        repository.setCookieCustomizer(cookie -> cookie.path("/").sameSite("Lax"));
+        repository.setCookieCustomizer(cookie -> {
+            cookie.path("/").sameSite("Lax");
+            if (cookieDomain != null && !cookieDomain.isBlank()) cookie.domain(cookieDomain);
+        });
         return repository;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource,
+                                                   @Value("${app.security.cookie-domain:}") String cookieDomain) throws Exception {
         var csrfHandler = new CsrfTokenRequestAttributeHandler();
         csrfHandler.setCsrfRequestAttributeName(null);
 
@@ -76,7 +88,7 @@ public class SecurityConfig {
                 .contentTypeOptions(Customizer.withDefaults())
             )
             .csrf(csrf -> csrf
-                .csrfTokenRepository(csrfTokenRepository())
+                .csrfTokenRepository(csrfTokenRepository(cookieDomain))
                 .csrfTokenRequestHandler(csrfHandler)
                 .ignoringRequestMatchers("/auth/register", "/auth/login", "/auth/login/verify", "/auth/logout", "/auth/verify-contact", "/auth/mfa/verify")
             )

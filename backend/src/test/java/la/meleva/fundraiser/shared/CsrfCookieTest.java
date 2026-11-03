@@ -23,4 +23,19 @@ class CsrfCookieTest {
         assertThat(cookie.isHttpOnly()).isFalse();
         assertThat(cookie.getAttribute("SameSite")).isEqualTo("Lax");
     }
+
+    /** API em subdomínio do site (ex.: api.meleva.la + app.meleva.la): cookie escopado no domínio pai. */
+    @Test
+    void tokenCookieCanBeScopedToParentDomain() {
+        var repository = SecurityConfig.csrfTokenRepository(".meleva.la");
+        var request = new MockHttpServletRequest("GET", "/api/campaigns/public/x");
+        request.setContextPath("/api");
+        var response = new MockHttpServletResponse();
+
+        repository.saveToken(repository.generateToken(request), request, response);
+
+        var cookie = response.getCookie("XSRF-TOKEN");
+        assertThat(cookie).isNotNull();
+        assertThat(cookie.getDomain()).isEqualTo(".meleva.la");
+    }
 }
