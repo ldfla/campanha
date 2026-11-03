@@ -38,7 +38,7 @@ public class CampaignController {
     public ResponseEntity<CampaignResponse> create(
             @Valid @RequestBody CreateCampaignRequest request,
             @AuthenticationPrincipal AppUserDetails principal) {
-        var campaign = campaignService.create(request, 1L);
+        var campaign = campaignService.create(request, principal.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(CampaignResponse.from(campaign));
     }
 
@@ -58,8 +58,9 @@ public class CampaignController {
     @PreAuthorize("hasAnyRole('CAMPAIGN_MANAGER', 'SYSTEM_ADMIN')")
     public ResponseEntity<CampaignResponse> update(
             @PathVariable String id,
-            @Valid @RequestBody UpdateCampaignRequest request) {
-        var campaign = campaignService.update(id, request);
+            @Valid @RequestBody UpdateCampaignRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        var campaign = campaignService.update(principal.userId(), id, request);
         return ResponseEntity.ok(CampaignResponse.from(campaign));
     }
 
@@ -77,8 +78,9 @@ public class CampaignController {
     @PreAuthorize("hasAnyRole('CAMPAIGN_MANAGER', 'SYSTEM_ADMIN')")
     public ResponseEntity<PrizeResponse> addPrize(
             @PathVariable String id,
-            @Valid @RequestBody PrizeRequest request) {
-        var prize = campaignService.addPrize(id, request);
+            @Valid @RequestBody PrizeRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        var prize = campaignService.addPrize(principal.userId(), id, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(PrizeResponse.from(prize));
     }
 
@@ -95,8 +97,9 @@ public class CampaignController {
     public ResponseEntity<PrizeResponse> updatePrize(
             @PathVariable String campaignId,
             @PathVariable Long prizeId,
-            @Valid @RequestBody PrizeRequest request) {
-        var prize = campaignService.updatePrize(prizeId, request);
+            @Valid @RequestBody PrizeRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        var prize = campaignService.updatePrize(principal.userId(), campaignId, prizeId, request);
         return ResponseEntity.ok(PrizeResponse.from(prize));
     }
 
@@ -104,8 +107,9 @@ public class CampaignController {
     @PreAuthorize("hasAnyRole('CAMPAIGN_MANAGER', 'SYSTEM_ADMIN')")
     public ResponseEntity<Void> deactivatePrize(
             @PathVariable String campaignId,
-            @PathVariable Long prizeId) {
-        campaignService.deactivatePrize(prizeId);
+            @PathVariable Long prizeId,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        campaignService.deactivatePrize(principal.userId(), campaignId, prizeId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -12,6 +12,7 @@ import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.drawing.SurpriseCommitmentRepository;
 import la.meleva.fundraiser.compliance.ApprovalService;
 import la.meleva.fundraiser.compliance.AuthorizationService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +29,13 @@ public class CampaignService {
     private final ApprovalService approvals;
     private final AuthorizationService authorizations;
 
+    private final ApplicationEventPublisher events;
+
     public CampaignService(CampaignRepository campaignRepository,
                            CampaignPrizeRepository prizeRepository, MembershipRepository memberships, AuditEventRepository audits,
                            SurpriseCommitmentRepository surpriseCommitments, ApprovalService approvals,
-                           AuthorizationService authorizations) {
+                           AuthorizationService authorizations, ApplicationEventPublisher events) {
+        this.events = events;
         this.campaignRepository = campaignRepository;
         this.prizeRepository = prizeRepository;
         this.memberships = memberships;
@@ -42,7 +46,8 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign create(CreateCampaignRequest request, Long organizationId) {
+    public Campaign create(CreateCampaignRequest request, Long actorId) {
+        Long organizationId = managedOrganization(actorId, request.organizationId());
         if (campaignRepository.existsBySlug(request.slug())) {
             throw ErrorCode.CAMPAIGN_NOT_EDITABLE.toException();
         }
@@ -54,8 +59,8 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign update(String publicId, UpdateCampaignRequest request) {
-        var campaign = findByPublicId(publicId);
+    public Campaign update(Long actorId, String publicId, UpdateCampaignRequest request) {
+        var campaign = editableCampaign(actorId, publicId);
         if (request.title() != null) {
             campaign.setTitle(request.title());
         }
@@ -105,6 +110,7 @@ public class CampaignService {
             String hash=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((publicId+":"+oldStatus+":"+targetStatus).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             audits.save(new AuditEvent(actorId,"CAMPAIGN_TRANSITIONED","campaign",campaign.getId(),hash));
         } catch (java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
+        events.publishEvent(new CampaignStatusChangedEvent(campaign.getId(), oldStatus, targetStatus));
         return campaignRepository.save(campaign);
     }
 
@@ -126,8 +132,8 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignPrize addPrize(String campaignPublicId, PrizeRequest request) {
-        var campaign = findByPublicId(campaignPublicId);
+    public CampaignPrize addPrize(Long actorId, String campaignPublicId, PrizeRequest request) {
+        var campaign = editableCampaign(actorId, campaignPublicId);
 
         if (request.type() == CampaignPrize.PrizeType.CASH && !campaign.getMode().allowsCashPrizes()) {
             throw ErrorCode.PRIZE_CASH_NOT_ALLOWED.toException();
@@ -141,6 +147,7 @@ public class CampaignService {
                 request.quantity(),
                 request.sortOrder()
         );
+        assignRankingPosition(prize, request);
         return prizeRepository.save(prize);
     }
 
@@ -151,18 +158,62 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignPrize updatePrize(Long prizeId, PrizeRequest request) {
-        var prize = prizeRepository.findById(prizeId)
-                .orElseThrow(ErrorCode.PRIZE_NOT_FOUND::toException);
+    public CampaignPrize updatePrize(Long actorId, String campaignPublicId, Long prizeId, PrizeRequest request) {
+        var prize = prizeOf(editableCampaign(actorId, campaignPublicId), prizeId);
         prize.update(request.description(), request.valueCents(), request.quantity(), request.sortOrder());
+        assignRankingPosition(prize, request);
         return prizeRepository.save(prize);
     }
 
     @Transactional
-    public void deactivatePrize(Long prizeId) {
-        var prize = prizeRepository.findById(prizeId)
-                .orElseThrow(ErrorCode.PRIZE_NOT_FOUND::toException);
+    public void deactivatePrize(Long actorId, String campaignPublicId, Long prizeId) {
+        var prize = prizeOf(editableCampaign(actorId, campaignPublicId), prizeId);
         prize.deactivate();
         prizeRepository.save(prize);
+    }
+
+    private static final List<UserRole> MANAGER_ROLES = List.of(UserRole.CAMPAIGN_MANAGER, UserRole.SYSTEM_ADMIN);
+
+    /** P20-F25: escrita exige papel de gestão na organização dona da campanha e campanha ainda editável. */
+    private Campaign editableCampaign(Long actorId, String publicId) {
+        var campaign = campaignRepository.findLockedByPublicId(publicId).orElseThrow(ErrorCode.CAMPAIGN_NOT_FOUND::toException);
+        if (actorId == null || memberships.findActiveByUserAndOrganization(actorId, campaign.getOrganizationId()).stream()
+                .noneMatch(membership -> MANAGER_ROLES.contains(membership.getRole()))) {
+            throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        }
+        if (!campaign.getStatus().isEditable()) throw ErrorCode.CAMPAIGN_NOT_EDITABLE.toException();
+        return campaign;
+    }
+
+    private Long managedOrganization(Long actorId, String organizationPublicId) {
+        var managed = actorId == null ? List.<Membership>of() : memberships.findActiveByUserId(actorId).stream()
+                .filter(membership -> MANAGER_ROLES.contains(membership.getRole())).toList();
+        var organizations = managed.stream().map(Membership::getOrganization).distinct().toList();
+        if (organizationPublicId != null && !organizationPublicId.isBlank()) {
+            return organizations.stream().filter(org -> org.getPublicId().equals(organizationPublicId)).findFirst()
+                    .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException).getId();
+        }
+        if (organizations.isEmpty()) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        if (organizations.size() > 1) throw ErrorCode.VALIDATION_ERROR.toException();
+        return organizations.getFirst().getId();
+    }
+
+    /** Prêmio de outra campanha responde como inexistente, sem revelar que o id existe. */
+    private CampaignPrize prizeOf(Campaign campaign, Long prizeId) {
+        return prizeRepository.findById(prizeId).filter(prize -> prize.getCampaignId().equals(campaign.getId()))
+                .orElseThrow(ErrorCode.PRIZE_NOT_FOUND::toException);
+    }
+
+    private void assignRankingPosition(CampaignPrize prize, PrizeRequest request) {
+        if ((request.rankingScope() == null) != (request.rankingPosition() == null)) {
+            throw ErrorCode.VALIDATION_ERROR.toException();
+        }
+        boolean taken = request.rankingScope() != null && prizeRepository.findByCampaignIdOrderBySortOrder(prize.getCampaignId()).stream()
+                .anyMatch(other -> !java.util.Objects.equals(other.getId(), prize.getId())
+                        && other.getStatus() == CampaignPrize.PrizeStatus.ACTIVE
+                        && other.getRankingScope() == request.rankingScope()
+                        && request.rankingPosition().equals(other.getRankingPosition()));
+        if (taken) throw ErrorCode.VALIDATION_ERROR.toException();
+        prize.assignRankingPosition(request.rankingScope(), request.rankingPosition());
     }
 }

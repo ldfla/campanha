@@ -33,6 +33,7 @@ class CampaignControllerTest {
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private MembershipRepository membershipRepository;
     @Autowired private CampaignRepository campaignRepository;
+    @Autowired private CampaignPrizeRepository prizeRepository;
 
     private Cookie registerAndGetSession(String phone) throws Exception {
         return la.meleva.fundraiser.identity.AuthTestSupport.registerAndSignIn(mockMvc, "Campaign", "Manager", phone);
@@ -257,6 +258,98 @@ class CampaignControllerTest {
                         """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("PRIZE_CASH_NOT_ALLOWED"));
+    }
+
+    @Test
+    void managerOfAnotherOrganizationCannotEditCampaignOrPrizes() throws Exception {
+        Cookie outsider = loginWithRole("+5511888880021", UserRole.CAMPAIGN_MANAGER);
+        var other = organizationRepository.save(new Organization("Organização vítima", "ASSOCIATION"));
+        var campaign = campaignRepository.save(new Campaign(other.getId(), "Campanha vítima", "campanha-vitima-f25", CampaignMode.DEMO));
+        var prize = prizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS, "Kit original", 1000, 1, 1));
+        String prizeBody = """
+                {"type": "GOODS", "description": "Kit trocado", "valueCents": 1, "quantity": 1, "sortOrder": 1}
+                """;
+
+        mockMvc.perform(put("/campaigns/" + campaign.getPublicId()).cookie(outsider).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\": \"Sequestrada\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/campaigns/" + campaign.getPublicId() + "/prizes").cookie(outsider).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(prizeBody))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/campaigns/" + campaign.getPublicId() + "/prizes/" + prize.getId()).cookie(outsider).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(prizeBody))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/campaigns/" + campaign.getPublicId() + "/prizes/" + prize.getId()).cookie(outsider).with(csrf()))
+                .andExpect(status().isForbidden());
+
+        var stored = prizeRepository.findById(prize.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(stored.getDescription()).isEqualTo("Kit original");
+        org.assertj.core.api.Assertions.assertThat(stored.getStatus()).isEqualTo(CampaignPrize.PrizeStatus.ACTIVE);
+        org.assertj.core.api.Assertions.assertThat(campaignRepository.findById(campaign.getId()).orElseThrow().getTitle())
+                .isEqualTo("Campanha vítima");
+    }
+
+    @Test
+    void prizeFromAnotherCampaignIsNotFoundThroughOwnCampaignPath() throws Exception {
+        Cookie session = loginWithRole("+5511888880022", UserRole.CAMPAIGN_MANAGER);
+        String own = createCampaign(session, "f25-propria");
+        var other = organizationRepository.save(new Organization("Organização terceira", "ASSOCIATION"));
+        var foreign = campaignRepository.save(new Campaign(other.getId(), "Campanha terceira", "f25-terceira", CampaignMode.DEMO));
+        var foreignPrize = prizeRepository.save(new CampaignPrize(foreign.getId(), CampaignPrize.PrizeType.GOODS, "Prêmio alheio", 1000, 1, 1));
+
+        mockMvc.perform(put("/campaigns/" + own + "/prizes/" + foreignPrize.getId()).cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"GOODS\",\"description\":\"Trocado\",\"valueCents\":1,\"quantity\":1,\"sortOrder\":1}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/campaigns/" + own + "/prizes/" + foreignPrize.getId()).cookie(session).with(csrf()))
+                .andExpect(status().isNotFound());
+        org.assertj.core.api.Assertions.assertThat(prizeRepository.findById(foreignPrize.getId()).orElseThrow().getDescription())
+                .isEqualTo("Prêmio alheio");
+    }
+
+    @Test
+    void prizesAreFrozenOnceTheCampaignLeavesDraft() throws Exception {
+        Cookie session = loginWithRole("+5511888880023", UserRole.CAMPAIGN_MANAGER);
+        String campaignId = createCampaign(session, "f25-congelada");
+        mockMvc.perform(post("/campaigns/" + campaignId + "/transition").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"GOODS\",\"description\":\"Tardio\",\"valueCents\":1,\"quantity\":1,\"sortOrder\":1}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMPAIGN_NOT_EDITABLE"));
+    }
+
+    @Test
+    void rankingPositionPrizesAreParametrizedOncePerScopeAndPosition() throws Exception {
+        Cookie session = loginWithRole("+5511888880024", UserRole.CAMPAIGN_MANAGER);
+        String campaignId = createCampaign(session, "p05a09-posicoes");
+        String first = "{\"type\":\"GOODS\",\"description\":\"Kit 1º divulgador\",\"valueCents\":150000,\"quantity\":1,"
+                + "\"sortOrder\":1,\"rankingScope\":\"PROMOTER\",\"rankingPosition\":1}";
+
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(first))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.rankingScope").value("PROMOTER"))
+                .andExpect(jsonPath("$.rankingPosition").value(1));
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(first))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"GOODS\",\"description\":\"Sem posição\",\"valueCents\":1,\"quantity\":1,"
+                                + "\"sortOrder\":2,\"rankingScope\":\"PARTICIPANT\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private String createCampaign(Cookie session, String slug) throws Exception {
+        MvcResult created = mockMvc.perform(post("/campaigns").cookie(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Campanha " + slug + "\",\"slug\":\"" + slug + "\",\"mode\":\"DEMO\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        return com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
     }
 
     @Test

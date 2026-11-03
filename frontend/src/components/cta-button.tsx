@@ -1,9 +1,7 @@
-import {
-  isSoldOut,
-  isDemoMode,
-  PRICE_UNIT_CENTS,
-  formatBRL,
-} from "@/lib/campaign-config";
+"use client";
+
+import { isDemoMode, PRICE_UNIT_CENTS, formatBRL } from "@/lib/campaign-config";
+import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 export function CTAButton({
   size = "lg",
@@ -12,7 +10,7 @@ export function CTAButton({
   size?: "lg" | "md" | "sm";
   showPrice?: boolean;
 }) {
-  const soldOut = isSoldOut();
+  const { purchaseEnabled, ctaState } = useCampaignState();
   const demo = isDemoMode();
 
   const cls = {
@@ -21,13 +19,13 @@ export function CTAButton({
     sm: "px-6 py-3.5 text-sm md:text-base gap-2 rounded-xl",
   }[size];
 
-  if (soldOut) {
+  if (!purchaseEnabled) {
     return (
       <span
-        className={`inline-flex items-center justify-center bg-[var(--color-ink-soft)]/40 font-bold text-white/60 cursor-not-allowed ${cls}`}
-        aria-disabled="true"
+        className={`inline-flex items-center justify-center bg-[var(--color-ink-soft)]/40 font-bold text-white/70 cursor-not-allowed ${cls}`}
+        role="status"
       >
-        Esgotado
+        {ctaLabel(ctaState)}
       </span>
     );
   }
@@ -40,13 +38,13 @@ export function CTAButton({
       >
         {showPrice ? (
           <>
-            Construir junto
+            {ctaLabel("OPEN")}
             <span className="rounded-md bg-white/25 px-2.5 py-1 text-[11px] font-extrabold tabular-nums tracking-wide text-white">
               {formatBRL(PRICE_UNIT_CENTS)}
             </span>
           </>
         ) : (
-          "Construir junto"
+          ctaLabel("OPEN")
         )}
       </a>
       {demo && (

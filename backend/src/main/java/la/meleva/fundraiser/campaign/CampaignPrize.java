@@ -23,6 +23,11 @@ public class CampaignPrize {
         ACTIVE, INACTIVE
     }
 
+    /** Espelha {@code ranking.RankingScope} sem acoplar o módulo de campanha ao de ranking. */
+    public enum RankingScope {
+        PROMOTER, PARTICIPANT
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +58,13 @@ public class CampaignPrize {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ranking_scope", length = 20)
+    private RankingScope rankingScope;
+
+    @Column(name = "ranking_position")
+    private Integer rankingPosition;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -75,7 +87,19 @@ public class CampaignPrize {
         this.updatedAt = Instant.now();
     }
 
+    /** Prêmio por posição do ranking (P05A-09); escopo e posição são definidos juntos ou nenhum dos dois. */
+    public void assignRankingPosition(RankingScope scope, Integer position) {
+        if ((scope == null) != (position == null) || (position != null && (position < 1 || position > 1000))) {
+            throw new IllegalArgumentException("prize.ranking_position_invalid");
+        }
+        this.rankingScope = scope;
+        this.rankingPosition = position;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() { return id; }
+    public RankingScope getRankingScope() { return rankingScope; }
+    public Integer getRankingPosition() { return rankingPosition; }
     public Long getCampaignId() { return campaignId; }
     public PrizeType getType() { return type; }
     public String getDescription() { return description; }

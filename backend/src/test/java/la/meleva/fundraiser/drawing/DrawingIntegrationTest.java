@@ -130,6 +130,15 @@ class DrawingIntegrationTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         ex -> assertThat(ex.errorCode()).isEqualTo(ErrorCode.DRAW_ALREADY_PUBLISHED));
 
+        // P15-02: a publicação notifica uma vez cada participante, com payload sem dado pessoal.
+        String byCampaign = "FROM outbox_events WHERE event_type='NOTIFICATION_RESULT_AVAILABLE_V1' "
+                + "AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.campaignId'))=?";
+        assertThat(jdbc.queryForList("SELECT aggregate_id " + byCampaign, Long.class, campaignId))
+                .containsExactlyInAnyOrder(buyerA.getId(), buyerB.getId());
+        assertThat(jdbc.queryForList("SELECT payload_json " + byCampaign, String.class, campaignId))
+                .allSatisfy(payload -> assertThat(payload).contains(draw.publicId())
+                        .doesNotContain(buyerA.getPhoneNumber()).doesNotContain("Compra"));
+
         var transparency = drawings.transparency(campaign.getPublicId(), draw.publicId());
         assertThat(transparency.entriesHash()).isEqualTo(draw.entriesHash());
         assertThat(transparency.contestIdentifier()).isEqualTo("6027");

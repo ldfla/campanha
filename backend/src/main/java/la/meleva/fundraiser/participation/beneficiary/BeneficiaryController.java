@@ -18,7 +18,7 @@ public class BeneficiaryController {
     BeneficiaryController(BeneficiaryService service) { this.service = service; }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public List<BeneficiaryService.BeneficiaryView> list(@PathVariable String campaignId) {
         return service.list(campaignId);
     }

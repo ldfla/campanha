@@ -39,6 +39,7 @@ public class OutboxEvent {
     public String getAggregateType() { return aggregateType; }
     public Long getAggregateId() { return aggregateId; }
     public String getEventType() { return eventType; }
+    public String getPayloadJson() { return payloadJson; }
     public void processed() { this.status = "PROCESSED"; this.processedAt = Instant.now(); }
     public void deadLetterInvalidSource() {
         this.status = "DEAD_LETTER";

@@ -125,7 +125,22 @@ export const auth = {
 
 // ── Campaign ──
 
-export type CampaignMode = "DEMO" | "COMMERCIAL_PROMOTION" | "PHILANTHROPIC_AUTHORIZED";
+export type CampaignMode =
+  | "DEMO" | "COMMERCIAL_PROMOTION" | "PHILANTHROPIC_AUTHORIZED" | "CAPITALIZATION_PRIZE_TITLE";
+
+/** Estado do CTA decidido pelo servidor (P06-08). */
+export type CtaState = "OPEN" | "NOT_STARTED" | "SOLD_OUT" | "CLOSED" | "SUSPENDED" | "BLOCKED";
+
+export interface PublicCampaignState {
+  id: string;
+  title: string;
+  mode: CampaignMode;
+  simulation: boolean;
+  ctaState: CtaState;
+  purchaseEnabled: boolean;
+  availableNumbers: number;
+  endsAt: string | null;
+}
 export type CampaignStatus =
   | "DRAFT" | "LEGAL_REVIEW" | "AUTHORIZED" | "SCHEDULED"
   | "OPEN" | "LOCKED" | "DRAW_PENDING" | "DRAWN"
@@ -171,6 +186,9 @@ export const campaigns = {
 
   getPrizes: (id: string) =>
     request<PrizeResponse[]>(`/campaigns/${id}/prizes`),
+
+  publicState: (id: string) =>
+    request<PublicCampaignState>(`/campaigns/public/${id}`),
 };
 
 // ── Participation ──

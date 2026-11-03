@@ -8,37 +8,28 @@ import { Countdown } from "@/components/countdown";
 import { useAuth } from "@/lib/use-auth";
 import {
   participations,
-  campaigns,
-  mockPayments,
   type OfferResponse,
   type BeneficiaryResponse,
   type CheckoutResponse,
-  type CampaignResponse,
   ApiError,
 } from "@/lib/api-client";
 import {
   COMBOS,
-  isSoldOut,
-  isSuspended,
   isDemoMode,
-  campaignAllowsParticipation,
   formatBRL,
   toE164,
   DEMO_CAMPAIGN_ID,
 } from "@/lib/campaign-config";
+import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 type Step = "choose" | "beneficiary" | "register" | "payment";
 
 function ParticiparContent() {
   const searchParams = useSearchParams();
   const { user, register, verifyCode } = useAuth();
-  const soldOut = isSoldOut();
-  const suspended = isSuspended();
+  const { purchaseEnabled, ctaState, loading: stateLoading } = useCampaignState();
   const demoMode = isDemoMode();
-  // P20-F16: capabilities/estado vindos do servidor; quando indisponíveis, cai nas constantes.
-  const [campaign, setCampaign] = useState<CampaignResponse | null>(null);
-  const serverAllows = campaignAllowsParticipation(campaign);
-  const blocked = soldOut || suspended || serverAllows === false;
+  const blocked = !purchaseEnabled;
 
   // Offers from server (fallback to config)
   const [serverOffers, setServerOffers] = useState<OfferResponse[]>([]);
@@ -64,27 +55,12 @@ function ParticiparContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
-  const [settling, setSettling] = useState(false);
-  const [settled, setSettled] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
 
   // Referral code from URL
   const referralCode = searchParams.get("ref") ?? undefined;
-
-  // P20-F16: busca a campanha no servidor para decidir o CTA por capabilities/estado.
-  useEffect(() => {
-    let active = true;
-    campaigns
-      .getById(DEMO_CAMPAIGN_ID)
-      .then((loaded) => {
-        if (active) setCampaign(loaded);
-      })
-      .catch(() => {
-        /* sem campanha carregada: não bloqueia; o backend continua sendo a autorização */
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // Load offers on mount (pré-seleciona o combo da URL, se houver)
   useEffect(() => {
@@ -210,17 +186,24 @@ function ParticiparContent() {
 
   const assignedNumbers = checkoutResult?.numbers ?? [];
 
-  async function handleMockSettle() {
-    if (!checkoutResult?.orderPublicId) return;
-    setSettling(true);
+  // Só o servidor confirma: a participação é atribuída depois que o PSP (mock) liquida o pedido e a conciliação
+  // fecha. O participante apenas pergunta; em DEMO quem liquida é o operador (P20-F03).
+  async function handleCheckPayment() {
+    if (!checkoutResult?.requestPublicId) return;
+    setCheckingPayment(true);
     setError(null);
+    setPaymentPending(false);
     try {
-      await mockPayments.settle(checkoutResult.orderPublicId);
-      setSettled(true);
+      await participations.confirmCheckout(DEMO_CAMPAIGN_ID, checkoutResult.requestPublicId);
+      setConfirmed(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Falha ao simular pagamento.");
+      if (err instanceof ApiError && err.status === 502) {
+        setPaymentPending(true);
+      } else {
+        setError(err instanceof ApiError ? err.detail : "Não foi possível verificar o pagamento agora.");
+      }
     } finally {
-      setSettling(false);
+      setCheckingPayment(false);
     }
   }
 
@@ -263,10 +246,10 @@ function ParticiparContent() {
             </div>
           )}
 
-          {suspended && (
-            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-              <p className="text-sm font-semibold text-amber-800">Campanha temporariamente suspensa</p>
-              <p className="mt-1 text-xs text-amber-700/70">As participações estão pausadas. Acompanhe nossas redes para saber quando retornamos.</p>
+          {!stateLoading && !purchaseEnabled && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4" role="status">
+              <p className="text-sm font-semibold text-amber-800">{ctaLabel(ctaState)}</p>
+              <p className="mt-1 text-xs text-amber-700/70">As participações não estão abertas agora. Acompanhe nossas redes para saber quando abrirem.</p>
             </div>
           )}
 
@@ -373,8 +356,8 @@ function ParticiparContent() {
               )}
 
               {blocked ? (
-                <span className="block w-full py-4 rounded-xl font-bold text-lg text-center bg-[var(--color-ink-soft)]/40 text-white/60 cursor-not-allowed">
-                  {soldOut ? "Esgotado" : "Participações pausadas"}
+                <span className="block w-full py-4 rounded-xl font-bold text-lg text-center bg-[var(--color-ink-soft)]/40 text-white/70 cursor-not-allowed" aria-disabled="true">
+                  {ctaLabel(ctaState)}
                 </span>
               ) : (
                 <button
@@ -571,27 +554,31 @@ function ParticiparContent() {
                 </div>
               )}
 
-              {checkoutResult?.simulation && (
-                <div className="bg-white rounded-2xl border border-[var(--color-iris)]/20 p-5 mb-6">
-                  <h3 className="text-sm font-semibold text-[var(--color-iris)] mb-2">Simulação de pagamento</h3>
-                  {settled ? (
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-jade)] font-medium">
-                      <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
+              {checkoutResult && (
+                <div className="bg-white rounded-2xl border border-[var(--color-iris)]/20 p-5 mb-6" aria-live="polite">
+                  <h3 className="text-sm font-semibold text-[var(--color-iris)] mb-2">
+                    {checkoutResult.simulation ? "Confirmação do pagamento (simulação)" : "Confirmação do pagamento"}
+                  </h3>
+                  {confirmed ? (
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-jade)] font-medium" role="status">
+                      <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
                         <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      Pagamento simulado confirmado! Números atribuídos.
+                      Pagamento confirmado. Seus números estão garantidos.
                     </div>
                   ) : (
                     <>
                       <p className="text-xs text-[var(--color-ink-soft)] mb-3">
-                        Em modo DEMO, clique abaixo para simular a confirmação do pagamento pelo PSP mock.
+                        {paymentPending
+                          ? "O pagamento ainda não foi confirmado pelo provedor. Em modo DEMO, a confirmação é feita pela equipe da campanha."
+                          : "Depois de pagar, verifique aqui. Os números só ficam garantidos quando o pagamento é confirmado."}
                       </p>
                       <button
-                        onClick={handleMockSettle}
-                        disabled={settling}
+                        onClick={handleCheckPayment}
+                        disabled={checkingPayment}
                         className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--color-iris)] text-white hover:bg-[var(--color-iris)]/90 active:scale-[0.98] transition-all disabled:opacity-50"
                       >
-                        {settling ? "Simulando..." : "Simular pagamento confirmado"}
+                        {checkingPayment ? "Verificando..." : "Verificar pagamento"}
                       </button>
                     </>
                   )}

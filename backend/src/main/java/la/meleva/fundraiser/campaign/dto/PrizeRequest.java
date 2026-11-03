@@ -21,5 +21,10 @@ public record PrizeRequest(
         int quantity,
 
         @Min(value = 0)
-        int sortOrder
+        int sortOrder,
+
+        CampaignPrize.RankingScope rankingScope,
+
+        @Min(value = 1) @jakarta.validation.constraints.Max(value = 1000)
+        Integer rankingPosition
 ) {}

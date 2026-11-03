@@ -40,8 +40,9 @@ public class PurchaseFlowController {
         this.checkout = checkout;
     }
 
+    /** Tabela de preços publicada é pública: o visitante escolhe o combo antes do cadastro. */
     @GetMapping("/offers")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public List<OfferView> listOffers(@PathVariable String campaignId) {
         return offers.list(campaignId);
     }

@@ -20,5 +20,9 @@ public record CreateCampaignRequest(
         String description,
 
         @NotNull(message = "Modo da campanha é obrigatório")
-        CampaignMode mode
+        CampaignMode mode,
+
+        /** Obrigatório só quando o gestor administra mais de uma organização. */
+        @Size(max = 36)
+        String organizationId
 ) {}

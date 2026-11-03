@@ -1,4 +1,7 @@
-import { COMBOS, isSoldOut, isSuspended, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
+"use client";
+
+import { COMBOS, formatBRL, PRICE_UNIT_CENTS } from "@/lib/campaign-config";
+import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 const VISUAL = [
   {
@@ -24,8 +27,8 @@ const VISUAL = [
 ] as const;
 
 export function ComboCards() {
-  const soldOut = isSoldOut();
-  const blocked = soldOut || isSuspended();
+  const { purchaseEnabled, ctaState } = useCampaignState();
+  const blocked = !purchaseEnabled;
 
   return (
     <section className="section bg-[var(--color-snow)] py-16 md:py-24">
@@ -106,7 +109,7 @@ export function ComboCards() {
                       : "bg-[var(--color-orange)] text-white group-hover:bg-[#e85c28]"
                   }`}
                 >
-                  {soldOut ? "Esgotado" : blocked ? "Pausado" : "Quero este"}
+                  {blocked ? ctaLabel(ctaState) : "Quero este"}
                 </span>
               </a>
             );

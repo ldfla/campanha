@@ -168,7 +168,7 @@ export default function Home() {
           <span className="font-[family-name:var(--font-heading)] text-base text-white/70">
             Ação entre Amigos
           </span>
-          <nav className="flex gap-6 text-xs" aria-label="Rodapé">
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs" aria-label="Rodapé">
             <a href="/regulamento" className="transition-colors hover:text-white/80">
               Regulamento
             </a>

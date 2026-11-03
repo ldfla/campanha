@@ -69,7 +69,7 @@ class DemoNotificationProcessorIntegrationTest {
         jdbc.update("UPDATE outbox_events SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP()) WHERE id=?", next.getId());
         assertThat(processor.processNext(NotificationTemplate.ACCOUNT_REGISTERED)).isEqualTo(DemoNotificationProcessor.ProcessResult.SIMULATED);
         assertThat(count("outbox:" + next.getId())).isEqualTo(1L);
-        assertThatThrownBy(() -> processor.processNext(NotificationTemplate.RESULT_AVAILABLE))
+        assertThatThrownBy(() -> processor.processNext(NotificationTemplate.CAMPAIGN_MARKETING))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

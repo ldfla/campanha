@@ -44,3 +44,8 @@ logs/
 
 # === Claude/IDE ===
 .claude/
+
+# Playwright (E2E do frontend)
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/

@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.Lock;
 public interface AwardDeliveryRepository extends JpaRepository<AwardDelivery,Long>{
  List<AwardDelivery> findByBeneficiaryUserId(Long beneficiaryUserId);
  Optional<AwardDelivery> findByOutcomeId(Long outcomeId);
+ Optional<AwardDelivery> findByRankingSnapshotIdAndRankingPosition(Long rankingSnapshotId,Integer rankingPosition);
  @Lock(LockModeType.PESSIMISTIC_WRITE) Optional<AwardDelivery> findLockedById(Long id);
 }

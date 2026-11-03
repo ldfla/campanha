@@ -5,9 +5,8 @@ import Link from "next/link";
 import {
   TOTAL_NUMBERS,
   isDemoMode,
-  isSoldOut,
-  isSuspended,
 } from "@/lib/campaign-config";
+import { ctaLabel, useCampaignState } from "@/lib/use-campaign-state";
 
 const RANGE_SIZE = 1000;
 const TOTAL_RANGES = Math.ceil(TOTAL_NUMBERS / RANGE_SIZE);
@@ -56,8 +55,7 @@ function computeStats(cells: NumberCell[]) {
 
 export default function NumerosPage() {
   const demoMode = isDemoMode();
-  const soldOut = isSoldOut();
-  const suspended = isSuspended();
+  const { purchaseEnabled, ctaState, loading: stateLoading } = useCampaignState();
   const [rangeIdx, setRangeIdx] = useState(0);
   const [searchValue, setSearchValue] = useState("");
   const [selectedNumber, setSelectedNumber] = useState<NumberCell | null>(null);
@@ -151,10 +149,10 @@ export default function NumerosPage() {
             </div>
           )}
 
-          {(soldOut || suspended) && (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          {!stateLoading && !purchaseEnabled && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" role="status">
               <p className="text-sm font-semibold text-amber-800">
-                {soldOut ? "Todos os números foram vendidos" : "Campanha temporariamente suspensa"}
+                {ctaLabel(ctaState)}
               </p>
             </div>
           )}
