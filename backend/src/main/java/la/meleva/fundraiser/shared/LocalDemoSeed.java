@@ -21,6 +21,7 @@ import la.meleva.fundraiser.identity.OrganizationRepository;
 import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
+import la.meleva.fundraiser.participation.InitialPrizeLoadService;
 import la.meleva.fundraiser.participation.ParticipationService;
 import la.meleva.fundraiser.participation.beneficiary.BeneficiaryService;
 import la.meleva.fundraiser.participation.purchase.PurchaseOfferService;
@@ -42,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
  * O seed é idempotente por slug.
  */
 @Component
-@Profile("local")
+@Profile({"local", "staging"})
 class LocalDemoSeed implements ApplicationRunner {
 
     private static final String DEMO_PHONE = "+5511999990000";
@@ -59,6 +60,7 @@ class LocalDemoSeed implements ApplicationRunner {
     private final ParticipationService participationService;
     private final BeneficiaryService beneficiaryService;
     private final PurchaseOfferService purchaseOfferService;
+    private final InitialPrizeLoadService prizeLoadService;
 
     LocalDemoSeed(OrganizationRepository organizationRepository, UserRepository userRepository,
                   MembershipRepository membershipRepository, CampaignRepository campaignRepository,
@@ -66,7 +68,7 @@ class LocalDemoSeed implements ApplicationRunner {
                   CampaignAuthorizationRepository authorizationRepository,
                   ApprovalRequestRepository approvalRequestRepository, CampaignService campaignService,
                   ParticipationService participationService, BeneficiaryService beneficiaryService,
-                  PurchaseOfferService purchaseOfferService) {
+                  PurchaseOfferService purchaseOfferService, InitialPrizeLoadService prizeLoadService) {
         this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -78,6 +80,7 @@ class LocalDemoSeed implements ApplicationRunner {
         this.participationService = participationService;
         this.beneficiaryService = beneficiaryService;
         this.purchaseOfferService = purchaseOfferService;
+        this.prizeLoadService = prizeLoadService;
     }
 
     @Override
@@ -107,6 +110,9 @@ class LocalDemoSeed implements ApplicationRunner {
         beneficiaryService.create(adminId, campaign.getPublicId(), ORG_NAME);
         campaignPrizeRepository.save(new CampaignPrize(campaign.getId(), CampaignPrize.PrizeType.GOODS,
                 "Item sintético para desenvolvimento local", 0L, 1, 0));
+
+        // Carga inicial de prêmios-surpresa (10 de R$ 100 + 100 de R$ 10) antes de abrir.
+        prizeLoadService.load(adminId, campaign.getPublicId());
 
         open(adminId, campaign);
     }

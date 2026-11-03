@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/payments/mock")
-@Profile("local")
+@Profile({"local", "staging"})
 public class MockPaymentSimulationController {
 
     private final MockPaymentProvider provider;

@@ -19,4 +19,12 @@ public interface CampaignNumberRepository extends JpaRepository<CampaignNumber, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' order by n.numberValue asc")
     List<CampaignNumber> lockAvailableByCampaignId(Long campaignId, org.springframework.data.domain.Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' and n.numberValue >= :start order by n.numberValue asc")
+    List<CampaignNumber> lockAvailableFrom(Long campaignId, int start, org.springframework.data.domain.Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select n from CampaignNumber n where n.campaignId = :campaignId and n.status = 'AVAILABLE' and n.numberValue < :start order by n.numberValue asc")
+    List<CampaignNumber> lockAvailableBelow(Long campaignId, int start, org.springframework.data.domain.Pageable pageable);
 }

@@ -5,7 +5,7 @@
 #   throughput S3 ~1,4x maior (ver docs/operations/object-storage.md).
 #
 # Subir:
-#   docker compose -f infrastructure/compose.yaml -f infrastructure/compose.s3.yaml up -d
+#   docker compose -f infrastructure/compose.local.yaml -f infrastructure/compose.local.s3.yaml up -d
 #   ./scripts/s3-init.sh          # configura layout, chave e bucket (uma vez)
 #
 # E rodar o backend com `APP_STORAGE_PROVIDER=s3` (endpoint http://localhost:3900).

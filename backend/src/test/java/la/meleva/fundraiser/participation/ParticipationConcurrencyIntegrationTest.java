@@ -111,17 +111,35 @@ class ParticipationConcurrencyIntegrationTest {
     }
 
     @Test
-    void preserves00001AndRejectsExhaustedPool() {
+    void assignsBothNumbersRandomlyAndRejectsExhaustedPool() {
         Campaign campaign = openCampaign("esgotamento", 0, 1);
         participationService.initializeSeries(campaign.getPublicId());
         User first = userRepository.save(new User("Pessoa", "Um", "+5511987111111"));
         User second = userRepository.save(new User("Pessoa", "Dois", "+5511987222222"));
         User third = userRepository.save(new User("Pessoa", "Três", "+5511987333333"));
-        participationService.request(first.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
+        ParticipationAllocation firstAllocation = participationService.request(first.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
         ParticipationAllocation secondAllocation = participationService.request(second.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign));
-        assertThat(secondAllocation.numbers().getFirst().formattedNumber()).isEqualTo("00001");
+        // P20-F11: a ordem é aleatória; os dois números devem esgotar o intervalo {0,1}.
+        assertThat(java.util.Set.of(firstAllocation.numbers().getFirst().formattedNumber(),
+                        secondAllocation.numbers().getFirst().formattedNumber()))
+                .containsExactlyInAnyOrder("00000", "00001");
         assertThatThrownBy(() -> participationService.request(third.getId(), campaign.getPublicId(), UUID.randomUUID().toString(), 1, entityIdFor(campaign)))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void allocationIsRandomizedNotAlwaysLowestNumber() {
+        Campaign campaign = openCampaign("aleatoriedade", 0, 999);
+        participationService.initializeSeries(campaign.getPublicId());
+        var starts = new java.util.HashSet<Integer>();
+        for (int i = 0; i < 30; i++) {
+            User user = userRepository.save(new User("Rand", "U" + i, "+5511" + (10000000 + i)));
+            var allocation = participationService.request(user.getId(), campaign.getPublicId(),
+                    UUID.randomUUID().toString(), 1, entityIdFor(campaign));
+            starts.add(allocation.numbers().getFirst().numberValue());
+        }
+        // P20-F11: com início aleatório em 0..999, 30 sorteios não caem todos no mesmo número.
+        assertThat(starts).hasSizeGreaterThan(1);
     }
 
     private Campaign openCampaign(String slug, int min, int max) {

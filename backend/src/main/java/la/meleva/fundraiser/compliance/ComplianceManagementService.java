@@ -25,12 +25,26 @@ public class ComplianceManagementService {
 
     @Transactional
     public CampaignRegulation createRegulation(Long actorId, String campaignPublicId, String sha256, String documentUri) {
+        return createRegulation(actorId, campaignPublicId, sha256, documentUri, false);
+    }
+
+    /**
+     * Cria uma versao de regulamento. Quando o regulamento declara premios-surpresa
+     * ({@code surpriseRequired}), o requisito passa a valer para a campanha (SEC-0003): a marca de
+     * surpresa deixa de ser apenas um flag manual e passa a ser derivada do regulamento.
+     */
+    @Transactional
+    public CampaignRegulation createRegulation(Long actorId, String campaignPublicId, String sha256,
+                                               String documentUri, boolean surpriseRequired) {
         validateSha256(sha256);
         Campaign campaign = campaign(campaignPublicId, actorId);
         int version = regulationRepository.findHighestVersionByCampaignId(campaign.getId()) + 1;
         CampaignRegulation regulation = regulationRepository.save(
-                new CampaignRegulation(campaign.getId(), version, sha256, documentUri));
+                new CampaignRegulation(campaign.getId(), version, sha256, documentUri, surpriseRequired));
         campaign.setCurrentRegulationId(regulation.getId());
+        if (surpriseRequired) {
+            campaign.enableSurprise();
+        }
         return regulation;
     }
 

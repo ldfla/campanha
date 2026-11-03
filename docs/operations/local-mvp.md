@@ -8,7 +8,7 @@
 
 ## 1. Subir a infraestrutura
 ```bash
-docker compose -f infrastructure/compose.yaml up -d   # MySQL 8.4 + Mailpit
+docker compose -f infrastructure/compose.local.yaml up -d   # MySQL 8.4 + Mailpit
 ```
 > **Object storage é opcional** no MVP: o armazenamento privado de documentos roda **em memória por
 > padrão** (`APP_STORAGE_PROVIDER=memory`). Para um bucket compatível com S3, veja
