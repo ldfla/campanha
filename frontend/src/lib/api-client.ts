@@ -197,6 +197,8 @@ export interface CreateParticipationRequest {
 export interface MyNumber {
   formattedNumber: string;
   status: "CONFIRMED" | "PENDING";
+  /** > 0 indica número premiado (prêmio-surpresa da carga inicial). */
+  prizeCents: number;
 }
 
 /** Somente os números do titular da sessão; totais calculados no servidor. */
@@ -206,6 +208,7 @@ export interface MyNumbersView {
   confirmedCount: number;
   pendingCount: number;
   confirmedAmountCents: number;
+  prizeTotalCents: number;
   currency: "BRL";
   simulation: boolean;
 }

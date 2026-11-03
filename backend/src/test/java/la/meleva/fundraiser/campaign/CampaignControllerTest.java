@@ -53,7 +53,7 @@ class CampaignControllerTest {
     void createCampaignRequiresManagerRole() throws Exception {
         Cookie session = registerAndGetSession("+5511888880001");
 
-        mockMvc.perform(post("/api/campaigns")
+        mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,7 +67,7 @@ class CampaignControllerTest {
     void managerCanCreateCampaign() throws Exception {
         Cookie session = loginWithRole("+5511888880002", UserRole.CAMPAIGN_MANAGER);
 
-        mockMvc.perform(post("/api/campaigns")
+        mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,7 +86,7 @@ class CampaignControllerTest {
     void canGetCampaignBySlug() throws Exception {
         Cookie session = loginWithRole("+5511888880003", UserRole.CAMPAIGN_MANAGER);
 
-        mockMvc.perform(post("/api/campaigns")
+        mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +95,7 @@ class CampaignControllerTest {
                         """))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/campaigns/slug/slug-test").cookie(session))
+        mockMvc.perform(get("/campaigns/slug/slug-test").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Slug Test"));
     }
@@ -104,7 +104,7 @@ class CampaignControllerTest {
     void canUpdateDraftCampaign() throws Exception {
         Cookie session = loginWithRole("+5511888880004", UserRole.CAMPAIGN_MANAGER);
 
-        MvcResult created = mockMvc.perform(post("/api/campaigns")
+        MvcResult created = mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +117,7 @@ class CampaignControllerTest {
         String campaignId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(put("/api/campaigns/" + campaignId)
+        mockMvc.perform(put("/campaigns/" + campaignId)
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +133,7 @@ class CampaignControllerTest {
     void canTransitionDraftToLegalReview() throws Exception {
         Cookie session = loginWithRole("+5511888880005", UserRole.CAMPAIGN_MANAGER);
 
-        MvcResult created = mockMvc.perform(post("/api/campaigns")
+        MvcResult created = mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +146,7 @@ class CampaignControllerTest {
         String campaignId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(post("/api/campaigns/" + campaignId + "/transition")
+        mockMvc.perform(post("/campaigns/" + campaignId + "/transition")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +162,7 @@ class CampaignControllerTest {
         Cookie session = loginWithRole("+5511888880011", UserRole.CAMPAIGN_MANAGER);
         var other = organizationRepository.save(new Organization("Outra organização", "ASSOCIATION"));
         var campaign = campaignRepository.save(new Campaign(other.getId(), "Campanha externa", "campanha-externa-transicao", CampaignMode.DEMO));
-        mockMvc.perform(post("/api/campaigns/" + campaign.getPublicId() + "/transition")
+        mockMvc.perform(post("/campaigns/" + campaign.getPublicId() + "/transition")
                         .cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
                 .andExpect(status().isForbidden());
@@ -173,7 +173,7 @@ class CampaignControllerTest {
     void invalidTransitionIsRejected() throws Exception {
         Cookie session = loginWithRole("+5511888880006", UserRole.CAMPAIGN_MANAGER);
 
-        MvcResult created = mockMvc.perform(post("/api/campaigns")
+        MvcResult created = mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -186,7 +186,7 @@ class CampaignControllerTest {
         String campaignId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(post("/api/campaigns/" + campaignId + "/transition")
+        mockMvc.perform(post("/campaigns/" + campaignId + "/transition")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -201,7 +201,7 @@ class CampaignControllerTest {
     void canAddAndListPrizes() throws Exception {
         Cookie session = loginWithRole("+5511888880007", UserRole.CAMPAIGN_MANAGER);
 
-        MvcResult created = mockMvc.perform(post("/api/campaigns")
+        MvcResult created = mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -214,7 +214,7 @@ class CampaignControllerTest {
         String campaignId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(post("/api/campaigns/" + campaignId + "/prizes")
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -225,7 +225,7 @@ class CampaignControllerTest {
                 .andExpect(jsonPath("$.description").value("Kit Canon D70"))
                 .andExpect(jsonPath("$.valueCents").value(1000000));
 
-        mockMvc.perform(get("/api/campaigns/" + campaignId + "/prizes").cookie(session))
+        mockMvc.perform(get("/campaigns/" + campaignId + "/prizes").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].type").value("GOODS"));
@@ -235,7 +235,7 @@ class CampaignControllerTest {
     void cashPrizeBlockedInAllModes() throws Exception {
         Cookie session = loginWithRole("+5511888880008", UserRole.CAMPAIGN_MANAGER);
 
-        MvcResult created = mockMvc.perform(post("/api/campaigns")
+        MvcResult created = mockMvc.perform(post("/campaigns")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -248,7 +248,7 @@ class CampaignControllerTest {
         String campaignId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(post("/api/campaigns/" + campaignId + "/prizes")
+        mockMvc.perform(post("/campaigns/" + campaignId + "/prizes")
                         .cookie(session)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -263,7 +263,7 @@ class CampaignControllerTest {
     void campaignNotFoundReturns404() throws Exception {
         Cookie session = loginWithRole("+5511888880009", UserRole.CAMPAIGN_MANAGER);
 
-        mockMvc.perform(get("/api/campaigns/nonexistent-id").cookie(session))
+        mockMvc.perform(get("/campaigns/nonexistent-id").cookie(session))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("CAMPAIGN_NOT_FOUND"));
     }

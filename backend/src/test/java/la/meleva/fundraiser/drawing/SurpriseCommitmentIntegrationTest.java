@@ -247,7 +247,7 @@ class SurpriseCommitmentIntegrationTest {
         var campaign=campaigns.save(new Campaign(org.getId(),"Surpresa","surpresa-api-abertura",CampaignMode.DEMO));
         service.enable(actor.getId(),campaign.getPublicId());
         var auth=auth(actor,UserRole.SYSTEM_ADMIN);
-        String endpoint="/api/campaigns/"+campaign.getPublicId()+"/transition";
+        String endpoint="/campaigns/"+campaign.getPublicId()+"/transition";
         mvc.perform(post(endpoint).with(authentication(auth)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"targetStatus\":\"LEGAL_REVIEW\"}"))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CAMPAIGN_GATES_INCOMPLETE"));
         assertThat(campaigns.findById(campaign.getId()).orElseThrow().getStatus()).isEqualTo(CampaignStatus.DRAFT);
