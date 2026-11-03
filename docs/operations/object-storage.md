@@ -47,7 +47,7 @@ O compose sobe o Garage e um serviço `garage-init` que **automaticamente** atri
 importa a chave S3 fixa e cria o bucket:
 
 ```bash
-docker compose -f infrastructure/compose.yaml -f infrastructure/compose.s3.yaml up -d
+docker compose -f infrastructure/compose.local.yaml -f infrastructure/compose.local.s3.yaml up -d
 
 APP_STORAGE_PROVIDER=s3 \
 APP_STORAGE_S3_ENDPOINT=http://localhost:3900 \

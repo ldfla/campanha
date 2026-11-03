@@ -24,7 +24,7 @@ Ver o guia completo em [`docs/operations/local-mvp.md`](docs/operations/local-mv
 
 ```bash
 # 1) infraestrutura (MySQL + Mailpit)
-docker compose -f infrastructure/compose.yaml up -d
+docker compose -f infrastructure/compose.local.yaml up -d
 
 # 2) backend (profile local; seed de campanhas DEMO)
 cd backend
@@ -47,16 +47,16 @@ cd frontend && npm run typecheck && npm run lint && npm run build
 
 ## Deploy (staging/MVP)
 
-- **Stack (arquivo principal):** [`compose.yaml`](compose.yaml) na raiz — entrypoint para gerenciadores
-  de stack (ex.: **Dockhand**); a definição real está em
-  [`infrastructure/compose.staging.yaml`](infrastructure/compose.staging.yaml) — endurecida
-  (`read_only`, `cap_drop`, `no-new-privileges`, limites, redes separadas) e baseada em **imagens imutáveis**.
+- **Stack (arquivo principal):** [`compose.yaml`](compose.yaml) na raiz — **stack completa e
+  autocontida** (é o arquivo que o Dockhand usa), endurecida (`read_only`, `cap_drop`,
+  `no-new-privileges`, limites, redes separadas) e baseada em **imagens imutáveis**.
+- **Local (dev):** [`infrastructure/compose.local.yaml`](infrastructure/compose.local.yaml) (MySQL + Mailpit).
 - **Imagens:** buildadas no GitHub Actions e publicadas no GHCR —
   [`.github/workflows/images.yml`](.github/workflows/images.yml); Dockerfiles em
   [`backend/Dockerfile`](backend/Dockerfile) e [`frontend/Dockerfile`](frontend/Dockerfile).
 - **Runbook:** [`docs/operations/deploy-staging.md`](docs/operations/deploy-staging.md)
   (variáveis em `.env.staging.example`; init do storage em `scripts/s3-init.sh`; build local via
-  `infrastructure/compose.build.yaml`).
+  `compose.build.yaml`).
 
 ## Segurança
 
