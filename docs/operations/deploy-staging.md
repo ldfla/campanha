@@ -11,8 +11,8 @@
 - **`compose.build.yaml`** (raiz) — *override opcional* para buildar as imagens localmente.
 - **`infrastructure/compose.local.yaml`** — compose **local de desenvolvimento** (MySQL + Mailpit);
   o backend/frontend locais rodam via `./mvnw` e `npm`.
-- **`backend/Dockerfile`**, **`frontend/Dockerfile`** — imagens (multi-stage, non-root).
-- **`.github/workflows/images.yml`** — builda e publica as imagens Linux no **GHCR**.
+- **`backend/Dockerfile`**, **`frontend/Dockerfile`**, **`infrastructure/garage.Dockerfile`** — imagens (multi-stage, non-root; o Garage tem a config embutida).
+- **`.github/workflows/images.yml`** — builda e publica as imagens Linux (**backend**, **frontend**, **garage**) no **GHCR**.
 - **`.env.staging.example`**, **`scripts/s3-init.sh`**.
 
 > Não existe um único “Dockerfile da stack”: é um **stack Compose** multi-serviço; as Dockerfiles são por serviço.
@@ -60,13 +60,11 @@ redes `edge`/`data` separadas).
 
 > **Build local (sem GHCR):** `docker compose --env-file .env.staging -f compose.yaml -f compose.build.yaml up -d --build`.
 
-## 4. Configurar o object storage (uma vez)
-A imagem do Garage é distroless; o init roda no host via `docker exec`:
-```bash
-GARAGE_CONTAINER=fundraiser-garage \
-APP_STORAGE_S3_ACCESS_KEY=<mesma do .env> APP_STORAGE_S3_SECRET_KEY=<mesma do .env> \
-./scripts/s3-init.sh
-```
+## 4. Object storage (automático)
+O serviço `garage` sobe em modo **single-node** (`--single-node --default-bucket`) usando a config
+**embutida na imagem** `campanha-garage`; com as variáveis `APP_STORAGE_S3_ACCESS_KEY`,
+`APP_STORAGE_S3_SECRET_KEY` e `APP_STORAGE_S3_BUCKET` ele **cria layout, chave e bucket sozinho**.
+**Não é preciso rodar `s3-init.sh` no servidor** (esse script é só para o compose local).
 
 ## 5. Publicar no Cloudflare Tunnel
 No painel da Cloudflare (túnel gerenciado), aponte as rotas de ingress:

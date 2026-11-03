@@ -43,11 +43,11 @@ Como o adaptador usa o dialeto S3, migrar de engine é apenas configuração —
 
 ## Como subir localmente
 
-O compose sobe o Garage e um serviço `garage-init` que **automaticamente** atribui o layout,
-importa a chave S3 fixa e cria o bucket:
+O compose local sobe o Garage; rode o init (`scripts/s3-init.sh`) uma vez para criar layout/chave/bucket:
 
 ```bash
 docker compose -f infrastructure/compose.local.yaml -f infrastructure/compose.local.s3.yaml up -d
+GARAGE_CONTAINER=fundraiser-garage ./scripts/s3-init.sh
 
 APP_STORAGE_PROVIDER=s3 \
 APP_STORAGE_S3_ENDPOINT=http://localhost:3900 \
@@ -56,6 +56,10 @@ APP_STORAGE_S3_SECRET_KEY=000000000000000000000000000000000000000000000000000000
 APP_STORAGE_S3_REGION=garage \
 SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 ```
+
+> **No servidor (Dockhand)** não é preciso init: a stack usa a imagem `campanha-garage` (config
+> embutida) em modo **single-node** (`--single-node --default-bucket`) e o Garage **cria layout, chave
+> e bucket sozinho** a partir de `APP_STORAGE_S3_*`. Ver `docs/operations/deploy-staging.md`.
 
 Admin API do Garage: `http://localhost:3903`.
 
