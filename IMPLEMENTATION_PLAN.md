@@ -29,12 +29,12 @@ Uma tarefa só pode ser marcada concluída se tiver implementação funcional (n
 
 ### Implementado e na `main`
 - **P00–P12, P13, P14, P15, P16, P18** (e **P07-A** carga inicial de prêmios) com `./mvnw -B verify` verde.
-  PRs #1–#26 mergeados.
+  PRs #1–#49 mergeados.
 - **P16** (hardening/LGPD/red-team interno), **P18** (carga/recuperação, alto volume) e **CPF do
   contemplado** (cifrado, só para prêmio, `V022`).
 
 ### Decisões dos gates registradas (docs)
-- `docs/decisions.md` (D-001…D-008; D-OPEN-002/004/005/006/007/010/011/012/013 resolvidos).
+- `docs/decisions.md` (D-001…D-012; D-OPEN-002/004/005/006/007/010/011/012/013 resolvidos).
 - `docs/adr/ADR-0007` (modalidade), `ADR-0008` (retenção CPF/rotação de chaves), `ADR-0009`
   (red-team interno + aceitação de risco).
 - `docs/compliance/gates-status.md`, `docs/compliance/risk-acceptance.md`.

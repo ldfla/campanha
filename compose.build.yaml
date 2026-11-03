@@ -4,15 +4,16 @@
 #   docker compose --env-file .env.staging -f compose.yaml -f compose.build.yaml up -d --build
 
 services:
-  backend:
+  fundraiser-backend:
     image: ${BACKEND_IMAGE:-fundraiser-backend:local}
     build:
       context: ./backend
 
-  frontend:
+  fundraiser-frontend:
     image: ${FRONTEND_IMAGE:-fundraiser-frontend:local}
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+        # Mesmo domínio do site (proxy do túnel). NUNCA aponte para localhost em bundle publicado.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
         NEXT_PUBLIC_CAMPAIGN_ID: ${NEXT_PUBLIC_CAMPAIGN_ID:-demo}

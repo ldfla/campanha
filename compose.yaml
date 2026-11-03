@@ -12,8 +12,9 @@
 #
 # Build local (sem GHCR): acrescente `-f compose.build.yaml` (ver o próprio arquivo).
 #
-# Exposição pública via Cloudflare Tunnel (`cloudflared`): app -> http://frontend:3000,
-# API -> http://backend:8080. Nenhum serviço publica porta no host (redes internas).
+# Exposição pública: backend/frontend publicados SÓ no loopback do host (127.0.0.1:8080 e
+# 127.0.0.1:3000) para um cloudflared EXTERNO alcançá-los. O `cloudflared` embutido é opcional
+# (profile `tunnel`) — use-o apenas se você NÃO tiver um túnel no servidor.
 #
 # Observação: o compose LOCAL de desenvolvimento (MySQL + Mailpit) fica em
 # `infrastructure/compose.local.yaml` (o backend/frontend locais rodam via `./mvnw` e `npm`).
@@ -92,10 +93,15 @@ services:
       - data
     logging: *logging
 
-  backend:
+  fundraiser-backend:
     image: ${BACKEND_IMAGE:?defina BACKEND_IMAGE com uma referência imutável}
     pull_policy: always
     restart: unless-stopped
+    # Nome DNS estável na rede `edge` (alvo do túnel: http://fundraiser-backend:8080).
+    container_name: fundraiser-backend
+    # Endereço no host onde o túnel EXTERNO alcança o backend (defina BACKEND_BIND_IP no .env.staging).
+    ports:
+      - "${BACKEND_BIND_IP:-127.0.0.1}:${BACKEND_HOST_PORT:-8080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -115,6 +121,8 @@ services:
       SURPRISE_ENCRYPTION_KEY: ${SURPRISE_ENCRYPTION_KEY:?defina SURPRISE_ENCRYPTION_KEY}
       APP_CPF_ENCRYPTION_KEY: ${APP_CPF_ENCRYPTION_KEY:?defina APP_CPF_ENCRYPTION_KEY}
       APP_CPF_HMAC_KEY: ${APP_CPF_HMAC_KEY:?defina APP_CPF_HMAC_KEY}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
     read_only: true
     tmpfs:
@@ -131,16 +139,21 @@ services:
       - edge
     logging: *logging
 
-  frontend:
+  fundraiser-frontend:
     image: ${FRONTEND_IMAGE:?defina FRONTEND_IMAGE com uma referência imutável}
     pull_policy: always
     restart: unless-stopped
+    # Nome DNS estável na rede `edge` (alvo do túnel: http://fundraiser-frontend:3000).
+    container_name: fundraiser-frontend
+    # Endereço no host onde o túnel EXTERNO alcança o frontend (defina FRONTEND_BIND_IP no .env.staging).
+    ports:
+      - "${FRONTEND_BIND_IP:-127.0.0.1}:${FRONTEND_HOST_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "3000"
     depends_on:
-      backend:
+      fundraiser-backend:
         condition: service_started
     read_only: true
     tmpfs:
@@ -158,15 +171,18 @@ services:
     logging: *logging
 
   cloudflared:
-    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
+    # OPCIONAL: só sobe com `--profile tunnel`. Se já existe um cloudflared no servidor (para outros
+    # serviços), NÃO habilite este profile — aponte o túnel externo para 127.0.0.1:8080 / :3000.
+    profiles: ["tunnel"]
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.7}
     pull_policy: always
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?defina CLOUDFLARE_TUNNEL_TOKEN}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
     depends_on:
-      - frontend
-      - backend
+      - fundraiser-frontend
+      - fundraiser-backend
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m

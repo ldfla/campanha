@@ -69,7 +69,7 @@ Não inventar testes executados, resultados de scanners, autorização, certific
 - **Monólito modular** (modularização explícita por domínio, não microsserviços), API REST versionada.
 - **Backend:** Java 25, Spring Boot 4.x estável compatível, Spring Security 7.x gerenciado pelo BOM, Maven Wrapper; Spring MVC + Virtual Threads quando apropriado. Não misturar webflux e servlet sem ADR técnica.
 - **Frontend:** React 19, Next.js estável compatível, TypeScript com `strict: true`, SSR/SEO para a página pública, abordagem mobile-first, acessibilidade WCAG 2.2 AA como meta.
-- **Lint:** respeitar preferência por regras compatíveis com ESLint 8.31 quando compatível com versões seguras do frontend; se houver incompatibilidade de dependências, documentar e adotar versão estável suportada **sem afrouxar regras**, justificando no ADR. Proibir `any`, `as any`, objetos não tipados, `@ts-ignore` sem justificativa e erros engolidos.
+- **Lint:** respeitar regras compatíveis com o ESLint adotado no frontend (**ESLint 9**, flat config); se houver incompatibilidade de dependências, documentar e adotar versão estável suportada **sem afrouxar regras**, justificando no ADR. Proibir `any`, `as any`, objetos não tipados, `@ts-ignore` sem justificativa e erros engolidos.
 - **Dados:** MySQL 8.4 LTS, InnoDB, Flyway, UTC no banco e ISO 8601 na API, decimais monetários inteiros em centavos (`BIGINT`/`long`), sem `float/double` para dinheiro.
 - **Fila e tarefas:** tabela transacional MySQL + outbox + workers com `FOR UPDATE SKIP LOCKED` exclusivamente para filas; não usar `SKIP LOCKED` para calcular rankings, apurações ou selecionar arbitrariamente números com visão inconsistente.
 - **Infra:** Docker Compose para desenvolvimento, contêineres com usuário não privilegiado, TLS no proxy em produção, backup testado, healthchecks; evitar Redis/Kafka/Kubernetes na fase inicial.
@@ -97,7 +97,7 @@ Estrutura de referência:
 ├── backend/
 │   ├── pom.xml
 │   ├── mvnw
-│   ├── src/main/java/br/com/campaign/
+│   ├── src/main/java/la/meleva/fundraiser/
 │   │   ├── shared/
 │   │   ├── identity/
 │   │   ├── compliance/
@@ -269,3 +269,7 @@ Falta de gate impede **produção real**, não testes locais e homologação.
 - MySQL SKIP LOCKED: https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html
 - Codex / AGENTS.md: https://developers.openai.com/cookbook/examples/codex/iterating-development-workflows-with-codex
 
+
+## 13. Mapa do codebase
+
+Arquitetura, módulos e fluxos estão em [`docs/CODEBASE_MAP.md`](./docs/CODEBASE_MAP.md).

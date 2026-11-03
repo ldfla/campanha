@@ -71,8 +71,11 @@ jobs:
           platforms: linux/amd64
           # `NEXT_PUBLIC_*` é embutido no bundle em tempo de build — defina como variáveis do
           # repositório (Settings > Variables) o URL público da API desta implantação.
+          # Padrão seguro: caminho relativo no MESMO domínio do site (`/api`), servido pelo proxy
+          # (Cloudflare Tunnel) para o backend — evita cookie entre sites e o prompt de "rede local"
+          # do Chrome que aparece quando o bundle aponta para localhost. NUNCA use localhost aqui.
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api' }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || '/api' }}
             NEXT_PUBLIC_CAMPAIGN_ID=${{ vars.NEXT_PUBLIC_CAMPAIGN_ID || 'demo' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
