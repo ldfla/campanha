@@ -823,7 +823,7 @@ Modelo de duas camadas em `campaign_numbers`:
 **Dependências:** P09/P13.  
 **Entregáveis:** dashboard financeiro e prestação de contas.
 
-- [x] `P14-01` Modelar custos reais por categoria e cenários editáveis de viabilidade. **PARCIAL**: custos por categoria e cenário parametrizável; cenários não são persistidos/editáveis.
+- [x] `P14-01` Modelar custos reais por categoria e cenários editáveis de viabilidade. **PARCIAL**: cenários hipotéticos persistidos e editáveis, com custos por categoria; custos reais por categoria ainda precisam de comprovação independente. Evidência: `docs/progress/P14.md`.
 - [x] `P14-02` Incluir referência de R$ 25.300 em itens propostos, diferenciando preços e prêmios aprovados. Valor hipotético de referência (prêmios + surpresa + rankings), nunca apresentado como aprovado.
 - [x] `P14-03` Simulador com custo unitário, capacidade, taxas variáveis e fixas, tributos parametrizados, ponto de equilíbrio.
 - [x] `P14-04` Rotular simulação como hipotética e não confundir faturamento com autorização.

@@ -75,6 +75,7 @@ public enum ErrorCode {
     PRIVACY_REQUEST_DUPLICATE("Solicitação de privacidade duplicada", 409),
 
     // Geral
+    FINANCIAL_SCENARIO_VERSION_CONFLICT("O cenário foi alterado por outra operação", 409),
     VALIDATION_ERROR("Erro de validação nos dados enviados", 400),
     RESOURCE_NOT_FOUND("Recurso não encontrado", 404),
     CPF_INVALID("CPF inválido", 400),
