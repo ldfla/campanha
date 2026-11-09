@@ -24,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -44,6 +45,7 @@ class FinancialExpenseIntegrationTest {
     @Autowired FinancialExpenseRepository expenses;
     @Autowired FinancialExpenseService service;
     @Autowired AuditEventRepository audits;
+    @Autowired JdbcTemplate jdbc;
 
     private static String body(String amount) {
         return "{\"idempotencyKey\":\"" + KEY + "\",\"category\":\"PLATFORM\",\"amountCents\":" + amount
@@ -84,8 +86,22 @@ class FinancialExpenseIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(id));
         mvc.perform(get("/financial/campaigns/" + other.getPublicId() + "/expenses").cookie(session))
                 .andExpect(status().isForbidden());
+        mvc.perform(post("/financial/campaigns/" + other.getPublicId() + "/expenses").cookie(session)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body("1500")))
+                .andExpect(status().isForbidden());
         var persisted = expenses.findByCampaignIdAndIdempotencyKey(campaign.getId(), KEY).orElseThrow();
         assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("financial_expense", persisted.id())).hasSize(1);
+        String recordedHash = jdbc.queryForObject("SELECT event_hash FROM audit_events WHERE entity_type = ? AND entity_id = ?",
+                String.class, "financial_expense", persisted.id());
+        assertThat(recordedHash).isEqualTo(persisted.auditHash());
+        String newKey = "3e723d54-a1e6-4f57-a970-c5b11f246bb9";
+        mvc.perform(post(path).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(body("9007199254740991").replace(KEY, newKey)
+                                .replace("2025-01-02T03:04:05Z", "1970-01-01T00:00:01Z")))
+                .andExpect(status().isOk());
+        var boundary = expenses.findByCampaignIdAndIdempotencyKey(campaign.getId(), newKey).orElseThrow();
+        assertThat(boundary.amountCents()).isEqualTo(9_007_199_254_740_991L);
+        assertThat(boundary.occurredAt()).isEqualTo(Instant.parse("1970-01-01T00:00:01Z"));
     }
 
     @Test
