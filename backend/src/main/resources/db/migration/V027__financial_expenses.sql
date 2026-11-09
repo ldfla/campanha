@@ -1,0 +1,20 @@
+CREATE TABLE financial_expenses (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    public_id CHAR(36) NOT NULL,
+    campaign_id BIGINT NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    amount_cents BIGINT NOT NULL,
+    currency CHAR(3) NOT NULL,
+    description VARCHAR(200) NOT NULL,
+    occurred_at TIMESTAMP(6) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    created_by BIGINT NOT NULL,
+    idempotency_key CHAR(36) NOT NULL,
+    UNIQUE KEY uk_financial_expense_public_id (public_id),
+    UNIQUE KEY uk_financial_expense_idempotency (campaign_id, idempotency_key),
+    INDEX idx_financial_expense_campaign_occurred (campaign_id, occurred_at, id),
+    CONSTRAINT fk_financial_expense_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id),
+    CONSTRAINT fk_financial_expense_actor FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT chk_financial_expense_amount CHECK (amount_cents > 0),
+    CONSTRAINT chk_financial_expense_currency CHECK (currency = 'BRL')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
