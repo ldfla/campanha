@@ -9,6 +9,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -52,6 +56,20 @@ class FinancialExpense {
                     String proposedDescription, Instant proposedOccurredAt) {
         return createdBy.equals(actorId) && category == proposedCategory && amountCents == proposedCents
                 && description.equals(proposedDescription.strip()) && occurredAt.equals(proposedOccurredAt);
+    }
+
+    String auditHash() {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            for (String value : new String[]{"financial-expense-v1", publicId, campaignId.toString(),
+                    category.name(), Long.toString(amountCents), currency, description, occurredAt.toString(),
+                    createdAt.toString(), createdBy.toString(), idempotencyKey}) {
+                byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                digest.update(java.nio.ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array());
+                digest.update(bytes);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
     Long id() { return id; }
     String publicId() { return publicId; }

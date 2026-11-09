@@ -1,12 +1,8 @@
 package la.meleva.fundraiser.payment;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 import la.meleva.fundraiser.audit.AuditEvent;
@@ -27,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 class FinancialExpenseService {
+    static final long MAX_AMOUNT_CENTS = 9_007_199_254_740_991L;
+    private static final Instant MIN_OCCURRED_AT = Instant.parse("1970-01-01T00:00:01Z");
+    private static final Instant MAX_OCCURRED_AT = Instant.parse("2038-01-19T03:14:07.999999Z");
     private static final List<UserRole> AUTHORIZED_ROLES = List.of(UserRole.FINANCE, UserRole.SYSTEM_ADMIN);
     private final CampaignRepository campaigns;
     private final UserRepository users;
@@ -62,11 +61,12 @@ class FinancialExpenseService {
         } catch (IllegalArgumentException | NullPointerException ex) {
             throw ErrorCode.VALIDATION_ERROR.toException();
         }
-        if (category == null || description == null || occurredAt == null || cents <= 0)
+        if (category == null || description == null || occurredAt == null || cents <= 0 || cents > MAX_AMOUNT_CENTS)
             throw ErrorCode.VALIDATION_ERROR.toException();
         Instant timestamp = occurredAt.truncatedTo(ChronoUnit.MICROS);
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        if (description.isBlank() || description.strip().length() > 200 || timestamp.isAfter(now))
+        if (description.isBlank() || description.strip().length() > 200 || timestamp.isAfter(now)
+                || timestamp.isBefore(MIN_OCCURRED_AT) || timestamp.isAfter(MAX_OCCURRED_AT))
             throw ErrorCode.VALIDATION_ERROR.toException();
         var existing = expenses.findByCampaignIdAndIdempotencyKey(campaign.getId(), normalizedKey);
         if (existing.isPresent()) {
@@ -77,7 +77,7 @@ class FinancialExpenseService {
         var entry = expenses.saveAndFlush(new FinancialExpense(campaign.getId(), actorId, normalizedKey,
                 category, cents, description, timestamp, now));
         audits.save(new AuditEvent(actorId, "FINANCIAL_EXPENSE_DECLARED", "financial_expense", entry.id(),
-                sha256(entry.publicId() + ":" + category + ":" + cents + ":" + timestamp)));
+                entry.auditHash()));
         return view(entry);
     }
 
@@ -106,13 +106,6 @@ class FinancialExpenseService {
         return new View(expense.publicId(), expense.category(), expense.amountCents(), "BRL",
                 expense.description(), expense.occurredAt(), expense.createdAt(), "DECLARADA",
                 "Valor informado por operador; não comprova pagamento nem conciliação.");
-    }
-
-    private static String sha256(String input) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(input.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
 
     record View(String id, FinancialSimulation.CostCategory category, long amountCents, String currency,

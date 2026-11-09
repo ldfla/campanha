@@ -6,6 +6,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FinancialExpenseTest {
+    @org.junit.jupiter.api.Test
+    void auditHashDetectsChangesToCampaignAndDescription() {
+        var now = java.time.Instant.parse("2026-01-01T00:00:00Z");
+        var entry = new FinancialExpense(1L, 2L, "2512abae-f1e9-448b-a06b-6bc859694a5b",
+                FinancialSimulation.CostCategory.PLATFORM, 100, "Tarifa", now, now);
+        String original = entry.auditHash();
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "description", "Outra tarifa");
+        org.assertj.core.api.Assertions.assertThat(entry.auditHash()).isNotEqualTo(original);
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "description", "Tarifa");
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "campaignId", 3L);
+        org.assertj.core.api.Assertions.assertThat(entry.auditHash()).isNotEqualTo(original);
+    }
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test

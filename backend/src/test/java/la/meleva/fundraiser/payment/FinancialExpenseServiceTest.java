@@ -79,4 +79,16 @@ class FinancialExpenseServiceTest {
                 100, "Tarifa", NOW)).isInstanceOf(ErrorCode.BusinessException.class);
         verifyNoInteractions(expenses, audits);
     }
+
+    @Test
+    void rejectsAmountsOutsideExactJsonIntegerRangeAndDatesOutsideMysqlRange() {
+        authorize();
+        assertThatThrownBy(() -> service.create(2L, "campaign", KEY, FinancialSimulation.CostCategory.PLATFORM,
+                FinancialExpenseService.MAX_AMOUNT_CENTS + 1, "Tarifa", NOW))
+                .isInstanceOf(ErrorCode.BusinessException.class);
+        assertThatThrownBy(() -> service.create(2L, "campaign", KEY, FinancialSimulation.CostCategory.PLATFORM,
+                100, "Tarifa", Instant.parse("1969-12-31T23:59:59Z")))
+                .isInstanceOf(ErrorCode.BusinessException.class);
+        verifyNoInteractions(expenses, audits);
+    }
 }
