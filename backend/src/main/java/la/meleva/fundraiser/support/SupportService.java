@@ -1,12 +1,15 @@
 package la.meleva.fundraiser.support;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.Objects;
@@ -55,17 +58,31 @@ public class SupportService {
     }
 
     @Transactional
-    public SupportView open(Long userId, String subject, String message, String organizationId) {
+    public SupportView open(Long userId, String subject, String message, String organizationId, String idempotencyKey) {
         if (userId == null) throw ErrorCode.VALIDATION_ERROR.toException();
-        var user = users.findById(userId).filter(candidate -> candidate.isActive())
+        String key = canonicalKey(idempotencyKey);
+        var user = (key == null ? users.findById(userId) : users.findLockedById(userId)).filter(candidate -> candidate.isActive())
                 .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
         if (subject == null || subject.isBlank() || subject.strip().length() > 150
                 || message == null || message.isBlank() || message.strip().length() > 2000) {
             throw ErrorCode.VALIDATION_ERROR.toException();
         }
+        String fingerprint = key == null ? null : fingerprint(subject.strip(), message.strip(), organizationId);
+        if (key != null) {
+            var previous = requests.findByUserIdAndIdempotencyKey(user.getId(), key);
+            if (previous.isPresent()) {
+                var existing = previous.get();
+                if (!fingerprint.equals(existing.getIdempotencyFingerprint()))
+                    throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
+                String currentOrganization = existing.getOrganizationId() == null ? null
+                        : organizations.findById(existing.getOrganizationId()).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException).getPublicId();
+                return view(existing, currentOrganization);
+            }
+        }
         var request = new SupportRequest(user.getId(), subject.strip(), message.strip());
         var organization = organizationId == null ? null : activeOrganization(organizationId);
         if (organization != null) request.assignOrganization(organization.getId());
+        if (key != null) request.setIdempotency(key, fingerprint);
         var saved = requests.save(request);
         audits.save(new AuditEvent(user.getId(), "SUPPORT_REQUEST_OPENED", "support_request", saved.getId(),
                 sha256(saved.getPublicId() + ":" + (organization == null ? "unassigned" : organization.getPublicId()))));
@@ -160,6 +177,31 @@ public class SupportService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private static String canonicalKey(String value) {
+        if (value == null) return null;
+        try {
+            String canonical = UUID.fromString(value).toString();
+            if (!canonical.equalsIgnoreCase(value)) throw new IllegalArgumentException();
+            return canonical;
+        } catch (IllegalArgumentException exception) {
+            throw ErrorCode.VALIDATION_ERROR.toException();
+        }
+    }
+
+    private static String fingerprint(String subject, String message, String organizationId) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            String presence = organizationId == null ? "0" : "1";
+            String destination = organizationId == null ? "" : organizationId.toLowerCase(Locale.ROOT);
+            for (String value : new String[]{"support-create-v1", subject, message, presence, destination}) {
+                byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                digest.update(ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array());
+                digest.update(bytes);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
     }
 
     public record SupportView(String id, String subject, String status, String message, String organizationId) {

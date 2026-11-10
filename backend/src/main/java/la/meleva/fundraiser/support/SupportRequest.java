@@ -14,6 +14,8 @@ public class SupportRequest {
     @Column(name = "public_id", nullable = false, updatable = false, length = 36) private String publicId;
     @Column(name = "user_id", nullable = false, updatable = false) private Long userId;
     @Column(name = "organization_id") private Long organizationId;
+    @Column(name = "idempotency_key", length = 36, updatable = false) private String idempotencyKey;
+    @Column(name = "idempotency_fingerprint", length = 64, updatable = false) private String idempotencyFingerprint;
     @Column(nullable = false, length = 150) private String subject;
     @Column(nullable = false, length = 2000) private String message;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private SupportStatus status;
@@ -36,6 +38,11 @@ public class SupportRequest {
     public String getPublicId() { return publicId; }
     public Long getUserId() { return userId; }
     public Long getOrganizationId() { return organizationId; }
+    String getIdempotencyFingerprint() { return idempotencyFingerprint; }
+    void setIdempotency(String key, String fingerprint) {
+        this.idempotencyKey = Objects.requireNonNull(key);
+        this.idempotencyFingerprint = Objects.requireNonNull(fingerprint);
+    }
     void assignOrganization(Long organizationId) { this.organizationId = Objects.requireNonNull(organizationId); }
     public String getSubject() { return subject; }
     public String getMessage() { return message; }

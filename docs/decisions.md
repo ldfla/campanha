@@ -51,3 +51,7 @@
 ## D-013 — Isolamento organizacional no suporte
 
 A listagem de suporte deve ser restrita à organização com vínculo ativo; consultas sem organização retornam somente chamados do próprio usuário. Chamados antigos sem destino são preservados e encaminhados pelo autor, sem atribuição automática. O comportamento anterior da listagem global de operadores é alterado por segurança. Ver ADR-0011.
+
+## D-014 — Abertura de suporte com chave opcional
+
+A abertura aceita `Idempotency-Key` opcional por autor para repetição segura, mantendo clientes legados sem chave. A impressão versionada e a unicidade persistente são descritas na ADR-0012; chamadas sem chave continuam sem garantia de deduplicação.

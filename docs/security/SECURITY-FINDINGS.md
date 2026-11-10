@@ -143,10 +143,15 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 
 ## SEC-0020 — Abertura de chamado sem idempotência
 
-- Status: OPEN; severidade preliminar: MEDIUM. Por leitura de código na revisão anterior, repetir `POST /support/requests` após perda da resposta cria outro chamado e evento, pois o comando não recebe chave de idempotência.
-- Impacto possível: duplicação de solicitações e trabalho de atendimento. O comportamento ainda não foi reproduzido em teste; uma eventual correção precisa preservar a compatibilidade do POST legado e registrar chave por autor e conteúdo.
+- Status: MITIGATED parcialmente; severidade preliminar: MEDIUM. Um teste local reproduziu a duplicação ao repetir `POST /support/requests` após perda da resposta.
+- Correção parcial: com `Idempotency-Key` opcional, chave por autor e impressão do conteúdo, repetições idênticas retornam o mesmo chamado. Reteste independente com `clean test` passou em 15 testes, incluindo concorrência e conflito de conteúdo. Chamadas legadas sem cabeçalho continuam podendo gerar duplicatas, conforme ADR-0012.
 
 ## SEC-0021 — Bloqueio exclusivo anterior à autorização do operador
 
 - Status: MITIGATED para o cenário testado; severidade preliminar: MEDIUM. Revisão estática independente apontou que um operador externo que conhecesse o identificador poderia adquirir o bloqueio exclusivo do chamado antes da verificação de vínculo organizacional.
 - Correção: o serviço verifica e bloqueia o vínculo antes de obter o bloqueio exclusivo do chamado, e revalida a organização após bloqueá-lo. Reteste independente confirmou o teste que mantém o chamado bloqueado por outra transação e verifica que o operador externo é negado sem aguardar esse bloqueio; classes compiladas foram reutilizadas.
+
+## SEC-0022 — Colisão entre destino ausente e texto literal
+
+- Status: MITIGATED no cenário testado; severidade preliminar: MEDIUM. Revisão independente encontrou colisão no rascunho local da impressão de idempotência: ausência de destino e `organizationId` literal `unassigned` produziam o mesmo valor.
+- Teste local reproduziu HTTP 201 em vez de conflito antes da correção. A impressão passou a codificar presença e valor separadamente, com delimitadores de comprimento; o reteste independente com `clean test` passou. A versão ambígua não foi commitada nem publicada por esta tarefa.
