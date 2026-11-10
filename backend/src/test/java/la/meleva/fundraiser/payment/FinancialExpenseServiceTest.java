@@ -26,9 +26,10 @@ class FinancialExpenseServiceTest {
     private final UserRepository users = mock(UserRepository.class);
     private final MembershipRepository memberships = mock(MembershipRepository.class);
     private final FinancialExpenseRepository expenses = mock(FinancialExpenseRepository.class);
+    private final FinancialExpenseReversalRepository reversals = mock(FinancialExpenseReversalRepository.class);
     private final AuditEventRepository audits = mock(AuditEventRepository.class);
     private final FinancialExpenseService service = new FinancialExpenseService(campaigns, users, memberships,
-            expenses, audits, Clock.fixed(NOW, ZoneOffset.UTC));
+            expenses, reversals, audits, Clock.fixed(NOW, ZoneOffset.UTC));
 
     private void authorize() {
         var campaign = mock(Campaign.class);

@@ -23,7 +23,25 @@ import tools.jackson.databind.annotation.JsonDeserialize;
 @RequestMapping("/financial/campaigns/{campaignId}/expenses")
 class FinancialExpenseController {
     private final FinancialExpenseService service;
-    FinancialExpenseController(FinancialExpenseService service) { this.service = service; }
+    private final FinancialExpenseReversalService reversals;
+    FinancialExpenseController(FinancialExpenseService service, FinancialExpenseReversalService reversals) {
+        this.service = service;
+        this.reversals = reversals;
+    }
+
+    @PostMapping("/{expenseId}/reversal")
+    @PreAuthorize("hasAnyRole('FINANCE', 'SYSTEM_ADMIN')")
+    FinancialExpenseReversalService.View reverse(@AuthenticationPrincipal AppUserDetails principal,
+            @PathVariable String campaignId, @PathVariable String expenseId, @Valid @RequestBody ReversalRequest request) {
+        return reversals.reverse(principal.userId(), campaignId, expenseId, request.idempotencyKey(), request.reason());
+    }
+
+    @GetMapping("/{expenseId}/reversal")
+    @PreAuthorize("hasAnyRole('FINANCE', 'SYSTEM_ADMIN')")
+    FinancialExpenseReversalService.View reversal(@AuthenticationPrincipal AppUserDetails principal,
+            @PathVariable String campaignId, @PathVariable String expenseId) {
+        return reversals.get(principal.userId(), campaignId, expenseId);
+    }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('FINANCE', 'SYSTEM_ADMIN')")
@@ -47,4 +65,6 @@ class FinancialExpenseController {
                          @NotNull @Positive @JsonDeserialize(using = FinancialSimulationController.StrictLong.class) Long amountCents,
                          @NotBlank @Size(max = 200) String description,
                          @NotNull Instant occurredAt) { }
+    record ReversalRequest(@NotBlank @Size(min = 36, max = 36) String idempotencyKey,
+                           @NotBlank @Size(max = 200) String reason) { }
 }
