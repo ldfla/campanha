@@ -14,6 +14,9 @@ public interface SupportRequestRepository extends JpaRepository<SupportRequest, 
     @Query("select r from SupportRequest r where r.publicId = :publicId")
     Optional<SupportRequest> lockByPublicId(String publicId);
 
+    @Query("select r.organizationId from SupportRequest r where r.publicId = :publicId")
+    Optional<Long> findOrganizationIdByPublicId(String publicId);
+
     List<SupportRequest> findByUserIdAndStatusOrderByIdAsc(Long userId, SupportRequest.SupportStatus status, Pageable pageable);
     List<SupportRequest> findByOrganizationIdAndStatusOrderByIdAsc(Long organizationId, SupportRequest.SupportStatus status, Pageable pageable);
 }

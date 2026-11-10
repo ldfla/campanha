@@ -78,6 +78,7 @@ public enum ErrorCode {
     VALIDATION_ERROR("Erro de validação nos dados enviados", 400),
     RESOURCE_NOT_FOUND("Recurso não encontrado", 404),
     SUPPORT_ORGANIZATION_CONFLICT("A solicitação já está vinculada a outra organização", 409),
+    SUPPORT_STATUS_TRANSITION_CONFLICT("Transição de atendimento não permitida", 409),
     CPF_INVALID("CPF inválido", 400),
     CPF_ALREADY_REGISTERED("CPF já cadastrado", 409),
     CPF_NOT_CONFIGURED("Armazenamento seguro de CPF indisponível", 503),
