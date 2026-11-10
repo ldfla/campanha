@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -44,6 +45,8 @@ class FinancialExpenseIntegrationTest {
     @Autowired UserRepository users;
     @Autowired FinancialExpenseRepository expenses;
     @Autowired FinancialExpenseService service;
+    @Autowired FinancialExpenseReversalService reversalService;
+    @Autowired FinancialExpenseReversalRepository reversalRepository;
     @Autowired AuditEventRepository audits;
     @Autowired JdbcTemplate jdbc;
 
@@ -127,5 +130,90 @@ class FinancialExpenseIntegrationTest {
         }
         var persisted = expenses.findByCampaignIdAndIdempotencyKey(campaign.getId(), KEY).orElseThrow();
         assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("financial_expense", persisted.id())).hasSize(1);
+    }
+
+    @Test
+    void reversesDeclaredExpenseOnceWithoutChangingOriginal() throws Exception {
+        String phone = "+5511977714513";
+        AuthTestSupport.register(mvc, "Pessoa", "Financeira", phone);
+        User user = users.findByPhoneNumber(phone).orElseThrow();
+        var org = organizations.save(new Organization("Correções", "ASSOCIATION"));
+        var campaign = campaigns.save(new Campaign(org.getId(), "Correções", "custos-p14-corr", CampaignMode.DEMO));
+        memberships.save(new Membership(org, user, UserRole.FINANCE));
+        var otherOrg = organizations.save(new Organization("Outra organização", "ASSOCIATION"));
+        var other = campaigns.save(new Campaign(otherOrg.getId(), "Outra", "custos-p14-corr-outra", CampaignMode.DEMO));
+        memberships.save(new Membership(otherOrg, user, UserRole.CAMPAIGN_MANAGER));
+        var session = AuthTestSupport.verify(mvc, phone);
+        String path = "/financial/campaigns/" + campaign.getPublicId() + "/expenses";
+        var created = mvc.perform(post(path).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(body("1500"))).andExpect(status().isOk()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        String reversal = "{\"idempotencyKey\":\"f2e68382-6aa6-44e2-b5e7-cdce528aee47\",\"reason\":\"Valor informado incorretamente\"}";
+        String reversePath = path + "/" + id + "/reversal";
+        mvc.perform(post("/financial/campaigns/" + other.getPublicId() + "/expenses/" + id + "/reversal")
+                        .cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(reversal))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(reversePath).cookie(session).contentType(MediaType.APPLICATION_JSON).content(reversal))
+                .andExpect(status().isForbidden());
+        var first = mvc.perform(post(reversePath).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(reversal)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ANULADA"))
+                .andReturn();
+        String reversalId = JsonPath.read(first.getResponse().getContentAsString(), "$.id");
+        mvc.perform(post(reversePath).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(reversal)).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(reversalId));
+        mvc.perform(post(reversePath).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(reversal.replace("Valor informado incorretamente", "Outro motivo")))
+                .andExpect(status().isConflict());
+        mvc.perform(get(reversePath).cookie(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(reversalId));
+        mvc.perform(post(reversePath).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(reversal.replace("f2e68382-6aa6-44e2-b5e7-cdce528aee47", "334fdb34-97c3-41b3-9ef8-bdaafba31188")))
+                .andExpect(status().isConflict());
+        mvc.perform(get(path).cookie(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].amountCents").value(1500))
+                .andExpect(jsonPath("$[0].status").value("ANULADA"));
+        mvc.perform(post(path).cookie(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(body("1500"))).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ANULADA"));
+        var persisted = expenses.findByCampaignIdAndIdempotencyKey(campaign.getId(), KEY).orElseThrow();
+        assertThat(persisted.amountCents()).isEqualTo(1500);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO financial_expense_reversals "
+                        + "(public_id,campaign_id,expense_id,actor_id,idempotency_key,reason,created_at) "
+                        + "VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP(6))", "e51897d8-8be7-44c3-9459-87a66a3cb0d2",
+                other.getId(), persisted.id(), user.getId(), "999af51c-2829-4bcc-aa02-1b5460ebd65f", "Inválida"))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("financial_expense", persisted.id())).hasSize(1);
+        var savedReversal = reversalRepository.findByExpenseId(persisted.id()).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("financial_expense_reversal", savedReversal.id())).hasSize(1);
+        String auditHash = jdbc.queryForObject("SELECT event_hash FROM audit_events WHERE entity_type = ? AND entity_id = ?",
+                String.class, "financial_expense_reversal", savedReversal.id());
+        assertThat(auditHash).isEqualTo(savedReversal.auditHash());
+    }
+
+    @Test
+    void concurrentReversalRetriesProduceOneEvent() throws Exception {
+        var org = organizations.save(new Organization("Correções concorrentes", "ASSOCIATION"));
+        var campaign = campaigns.save(new Campaign(org.getId(), "Correções concorrentes", "p14-reversao-conc", CampaignMode.DEMO));
+        var user = users.save(new User("Pessoa", "Financeira", "+5511977714514"));
+        memberships.save(new Membership(org, user, UserRole.FINANCE));
+        String expenseId = service.create(user.getId(), campaign.getPublicId(), KEY,
+                FinancialSimulation.CostCategory.PLATFORM, 100, "Tarifa", OCCURRED).id();
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var futures = new ArrayList<java.util.concurrent.Future<String>>();
+            for (int i = 0; i < 12; i++) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    return reversalService.reverse(user.getId(), campaign.getPublicId(), expenseId,
+                            "f2e68382-6aa6-44e2-b5e7-cdce528aee47", "Cadastro incorreto").id();
+                }));
+            }
+            start.countDown();
+            var ids = new java.util.HashSet<String>();
+            for (var future : futures) ids.add(future.get());
+            assertThat(ids).hasSize(1);
+        }
+        var expense = expenses.findByCampaignIdAndPublicId(campaign.getId(), expenseId).orElseThrow();
+        var reversal = reversalRepository.findByExpenseId(expense.id()).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("financial_expense_reversal", reversal.id())).hasSize(1);
     }
 }

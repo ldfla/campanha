@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.HashSet;
 import java.util.UUID;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
@@ -31,21 +32,25 @@ class FinancialExpenseService {
     private final UserRepository users;
     private final MembershipRepository memberships;
     private final FinancialExpenseRepository expenses;
+    private final FinancialExpenseReversalRepository reversals;
     private final AuditEventRepository audits;
     private final Clock clock;
 
     @Autowired
     FinancialExpenseService(CampaignRepository campaigns, UserRepository users, MembershipRepository memberships,
-                            FinancialExpenseRepository expenses, AuditEventRepository audits) {
-        this(campaigns, users, memberships, expenses, audits, Clock.systemUTC());
+                            FinancialExpenseRepository expenses, FinancialExpenseReversalRepository reversals,
+                            AuditEventRepository audits) {
+        this(campaigns, users, memberships, expenses, reversals, audits, Clock.systemUTC());
     }
 
     FinancialExpenseService(CampaignRepository campaigns, UserRepository users, MembershipRepository memberships,
-                            FinancialExpenseRepository expenses, AuditEventRepository audits, Clock clock) {
+                            FinancialExpenseRepository expenses, FinancialExpenseReversalRepository reversals,
+                            AuditEventRepository audits, Clock clock) {
         this.campaigns = campaigns;
         this.users = users;
         this.memberships = memberships;
         this.expenses = expenses;
+        this.reversals = reversals;
         this.audits = audits;
         this.clock = clock;
     }
@@ -72,24 +77,27 @@ class FinancialExpenseService {
         if (existing.isPresent()) {
             if (!existing.get().matches(actorId, category, cents, description, timestamp))
                 throw ErrorCode.IDEMPOTENCY_CONFLICT.toException();
-            return view(existing.get());
+            return view(existing.get(), reversals.findByExpenseId(existing.get().id()).isPresent());
         }
         var entry = expenses.saveAndFlush(new FinancialExpense(campaign.getId(), actorId, normalizedKey,
                 category, cents, description, timestamp, now));
         audits.save(new AuditEvent(actorId, "FINANCIAL_EXPENSE_DECLARED", "financial_expense", entry.id(),
                 entry.auditHash()));
-        return view(entry);
+        return view(entry, false);
     }
 
     @Transactional
     List<View> list(Long actorId, String campaignPublicId, int page, int size) {
         if (page < 0 || size < 1 || size > 100) throw ErrorCode.VALIDATION_ERROR.toException();
         Campaign campaign = authorizedCampaign(actorId, campaignPublicId);
-        return expenses.findAllByCampaignId(campaign.getId(), PageRequest.of(page, size, Sort.by("id")))
-                .map(this::view).getContent();
+        var pageContent = expenses.findAllByCampaignId(campaign.getId(), PageRequest.of(page, size, Sort.by("id")))
+                .getContent();
+        if (pageContent.isEmpty()) return List.of();
+        var reversedIds = new HashSet<>(reversals.findReversedExpenseIds(pageContent.stream().map(FinancialExpense::id).toList()));
+        return pageContent.stream().map(expense -> view(expense, reversedIds.contains(expense.id()))).toList();
     }
 
-    private Campaign authorizedCampaign(Long actorId, String campaignPublicId) {
+    Campaign authorizedCampaign(Long actorId, String campaignPublicId) {
         if (actorId == null || campaignPublicId == null || campaignPublicId.isBlank())
             throw ErrorCode.VALIDATION_ERROR.toException();
         Campaign campaign = campaigns.findLockedByPublicId(campaignPublicId)
@@ -102,9 +110,9 @@ class FinancialExpenseService {
         return campaign;
     }
 
-    private View view(FinancialExpense expense) {
+    private View view(FinancialExpense expense, boolean reversed) {
         return new View(expense.publicId(), expense.category(), expense.amountCents(), "BRL",
-                expense.description(), expense.occurredAt(), expense.createdAt(), "DECLARADA",
+                expense.description(), expense.occurredAt(), expense.createdAt(), reversed ? "ANULADA" : "DECLARADA",
                 "Valor informado por operador; não comprova pagamento nem conciliação.");
     }
 
