@@ -5,10 +5,17 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.Objects;
 import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
 import la.meleva.fundraiser.identity.MembershipRepository;
+import la.meleva.fundraiser.identity.Membership;
+import la.meleva.fundraiser.identity.Organization;
+import la.meleva.fundraiser.identity.OrganizationRepository;
+import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.shared.ErrorCode;
@@ -25,18 +32,20 @@ public class SupportService {
     private final SupportRequestRepository requests;
     private final UserRepository users;
     private final MembershipRepository memberships;
+    private final OrganizationRepository organizations;
     private final AuditEventRepository audits;
 
     SupportService(SupportRequestRepository requests, UserRepository users, MembershipRepository memberships,
-                   AuditEventRepository audits) {
+                   OrganizationRepository organizations, AuditEventRepository audits) {
         this.requests = requests;
         this.users = users;
         this.memberships = memberships;
+        this.organizations = organizations;
         this.audits = audits;
     }
 
     @Transactional
-    public SupportView open(Long userId, String subject, String message) {
+    public SupportView open(Long userId, String subject, String message, String organizationId) {
         if (userId == null) throw ErrorCode.VALIDATION_ERROR.toException();
         var user = users.findById(userId).filter(candidate -> candidate.isActive())
                 .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
@@ -44,32 +53,73 @@ public class SupportService {
                 || message == null || message.isBlank() || message.strip().length() > 2000) {
             throw ErrorCode.VALIDATION_ERROR.toException();
         }
-        var saved = requests.save(new SupportRequest(user.getId(), subject.strip(), message.strip()));
+        var request = new SupportRequest(user.getId(), subject.strip(), message.strip());
+        var organization = organizationId == null ? null : activeOrganization(organizationId);
+        if (organization != null) request.assignOrganization(organization.getId());
+        var saved = requests.save(request);
         audits.save(new AuditEvent(user.getId(), "SUPPORT_REQUEST_OPENED", "support_request", saved.getId(),
-                sha256(saved.getPublicId())));
-        return view(saved);
+                sha256(saved.getPublicId() + ":" + (organization == null ? "unassigned" : organization.getPublicId()))));
+        return view(saved, organization == null ? null : organization.getPublicId());
     }
 
-    @Transactional(readOnly = true)
-    public List<SupportView> listOpen(Long actorId) {
-        requireOperationalRole(actorId);
-        return requests.findByStatusOrderByIdAsc(SupportRequest.SupportStatus.OPEN, PageRequest.of(0, MAX_PAGE))
-                .stream().map(SupportService::view).toList();
+    @Transactional
+    public List<SupportView> listOpen(Long actorId, String organizationId, int page, int size) {
+        if (page < 0 || size < 1 || size > MAX_PAGE) throw ErrorCode.VALIDATION_ERROR.toException();
+        var actor = activeUser(actorId);
+        List<SupportRequest> entries;
+        if (organizationId == null) {
+            entries = requests.findByUserIdAndStatusOrderByIdAsc(actor.getId(), SupportRequest.SupportStatus.OPEN,
+                    PageRequest.of(page, size));
+        } else {
+            var organization = activeOrganization(organizationId);
+            requireOperationalRole(actor.getId(), organization.getId());
+            entries = requests.findByOrganizationIdAndStatusOrderByIdAsc(organization.getId(), SupportRequest.SupportStatus.OPEN, PageRequest.of(page, size));
+        }
+        var ids = entries.stream().map(SupportRequest::getOrganizationId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, Organization> byId = organizations.findAllById(ids).stream()
+                .collect(Collectors.toMap(Organization::getId, Function.identity()));
+        return entries.stream().map(entry -> view(entry, entry.getOrganizationId() == null ? null
+                : byId.get(entry.getOrganizationId()).getPublicId())).toList();
     }
 
-    private void requireOperationalRole(Long actorId) {
+    @Transactional
+    public SupportView assign(Long actorId, String requestId, String organizationId) {
+        var actor = activeUser(actorId);
+        var organization = activeOrganization(organizationId);
+        var request = requests.lockByPublicId(requestId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        if (!request.getUserId().equals(actor.getId())) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        if (request.getOrganizationId() != null) {
+            if (!request.getOrganizationId().equals(organization.getId()))
+                throw ErrorCode.SUPPORT_ORGANIZATION_CONFLICT.toException();
+            return view(request, organization.getPublicId());
+        }
+        request.assignOrganization(organization.getId());
+        audits.save(new AuditEvent(actor.getId(), "SUPPORT_REQUEST_ROUTED", "support_request", request.getId(),
+                sha256(request.getPublicId() + ":" + organization.getPublicId())));
+        return view(request, organization.getPublicId());
+    }
+
+    private User activeUser(Long actorId) {
         if (actorId == null) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
-        var user = users.findById(actorId).filter(candidate -> candidate.isActive())
+        return users.lockForAuthorization(actorId).filter(candidate -> candidate.isActive())
                 .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
-        boolean allowed = memberships.findActiveByUserId(user.getId()).stream()
-                .anyMatch(membership -> membership.getRole() == UserRole.SUPPORT
-                        || membership.getRole() == UserRole.SYSTEM_ADMIN);
-        if (!allowed) throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
     }
 
-    private static SupportView view(SupportRequest request) {
+    private Organization activeOrganization(String publicId) {
+        if (publicId == null || publicId.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
+        return organizations.findByPublicId(publicId).filter(org -> org.getStatus() == Organization.OrgStatus.ACTIVE)
+                .orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+    }
+
+    private void requireOperationalRole(Long actorId, Long organizationId) {
+        if (memberships.lockActiveForAuthorization(actorId, organizationId, List.of(UserRole.SUPPORT, UserRole.SYSTEM_ADMIN),
+                Membership.MembershipStatus.ACTIVE, User.UserStatus.ACTIVE).isEmpty())
+            throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+    }
+
+    private static SupportView view(SupportRequest request, String organizationId) {
         return new SupportView(request.getPublicId(), request.getSubject(), request.getStatus().name(),
-                request.getMessage());
+                request.getMessage(), organizationId);
     }
 
     private static String sha256(String value) {
@@ -81,7 +131,7 @@ public class SupportService {
         }
     }
 
-    public record SupportView(String id, String subject, String status, String message) {
+    public record SupportView(String id, String subject, String status, String message, String organizationId) {
         public SupportView { Objects.requireNonNull(id, "id"); }
     }
 }

@@ -842,7 +842,7 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P15-01` Templates de e-mail em PT-BR com versionamento e anti-phishing. 5 essenciais + 1 marketing, sem links nem credenciais.
 - [x] `P15-02` Notificar cadastro/verificação, participação válida, mudanças administrativas relevantes, resultado e entrega. Eventos internos → outbox (`NotificationEnqueuer`). `NotificationFlowIntegrationTest`, `DrawingIntegrationTest`, `RankingAwardIntegrationTest` — `docs/progress/P20-fase2.md`.
 - [x] `P15-03` Mensagens processadas por outbox, com retry, deduplicação e opt-out quando aplicável. Falha do transporte reagenda com backoff e vai a `DEAD_LETTER` ao esgotar; inbox deduplica — `docs/progress/P20-fase2.md`.
-- [x] `P15-04` Criar canal/ticket de suporte com permissões e logging de alterações. `POST/GET /support/requests`; listagem restrita a `SUPPORT`/`SYSTEM_ADMIN`; abertura auditada.
+- [ ] `P15-04` Criar canal/ticket de suporte com permissões e logging de alterações. **PARCIAL**: abertura e encaminhamento auditados, filas por organização e preservação dos chamados antigos; faltam tratamento de autores inativos e ciclo completo de atendimento. Ver `docs/progress/P15.md`.
 - [x] `P15-05` Diferenciar comunicação essencial, consentimento de marketing e bases legais. `NotificationPreferenceService.mayDispatch`; essencial inextinguível, marketing sob opt-out (base legal pendente de `G-LEGAL`).
 - [x] `P15-06` Simular envios em DEMO via Mailpit/MailHog local; não enviar para contatos reais. `MailpitNotificationTransport` (só SMTP local, destinatário `@demo.invalid`, recusa operação real); `MailpitTransportIntegrationTest` com Mailpit real — `docs/progress/P20-fase2.md`.
 

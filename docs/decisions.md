@@ -47,3 +47,7 @@
 > O documento do título de capitalização (SUSEP ViaCap 15414.657358/2026-61) e o regulamento
 > versionado devem ser anexados ao fluxo de autorização da campanha antes de qualquer operação real.
 > Enquanto não estiverem, a plataforma permanece em **DEMO**.
+
+## D-013 — Isolamento organizacional no suporte
+
+A listagem de suporte deve ser restrita à organização com vínculo ativo; consultas sem organização retornam somente chamados do próprio usuário. Chamados antigos sem destino são preservados e encaminhados pelo autor, sem atribuição automática. O comportamento anterior da listagem global de operadores é alterado por segurança. Ver ADR-0011.

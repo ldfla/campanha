@@ -1,0 +1,9 @@
+# Chamados de suporte
+
+`POST /support/requests` aceita `subject`, `message` e, opcionalmente, `organizationId` público de organização ativa. O corpo anterior sem organização continua aceito, criando chamado sem destino. O POST exige sessão e CSRF.
+
+`GET /support/requests` sem parâmetros lista apenas chamados abertos do usuário autenticado. Com `organizationId`, lista chamados abertos da organização quando o usuário tem vínculo ativo `SUPPORT` ou `SYSTEM_ADMIN` nessa organização. O parâmetro muda o escopo, não amplia o privilégio da sessão.
+
+A resposta inclui `organizationId` público ou `null` para chamados sem destino. A consulta aceita `page` (inicia em 0) e `size` (1 a 100; padrão 100), com ordenação por ID interno. Uma página vazia indica que não há mais resultados. Mudanças no conjunto de chamados abertos entre consultas podem deslocar resultados entre páginas.
+
+O autor pode encaminhar um chamado sem destino uma vez com `POST /support/requests/{requestId}/organization` e corpo `{ "organizationId": "UUID" }`; exige sessão e CSRF. Repetir a atribuição ao mesmo destino é idempotente; tentar outro destino retorna conflito. Um terceiro não pode encaminhar o chamado. Registros históricos sem organização não entram em filas organizacionais até o próprio autor encaminhá-los. O procedimento para autores inativos está pendente.
