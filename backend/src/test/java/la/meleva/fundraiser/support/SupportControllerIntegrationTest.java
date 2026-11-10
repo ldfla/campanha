@@ -178,7 +178,7 @@ class SupportControllerIntegrationTest {
     }
 
     @Test
-    void onlyOrganizationSupportCanAdvanceAndCloseTicketWithAudit() throws Exception {
+    void onlyOrganizationSupportCanAdvanceCloseAndReopenTicketWithAudit() throws Exception {
         var requester = users.save(new User("Pessoa", "Solicitante", "+55119999007121"));
         var agent = users.save(new User("Agente", "Destino", "+55119999007122"));
         var outsider = users.save(new User("Agente", "Externo", "+55119999007123"));
@@ -211,10 +211,33 @@ class SupportControllerIntegrationTest {
                 .with(authentication(agentAuth))).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id));
         mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"CLOSED\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CLOSED"));
+        mvc.perform(patch(path).with(authentication(outsiderAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(progress)).andExpect(status().isForbidden());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"OPEN\"}")).andExpect(status().isConflict());
         mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content(progress)).andExpect(status().isConflict());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\",\"revision\":2}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS")).andExpect(jsonPath("$.revision").value(3));
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\",\"revision\":2}")).andExpect(status().isConflict());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\",\"revision\":3}")).andExpect(status().isOk());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\"}")).andExpect(status().isConflict());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\",\"revision\":1}")).andExpect(status().isConflict());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\",\"revision\":3}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(4));
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\",\"revision\":2}")).andExpect(status().isConflict());
+        mvc.perform(patch(path).with(authentication(agentAuth)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\",\"revision\":4}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(5));
         var saved = requests.findByPublicId(id).orElseThrow();
-        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(3);
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(6);
     }
 
     @Test

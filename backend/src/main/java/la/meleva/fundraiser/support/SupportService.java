@@ -111,6 +111,11 @@ public class SupportService {
 
     @Transactional
     public SupportView transition(Long actorId, String requestId, SupportRequest.SupportStatus next) {
+        return transition(actorId, requestId, next, null);
+    }
+
+    @Transactional
+    public SupportView transition(Long actorId, String requestId, SupportRequest.SupportStatus next, Long revision) {
         if (next == null) throw ErrorCode.VALIDATION_ERROR.toException();
         var actor = activeUser(actorId);
         var organizationId = requests.findOrganizationIdByPublicId(requestId)
@@ -122,7 +127,7 @@ public class SupportService {
         if (!organization.getId().equals(request.getOrganizationId()))
             throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
         var previous = request.getStatus();
-        if (request.transitionTo(next, clock.instant())) {
+        if (request.transitionTo(next, clock.instant(), revision)) {
             audits.save(new AuditEvent(actor.getId(), "SUPPORT_REQUEST_STATUS_CHANGED", "support_request", request.getId(),
                     sha256("support-status-v1:" + request.getPublicId() + ":" + organization.getPublicId()
                             + ":" + previous.name() + ":" + next.name())));
@@ -167,7 +172,7 @@ public class SupportService {
 
     private static SupportView view(SupportRequest request, String organizationId) {
         return new SupportView(request.getPublicId(), request.getSubject(), request.getStatus().name(),
-                request.getMessage(), organizationId);
+                request.getMessage(), organizationId, request.getStatusRevision());
     }
 
     private static String sha256(String value) {
@@ -204,7 +209,7 @@ public class SupportService {
         } catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
     }
 
-    public record SupportView(String id, String subject, String status, String message, String organizationId) {
+    public record SupportView(String id, String subject, String status, String message, String organizationId, long revision) {
         public SupportView { Objects.requireNonNull(id, "id"); }
     }
 }

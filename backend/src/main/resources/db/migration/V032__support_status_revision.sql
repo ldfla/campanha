@@ -1,0 +1,3 @@
+ALTER TABLE support_requests
+    ADD COLUMN status_revision BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN has_reopened BOOLEAN NOT NULL DEFAULT FALSE;

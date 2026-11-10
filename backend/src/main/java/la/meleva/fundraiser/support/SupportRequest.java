@@ -21,6 +21,8 @@ public class SupportRequest {
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private SupportStatus status;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+    @Column(name = "status_revision", nullable = false) private long statusRevision;
+    @Column(name = "has_reopened", nullable = false) private boolean hasReopened;
 
     protected SupportRequest() { }
 
@@ -47,15 +49,23 @@ public class SupportRequest {
     public String getSubject() { return subject; }
     public String getMessage() { return message; }
     public SupportStatus getStatus() { return status; }
+    public long getStatusRevision() { return statusRevision; }
 
-    boolean transitionTo(SupportStatus next, Instant now) {
+    boolean transitionTo(SupportStatus next, Instant now, Long expectedRevision) {
         Objects.requireNonNull(next, "next");
         Objects.requireNonNull(now, "now");
+        boolean reopening = status == SupportStatus.CLOSED && next == SupportStatus.IN_PROGRESS;
+        if ((expectedRevision != null && expectedRevision != statusRevision)
+                || (expectedRevision == null && (hasReopened || reopening)))
+            throw ErrorCode.SUPPORT_STATUS_TRANSITION_CONFLICT.toException();
         if (status == next) return false;
         if (!((status == SupportStatus.OPEN && next == SupportStatus.IN_PROGRESS)
-                || (status == SupportStatus.IN_PROGRESS && next == SupportStatus.CLOSED)))
+                || (status == SupportStatus.IN_PROGRESS && next == SupportStatus.CLOSED)
+                || (status == SupportStatus.CLOSED && next == SupportStatus.IN_PROGRESS)))
             throw ErrorCode.SUPPORT_STATUS_TRANSITION_CONFLICT.toException();
         status = next;
+        statusRevision = Math.addExact(statusRevision, 1);
+        if (reopening) hasReopened = true;
         updatedAt = now;
         return true;
     }
