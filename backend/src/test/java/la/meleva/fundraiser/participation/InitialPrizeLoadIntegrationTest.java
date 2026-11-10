@@ -132,6 +132,18 @@ class InitialPrizeLoadIntegrationTest {
     }
 
     @Test
+    void storesFullRegisteredSurnameInParticipationSnapshot() {
+        var f = fixture("prize-load-surname", 3);
+        open(f.campaign());
+        String surname = "S".repeat(150);
+        var buyer = users.save(new User("Pessoa", surname, "+5511977002111"));
+        participations.request(buyer.getId(), f.campaign().getPublicId(), UUID.randomUUID().toString(), 1,
+                f.beneficiary().getPublicId());
+        assertThat(jdbc.queryForObject("SELECT buyer_surname FROM campaign_number_buyers WHERE buyer_user_id=?",
+                String.class, buyer.getId())).isEqualTo(surname);
+    }
+
+    @Test
     void rejectsPurchaseWithoutEntityIdAndWithNonE164Phone() {
         var f = fixture("prize-load-validation", 1000);
         open(f.campaign());

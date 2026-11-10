@@ -135,6 +135,24 @@ class ReservationServiceIntegrationTest {
     }
 
     @Test
+    void confirmedMockReservationPreservesFullRegisteredSurname() {
+        var campaign = openCampaign("lease-long-surname", 5);
+        String surname = "S".repeat(150);
+        var user = users.save(new User("Pessoa", surname, "+55119999001306"));
+        var offer = offers.save(new PurchaseOffer(campaign.getId(), 5, 500));
+        var start = checkout.start(user.getId(), campaign.getPublicId(), UUID.randomUUID().toString(),
+                offer.getPublicId(), entityIdFor(campaign), null);
+        Long paymentId = jdbc.queryForObject("SELECT p.id FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.public_id=?",
+                Long.class, start.orderPublicId());
+        String chargeId = jdbc.queryForObject("SELECT provider_charge_id FROM payments WHERE id=?", String.class, paymentId);
+        provider.setState(chargeId, PaymentProvider.ChargeState.PAID);
+        orderService.reconcile(paymentId);
+        checkout.confirm(user.getId(), campaign.getPublicId(), start.reservation().requestPublicId());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM campaign_number_buyers WHERE buyer_user_id=? AND buyer_surname=?",
+                Long.class, user.getId(), surname)).isEqualTo(5);
+    }
+
+    @Test
     void paymentAfterReservationDeadlineDoesNotAssignNumbers() {
         var campaign = openCampaign("lease-late-payment", 5);
         var user = users.save(new User("Pessoa", "Atraso", "+55119999001304"));

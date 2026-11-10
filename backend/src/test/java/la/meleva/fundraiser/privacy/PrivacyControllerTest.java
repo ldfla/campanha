@@ -58,7 +58,7 @@ class PrivacyControllerTest {
                         .content("{\"firstName\":\"  \",\"surname\":\"Silva\"}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
-                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(101) + "\"}"))
+                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(151) + "\"}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json").content(body))
                 .andExpect(status().isNoContent());
@@ -70,8 +70,9 @@ class PrivacyControllerTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_events WHERE action='PRIVACY_NAME_CORRECTED' AND entity_id=?",
                 Long.class, user.getId())).isEqualTo(1);
         mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
-                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(100) + "\"}"))
+                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(150) + "\"}"))
                 .andExpect(status().isNoContent());
+        assertThat(users.findById(user.getId()).orElseThrow().getSurname()).isEqualTo("A".repeat(150));
     }
 
     @Test

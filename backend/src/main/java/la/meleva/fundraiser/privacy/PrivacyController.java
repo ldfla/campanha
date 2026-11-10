@@ -69,7 +69,7 @@ public class PrivacyController {
     public record CpfRequest(@NotBlank String cpf) { }
 
     public record NameRequest(@NotBlank @Size(min = 2, max = 100) String firstName,
-                              @NotBlank @Size(min = 2, max = 100) String surname) {
+                              @NotBlank @Size(min = 2, max = 150) String surname) {
         public NameRequest {
             firstName = firstName == null ? null : firstName.strip();
             surname = surname == null ? null : surname.strip();
