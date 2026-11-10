@@ -27,6 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +43,48 @@ class PrivacyControllerTest {
     @Autowired SupportService support;
     @Autowired PrivacyService privacy;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+
+    @Test
+    void correctsOnlyAuthenticatedUsersNameWithValidationAndAudit() throws Exception {
+        var user = users.save(new User("Nome", "Original", "+5511955000030"));
+        var other = users.save(new User("Outra", "Pessoa", "+5511955000031"));
+        var principal = new AppUserDetails(user.getId(), user.getPublicId(), user.getPhoneNumber(), List.of(UserRole.PARTICIPANT));
+        var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        String body = "{\"firstName\":\"  Maria  \",\"surname\":\"  Silva  \"}";
+
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
+                        .content("{\"firstName\":\"  \",\"surname\":\"Silva\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
+                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(101) + "\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json").content(body))
+                .andExpect(status().isNoContent());
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json").content(body))
+                .andExpect(status().isNoContent());
+        assertThat(users.findById(user.getId()).orElseThrow().getDisplayName()).isEqualTo("Maria");
+        assertThat(users.findById(user.getId()).orElseThrow().getSurname()).isEqualTo("Silva");
+        assertThat(users.findById(other.getId()).orElseThrow().getDisplayName()).isEqualTo("Outra");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_events WHERE action='PRIVACY_NAME_CORRECTED' AND entity_id=?",
+                Long.class, user.getId())).isEqualTo(1);
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
+                        .content("{\"firstName\":\"Maria\",\"surname\":\"" + "A".repeat(100) + "\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void rejectsNameCorrectionForDeactivatedUser() throws Exception {
+        var user = users.save(new User("Pessoa", "Inativa", "+5511955000032"));
+        var principal = new AppUserDetails(user.getId(), user.getPublicId(), user.getPhoneNumber(), List.of(UserRole.PARTICIPANT));
+        var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        privacy.anonymize(user.getId());
+        mvc.perform(put("/privacy/me/name").with(authentication(auth)).with(csrf()).contentType("application/json")
+                        .content("{\"firstName\":\"Maria\",\"surname\":\"Silva\"}"))
+                .andExpect(status().isForbidden());
+        assertThat(users.findById(user.getId()).orElseThrow().getDisplayName()).isEqualTo("Titular");
+    }
 
     @Test
     void exportsOwnDataMaskedAndAnonymizesWithAudit() throws Exception {

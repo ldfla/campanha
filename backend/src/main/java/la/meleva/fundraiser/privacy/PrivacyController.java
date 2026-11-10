@@ -2,6 +2,7 @@ package la.meleva.fundraiser.privacy;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import la.meleva.fundraiser.identity.AppUserDetails;
 import la.meleva.fundraiser.shared.ErrorCode;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,13 @@ public class PrivacyController {
         service.anonymize(principal.userId());
     }
 
+    @PutMapping("/name")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("isAuthenticated()")
+    public void correctName(@AuthenticationPrincipal AppUserDetails principal, @Valid @RequestBody NameRequest request) {
+        service.correctName(principal.userId(), request.firstName(), request.surname());
+    }
+
     /** CPF é informado apenas quando o titular vai receber o prêmio. */
     @PutMapping("/cpf")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -59,6 +67,14 @@ public class PrivacyController {
     }
 
     public record CpfRequest(@NotBlank String cpf) { }
+
+    public record NameRequest(@NotBlank @Size(min = 2, max = 100) String firstName,
+                              @NotBlank @Size(min = 2, max = 100) String surname) {
+        public NameRequest {
+            firstName = firstName == null ? null : firstName.strip();
+            surname = surname == null ? null : surname.strip();
+        }
+    }
 
     public record CpfView(String maskedCpf) { }
 }

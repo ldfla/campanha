@@ -61,6 +61,21 @@ public class PrivacyService {
         audits.save(new AuditEvent(userId, "PRIVACY_ANONYMIZED", "user", userId, sha256(user.getPublicId())));
     }
 
+    @Transactional
+    public void correctName(Long userId, String firstName, String surname) {
+        var user = users.findLockedById(userId).filter(candidate -> candidate.isActive())
+                .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
+        if (firstName == null || surname == null || firstName.isBlank() || surname.isBlank()
+                || firstName.length() < 2 || firstName.length() > 100 || surname.length() < 2 || surname.length() > 100
+                || !firstName.equals(firstName.strip()) || !surname.equals(surname.strip())) {
+            throw ErrorCode.VALIDATION_ERROR.toException();
+        }
+        if (firstName.equals(user.getDisplayName()) && surname.equals(user.getSurname())) return;
+        user.setDisplayName(firstName);
+        user.setSurname(surname);
+        audits.save(new AuditEvent(userId, "PRIVACY_NAME_CORRECTED", "user", userId, sha256(user.getPublicId())));
+    }
+
     private long count(String sql, Long userId) {
         Long value = jdbc.queryForObject(sql, Long.class, userId);
         return value == null ? 0 : value;
