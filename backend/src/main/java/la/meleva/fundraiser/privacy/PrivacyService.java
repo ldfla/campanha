@@ -66,7 +66,7 @@ public class PrivacyService {
         var user = users.findLockedById(userId).filter(candidate -> candidate.isActive())
                 .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
         if (firstName == null || surname == null || firstName.isBlank() || surname.isBlank()
-                || firstName.length() < 2 || firstName.length() > 100 || surname.length() < 2 || surname.length() > 100
+                || firstName.length() < 2 || firstName.length() > 100 || surname.length() < 2 || surname.length() > 150
                 || !firstName.equals(firstName.strip()) || !surname.equals(surname.strip())) {
             throw ErrorCode.VALIDATION_ERROR.toException();
         }

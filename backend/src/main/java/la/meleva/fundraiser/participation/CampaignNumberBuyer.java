@@ -20,7 +20,7 @@ public class CampaignNumberBuyer {
     @Column(name = "buyer_user_id", nullable = false, updatable = false) private Long buyerUserId;
     @Column(name = "buyer_phone", nullable = false, length = 20) private String buyerPhone;
     @Column(name = "buyer_first_name", nullable = false, length = 100) private String buyerFirstName;
-    @Column(name = "buyer_surname", nullable = false, length = 100) private String buyerSurname;
+    @Column(name = "buyer_surname", nullable = false, length = 150) private String buyerSurname;
     @Column(name = "buyer_pseudonym", nullable = false, length = 40) private String buyerPseudonym;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
 
