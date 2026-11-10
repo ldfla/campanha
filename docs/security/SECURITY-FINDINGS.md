@@ -135,3 +135,18 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
 
 - Status: MITIGATED parcialmente; severidade preliminar: MEDIUM. O hash anterior da abertura não incluía o destino organizacional.
 - Correção: eventos novos incluem o destino público ou marcador de ausência no hash; reteste independente compara o hash gravado. Os eventos anteriores não possuem marcador de versão explícito, o hash não permite recuperar o destino sozinho e não protege contra alteração coordenada de evento e entidade.
+
+## SEC-0019 — Suspensão concorrente em operações de suporte
+
+- Status: MITIGATED para os cenários testados; severidade preliminar: MEDIUM. Revisão estática independente anterior apontou que abertura, encaminhamento e listagem consultavam a organização ativa sem bloqueio.
+- Correção restaurada: as operações consultam a organização ativa sob bloqueio de leitura; a transição consulta o identificador antes de bloquear a organização e depois bloqueia e revalida o chamado. Reteste independente de 10 testes passou usando classes compiladas; os testes controlados de consulta e transição cobrem a operação obtendo o bloqueio antes da suspensão. Testes diretos de abertura/encaminhamento e da ordem inversa seguem pendentes.
+
+## SEC-0020 — Abertura de chamado sem idempotência
+
+- Status: OPEN; severidade preliminar: MEDIUM. Por leitura de código na revisão anterior, repetir `POST /support/requests` após perda da resposta cria outro chamado e evento, pois o comando não recebe chave de idempotência.
+- Impacto possível: duplicação de solicitações e trabalho de atendimento. O comportamento ainda não foi reproduzido em teste; uma eventual correção precisa preservar a compatibilidade do POST legado e registrar chave por autor e conteúdo.
+
+## SEC-0021 — Bloqueio exclusivo anterior à autorização do operador
+
+- Status: MITIGATED para o cenário testado; severidade preliminar: MEDIUM. Revisão estática independente apontou que um operador externo que conhecesse o identificador poderia adquirir o bloqueio exclusivo do chamado antes da verificação de vínculo organizacional.
+- Correção: o serviço verifica e bloqueia o vínculo antes de obter o bloqueio exclusivo do chamado, e revalida a organização após bloqueá-lo. Reteste independente confirmou o teste que mantém o chamado bloqueado por outra transação e verifica que o operador externo é negado sem aguardar esse bloqueio; classes compiladas foram reutilizadas.

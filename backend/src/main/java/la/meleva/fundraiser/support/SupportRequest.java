@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import la.meleva.fundraiser.shared.ErrorCode;
 
 /** Solicitação de suporte. Não armazena nome, telefone ou e-mail do autor — apenas o vínculo interno. */
 @Entity
@@ -39,6 +40,18 @@ public class SupportRequest {
     public String getSubject() { return subject; }
     public String getMessage() { return message; }
     public SupportStatus getStatus() { return status; }
+
+    boolean transitionTo(SupportStatus next, Instant now) {
+        Objects.requireNonNull(next, "next");
+        Objects.requireNonNull(now, "now");
+        if (status == next) return false;
+        if (!((status == SupportStatus.OPEN && next == SupportStatus.IN_PROGRESS)
+                || (status == SupportStatus.IN_PROGRESS && next == SupportStatus.CLOSED)))
+            throw ErrorCode.SUPPORT_STATUS_TRANSITION_CONFLICT.toException();
+        status = next;
+        updatedAt = now;
+        return true;
+    }
 
     public enum SupportStatus { OPEN, IN_PROGRESS, CLOSED }
 }

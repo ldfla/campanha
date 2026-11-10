@@ -3,6 +3,7 @@ package la.meleva.fundraiser.support;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +20,12 @@ import la.meleva.fundraiser.identity.User;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.identity.UserRole;
 import la.meleva.fundraiser.shared.ErrorCode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Suporte interno. A listagem é restrita a papéis operacionais e não expõe dados pessoais do autor. */
+/** Suporte interno: consultas do autor ou de operadores vinculados à organização do chamado. */
 @Service
 public class SupportService {
 
@@ -34,14 +36,22 @@ public class SupportService {
     private final MembershipRepository memberships;
     private final OrganizationRepository organizations;
     private final AuditEventRepository audits;
+    private final Clock clock;
 
+    @Autowired
     SupportService(SupportRequestRepository requests, UserRepository users, MembershipRepository memberships,
                    OrganizationRepository organizations, AuditEventRepository audits) {
+        this(requests, users, memberships, organizations, audits, Clock.systemUTC());
+    }
+
+    SupportService(SupportRequestRepository requests, UserRepository users, MembershipRepository memberships,
+                   OrganizationRepository organizations, AuditEventRepository audits, Clock clock) {
         this.requests = requests;
         this.users = users;
         this.memberships = memberships;
         this.organizations = organizations;
         this.audits = audits;
+        this.clock = clock;
     }
 
     @Transactional
@@ -63,23 +73,44 @@ public class SupportService {
     }
 
     @Transactional
-    public List<SupportView> listOpen(Long actorId, String organizationId, int page, int size) {
-        if (page < 0 || size < 1 || size > MAX_PAGE) throw ErrorCode.VALIDATION_ERROR.toException();
+    public List<SupportView> list(Long actorId, String organizationId, int page, int size, SupportRequest.SupportStatus status) {
+        if (page < 0 || size < 1 || size > MAX_PAGE || status == null) throw ErrorCode.VALIDATION_ERROR.toException();
         var actor = activeUser(actorId);
         List<SupportRequest> entries;
         if (organizationId == null) {
-            entries = requests.findByUserIdAndStatusOrderByIdAsc(actor.getId(), SupportRequest.SupportStatus.OPEN,
+            entries = requests.findByUserIdAndStatusOrderByIdAsc(actor.getId(), status,
                     PageRequest.of(page, size));
         } else {
             var organization = activeOrganization(organizationId);
             requireOperationalRole(actor.getId(), organization.getId());
-            entries = requests.findByOrganizationIdAndStatusOrderByIdAsc(organization.getId(), SupportRequest.SupportStatus.OPEN, PageRequest.of(page, size));
+            entries = requests.findByOrganizationIdAndStatusOrderByIdAsc(organization.getId(), status, PageRequest.of(page, size));
         }
         var ids = entries.stream().map(SupportRequest::getOrganizationId).filter(Objects::nonNull).distinct().toList();
         Map<Long, Organization> byId = organizations.findAllById(ids).stream()
                 .collect(Collectors.toMap(Organization::getId, Function.identity()));
         return entries.stream().map(entry -> view(entry, entry.getOrganizationId() == null ? null
                 : byId.get(entry.getOrganizationId()).getPublicId())).toList();
+    }
+
+    @Transactional
+    public SupportView transition(Long actorId, String requestId, SupportRequest.SupportStatus next) {
+        if (next == null) throw ErrorCode.VALIDATION_ERROR.toException();
+        var actor = activeUser(actorId);
+        var organizationId = requests.findOrganizationIdByPublicId(requestId)
+                .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
+        var organization = organizations.lockForAuthorization(organizationId, Organization.OrgStatus.ACTIVE)
+                .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
+        requireOperationalRole(actor.getId(), organization.getId());
+        var request = requests.lockByPublicId(requestId).orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
+        if (!organization.getId().equals(request.getOrganizationId()))
+            throw ErrorCode.AUTH_RESOURCE_ACCESS_DENIED.toException();
+        var previous = request.getStatus();
+        if (request.transitionTo(next, clock.instant())) {
+            audits.save(new AuditEvent(actor.getId(), "SUPPORT_REQUEST_STATUS_CHANGED", "support_request", request.getId(),
+                    sha256("support-status-v1:" + request.getPublicId() + ":" + organization.getPublicId()
+                            + ":" + previous.name() + ":" + next.name())));
+        }
+        return view(request, organization.getPublicId());
     }
 
     @Transactional
@@ -107,7 +138,7 @@ public class SupportService {
 
     private Organization activeOrganization(String publicId) {
         if (publicId == null || publicId.isBlank()) throw ErrorCode.VALIDATION_ERROR.toException();
-        return organizations.findByPublicId(publicId).filter(org -> org.getStatus() == Organization.OrgStatus.ACTIVE)
+        return organizations.lockForAuthorizationByPublicId(publicId, Organization.OrgStatus.ACTIVE)
                 .orElseThrow(ErrorCode.RESOURCE_NOT_FOUND::toException);
     }
 
