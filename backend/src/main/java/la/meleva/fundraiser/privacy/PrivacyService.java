@@ -6,6 +6,7 @@ import la.meleva.fundraiser.audit.AuditEvent;
 import la.meleva.fundraiser.audit.AuditEventRepository;
 import la.meleva.fundraiser.identity.UserRepository;
 import la.meleva.fundraiser.shared.ErrorCode;
+import la.meleva.fundraiser.support.SupportPrivacyService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +22,15 @@ public class PrivacyService {
     private final AuditEventRepository audits;
     private final CpfService cpfs;
     private final JdbcTemplate jdbc;
+    private final SupportPrivacyService supportPrivacy;
 
-    PrivacyService(UserRepository users, AuditEventRepository audits, CpfService cpfs, JdbcTemplate jdbc) {
+    PrivacyService(UserRepository users, AuditEventRepository audits, CpfService cpfs, JdbcTemplate jdbc,
+                   SupportPrivacyService supportPrivacy) {
         this.users = users;
         this.audits = audits;
         this.cpfs = cpfs;
         this.jdbc = jdbc;
+        this.supportPrivacy = supportPrivacy;
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +57,7 @@ public class PrivacyService {
         users.saveAndFlush(user);
         jdbc.update("UPDATE campaign_number_buyers SET buyer_first_name='Titular', buyer_surname='Anonimizado', "
                 + "buyer_phone=? WHERE buyer_user_id=?", anonymizedPhone, userId);
+        supportPrivacy.redactForUser(userId);
         audits.save(new AuditEvent(userId, "PRIVACY_ANONYMIZED", "user", userId, sha256(user.getPublicId())));
     }
 

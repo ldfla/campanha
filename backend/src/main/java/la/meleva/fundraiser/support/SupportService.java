@@ -61,7 +61,7 @@ public class SupportService {
     public SupportView open(Long userId, String subject, String message, String organizationId, String idempotencyKey) {
         if (userId == null) throw ErrorCode.VALIDATION_ERROR.toException();
         String key = canonicalKey(idempotencyKey);
-        var user = (key == null ? users.findById(userId) : users.findLockedById(userId)).filter(candidate -> candidate.isActive())
+        var user = users.findLockedById(userId).filter(candidate -> candidate.isActive())
                 .orElseThrow(ErrorCode.AUTH_RESOURCE_ACCESS_DENIED::toException);
         if (subject == null || subject.isBlank() || subject.strip().length() > 150
                 || message == null || message.isBlank() || message.strip().length() > 2000) {

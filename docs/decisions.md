@@ -55,3 +55,7 @@ A listagem de suporte deve ser restrita à organização com vínculo ativo; con
 ## D-014 — Abertura de suporte com chave opcional
 
 A abertura aceita `Idempotency-Key` opcional por autor para repetição segura, mantendo clientes legados sem chave. A impressão versionada e a unicidade persistente são descritas na ADR-0012; chamadas sem chave continuam sem garantia de deduplicação.
+
+## D-015 — Minimização dos chamados do titular
+
+O pedido autenticado de anonimização remove o conteúdo dos chamados e os dados de idempotência derivados, preservando metadados e auditoria. A decisão técnica e seus limites estão na ADR-0013; retenção e impedimentos de exclusão continuam pendentes de avaliação humana.
