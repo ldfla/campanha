@@ -12,6 +12,7 @@ public class SupportRequest {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name = "public_id", nullable = false, updatable = false, length = 36) private String publicId;
     @Column(name = "user_id", nullable = false, updatable = false) private Long userId;
+    @Column(name = "organization_id") private Long organizationId;
     @Column(nullable = false, length = 150) private String subject;
     @Column(nullable = false, length = 2000) private String message;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private SupportStatus status;
@@ -33,6 +34,8 @@ public class SupportRequest {
     public Long getId() { return id; }
     public String getPublicId() { return publicId; }
     public Long getUserId() { return userId; }
+    public Long getOrganizationId() { return organizationId; }
+    void assignOrganization(Long organizationId) { this.organizationId = Objects.requireNonNull(organizationId); }
     public String getSubject() { return subject; }
     public String getMessage() { return message; }
     public SupportStatus getStatus() { return status; }

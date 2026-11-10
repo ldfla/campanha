@@ -117,3 +117,21 @@ Rodada independente em 31/10/2026: análise estática da P11 em desenvolvimento 
   o hash do payload; **não** prova autenticidade criptográfica da fonte externa nem publicação externa
   — depende de `G-PSP`/contrato da fonte oficial e do processo de dupla conferência do órgão.
   A criação/verificação de resultados reais da P12 segue como responsabilidade da apuração.
+
+## SEC-0016 — Listagem de suporte sem isolamento organizacional
+
+- Status: MITIGATED para os cenários testados; severidade preliminar: HIGH; CWE-639/OWASP API1. Componente: `GET /support/requests` e `SupportService.listOpen` anteriores à correção.
+- Evidência local: em MySQL 8.4 com dados sintéticos, um agente com vínculo `SUPPORT` apenas na organização B recebeu na listagem um chamado da organização A. O teste `supportAgentCannotReadOtherOrganizationsRequests` falhou antes da correção com um resultado em vez de lista vazia.
+- Impacto: exposição entre organizações do assunto e do texto de chamados, que podem conter dados pessoais. Não foi demonstrada alteração indevida dos chamados.
+- Correção: consulta de organização exige vínculo ativo no destino; sem destino, o usuário vê apenas os próprios chamados. Chamados legados sem organização são preservados e encaminhados uma vez pelo autor. Reteste independente executou `SupportControllerIntegrationTest,SupportMigrationIntegrationTest`: **6 testes aprovados** em MySQL 8.4, reutilizando classes compiladas.
+- Limites: o procedimento para chamados sem destino cujo autor esteja inativo permanece pendente. A mudança no comportamento de listagem está registrada na ADR-0011.
+
+## SEC-0017 — Limite fixo impedia recuperar chamados posteriores
+
+- Status: MITIGATED para o limite fixo; severidade preliminar: MEDIUM. A listagem anterior só consultava os primeiros 100 registros, impedindo descobrir chamados subsequentes.
+- Correção: `page` e `size` limitados e ordenados; reteste independente recuperou o 101º chamado. A paginação por deslocamento não é snapshot: alterações entre páginas podem deslocar resultados.
+
+## SEC-0018 — Destino inicial não coberto pelo hash do evento
+
+- Status: MITIGATED parcialmente; severidade preliminar: MEDIUM. O hash anterior da abertura não incluía o destino organizacional.
+- Correção: eventos novos incluem o destino público ou marcador de ausência no hash; reteste independente compara o hash gravado. Os eventos anteriores não possuem marcador de versão explícito, o hash não permite recuperar o destino sozinho e não protege contra alteração coordenada de evento e entidade.
