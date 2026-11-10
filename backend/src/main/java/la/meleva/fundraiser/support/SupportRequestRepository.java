@@ -10,6 +10,7 @@ import jakarta.persistence.LockModeType;
 
 public interface SupportRequestRepository extends JpaRepository<SupportRequest, Long> {
     Optional<SupportRequest> findByPublicId(String publicId);
+    Optional<SupportRequest> findByUserIdAndIdempotencyKey(Long userId, String idempotencyKey);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from SupportRequest r where r.publicId = :publicId")
     Optional<SupportRequest> lockByPublicId(String publicId);

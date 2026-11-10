@@ -24,7 +24,7 @@ class SupportMigrationIntegrationTest {
             Flyway.configure().dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword()).load().migrate();
             try (var connection = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
                  var sql = connection.createStatement();
-                 var rows = sql.executeQuery("SELECT user_id,subject,message,status,organization_id FROM support_requests "
+                 var rows = sql.executeQuery("SELECT user_id,subject,message,status,organization_id,idempotency_key,idempotency_fingerprint FROM support_requests "
                          + "WHERE public_id='e320168d-c52e-4c2d-90d8-e0bcdd8008b5'")) {
                 assertThat(rows.next()).isTrue();
                 assertThat(rows.getLong("user_id")).isEqualTo(1);
@@ -32,6 +32,8 @@ class SupportMigrationIntegrationTest {
                 assertThat(rows.getString("message")).isEqualTo("Mensagem antiga");
                 assertThat(rows.getString("status")).isEqualTo("OPEN");
                 assertThat(rows.getObject("organization_id")).isNull();
+                assertThat(rows.getObject("idempotency_key")).isNull();
+                assertThat(rows.getObject("idempotency_fingerprint")).isNull();
                 assertThat(rows.next()).isFalse();
             }
         }

@@ -341,6 +341,122 @@ class SupportControllerIntegrationTest {
         }
     }
 
+    @Test
+    void keyedOpeningReplaysAndRejectsChangedPayloadWithoutAffectingLegacyRequests() throws Exception {
+        var user = users.save(new User("Pessoa", "Chave", "+55119999007161"));
+        var other = users.save(new User("Pessoa", "Outra", "+55119999007162"));
+        var org = organizations.save(new Organization("Abertura idempotente", "ASSOCIATION"));
+        var userAuth = auth(user, UserRole.PARTICIPANT);
+        String key = "641a160e-cafe-4bc4-9bb0-055c4b7cae71";
+        String body = "{\"subject\":\"Dúvida\",\"message\":\"Mensagem\",\"organizationId\":\"" + org.getPublicId() + "\"}";
+        var first = mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        String id = JsonPath.read(first.getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id));
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key.toUpperCase(java.util.Locale.ROOT)).contentType(MediaType.APPLICATION_JSON)
+                .content(body.replace("Dúvida", " Dúvida ").replace(org.getPublicId(), org.getPublicId().toUpperCase(java.util.Locale.ROOT))))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id));
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON)
+                .content(body.replace("Mensagem", "Outra mensagem"))).andExpect(status().isConflict());
+        var otherResult = mvc.perform(post("/support/requests").with(authentication(auth(other, UserRole.PARTICIPANT))).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        assertThat((String) JsonPath.read(otherResult.getResponse().getContentAsString(), "$.id")).isNotEqualTo(id);
+        var saved = requests.findByPublicId(id).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(1);
+        var legacy = mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn();
+        assertThat((String) JsonPath.read(legacy.getResponse().getContentAsString(), "$.id")).isNotEqualTo(id);
+        var anotherLegacy = mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn();
+        assertThat((String) JsonPath.read(anotherLegacy.getResponse().getContentAsString(), "$.id"))
+                .isNotEqualTo((String) JsonPath.read(legacy.getResponse().getContentAsString(), "$.id"));
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", "chave-inválida").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+        jdbc.update("UPDATE users SET status='SUSPENDED' WHERE id=?", user.getId());
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void keyedOpeningReplaysAfterRoutingEvenWhenDestinationIsSuspended() throws Exception {
+        var user = users.save(new User("Pessoa", "Destino", "+55119999007163"));
+        var org = organizations.save(new Organization("Destino posterior", "ASSOCIATION"));
+        var userAuth = auth(user, UserRole.PARTICIPANT);
+        String key = "59e9f47e-600a-453f-9a70-d995c03d524e";
+        String body = "{\"subject\":\"Dúvida\",\"message\":\"Mensagem\"}";
+        var created = mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"subject\":\"Dúvida\",\"message\":\"Mensagem\",\"organizationId\":\"unassigned\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/support/requests/" + id + "/organization").with(authentication(userAuth)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"organizationId\":\"" + org.getPublicId() + "\"}"))
+                .andExpect(status().isOk());
+        jdbc.update("UPDATE organizations SET status='SUSPENDED' WHERE id=?", org.getId());
+        mvc.perform(post("/support/requests").with(authentication(userAuth)).with(csrf())
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.organizationId").value(org.getPublicId()));
+        var saved = requests.findByPublicId(id).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(2);
+    }
+
+    @Test
+    void concurrentKeyedOpeningsCreateOneRequestAndOneAuditEvent() throws Exception {
+        var user = users.save(new User("Pessoa", "Concorrente", "+55119999007164"));
+        var org = organizations.save(new Organization("Aberturas concorrentes", "ASSOCIATION"));
+        String key = "bfb48a04-14c4-4f12-89ee-983d2d3e8fa5";
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var futures = new ArrayList<java.util.concurrent.Future<String>>();
+            for (int i = 0; i < 12; i++) futures.add(executor.submit(() -> {
+                start.await();
+                return service.open(user.getId(), "Dúvida", "Mensagem", org.getPublicId(), key).id();
+            }));
+            start.countDown();
+            var ids = new java.util.HashSet<String>();
+            for (var future : futures) ids.add(future.get(20, java.util.concurrent.TimeUnit.SECONDS));
+            assertThat(ids).hasSize(1);
+        }
+        var saved = requests.findByUserIdAndIdempotencyKey(user.getId(), key).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(1);
+    }
+
+    @Test
+    void concurrentDifferentPayloadsForOneKeyHaveOneWinnerAndOneConflict() throws Exception {
+        var user = users.save(new User("Pessoa", "Conflito", "+55119999007165"));
+        String key = "cd7ad24e-33ad-4ea0-90ad-a804c412a65f";
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var futures = new ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (String message : List.of("Mensagem A", "Mensagem B")) futures.add(executor.submit(() -> {
+                start.await();
+                try { service.open(user.getId(), "Dúvida", message, null, key); return true; }
+                catch (la.meleva.fundraiser.shared.ErrorCode.BusinessException ex) {
+                    assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.IDEMPOTENCY_CONFLICT);
+                    return false;
+                }
+            }));
+            start.countDown();
+            int successes = 0;
+            for (var future : futures) if (future.get(20, java.util.concurrent.TimeUnit.SECONDS)) successes++;
+            assertThat(successes).isEqualTo(1);
+        }
+        var saved = requests.findByUserIdAndIdempotencyKey(user.getId(), key).orElseThrow();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(1);
+    }
+
     private UsernamePasswordAuthenticationToken auth(User user, UserRole role) {
         var principal = new AppUserDetails(user.getId(), user.getPublicId(), user.getPhoneNumber(), List.of(role));
         return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());

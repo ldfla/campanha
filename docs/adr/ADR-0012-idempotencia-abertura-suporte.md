@@ -1,0 +1,8 @@
+# ADR-0012 — Idempotência opcional na abertura de suporte
+
+- Estado: proposta para revisão em PR; depende das migrações V026–V029 e não habilita operação real.
+- Contexto: repetir a abertura de chamado após perda da resposta criava registros duplicados. Exigir uma chave de todos os clientes existentes mudaria o contrato legado.
+- Decisão: aceitar cabeçalho opcional `Idempotency-Key` com UUID canônico. Para chamadas com chave, serializar por autor, restringir `(user_id, idempotency_key)` no banco e comparar impressão SHA-256 versionada do assunto e mensagem normalizados e da presença e valor do destino. Campos são delimitados por comprimento. A mesma chave e dados retorna o mesmo chamado; dados diferentes retornam conflito. A resposta reflete estado e destino atuais, inclusive após encaminhamento. Sem chave, preservar a abertura legada sem garantia de deduplicação.
+- Migração: V030 acrescenta campos anuláveis, restrição de par e índice único. Dados antigos permanecem sem chave; a migração não os altera nem deduplica. Aplicar após V029 e as migrações antecedentes dos PRs de P14/P15.
+- Privacidade: a impressão é um hash sem segredo, não anonimiza o conteúdo e deve integrar as políticas de retenção/expurgo ainda pendentes. Não expor ou registrar a chave ou o hash em logs. Não há prazo de expiração nesta entrega.
+- Limitações: clientes legados sem cabeçalho ainda podem criar duplicatas; é necessária adoção do cabeçalho pelos clientes. A versão inicial ambígua observada na revisão existiu apenas como alteração local não commitada nesta tarefa e foi substituída antes deste PR. Não se deve mudar a canonicalização de registros existentes sem estratégia de compatibilidade.
