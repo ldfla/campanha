@@ -891,8 +891,8 @@ Modelo de duas camadas em `campaign_numbers`:
 - [x] `P18-03` Executar reconciliação com webhooks duplicados, atrasados e em ordem inversa. Coberto por `OrderServiceIntegrationTest` (replay, atraso, fora de ordem).
 - [x] `P18-04` Injectar falha entre persistência e notificação; comprovar outbox e recovery. `OutboxRecoveryIntegrationTest` + `OutboxEvent.recordFailure`.
 - [x] `P18-05` Medir p95/p99 com hardware e configuração registrados, índices com `EXPLAIN`. p50≈18,8 s / p95≈36,3 s / p99≈37,7 s; `EXPLAIN` confirma índice.
-- [x] `P18-06` Testar backup/restauração MySQL e objetos privados com integridade de hashes. Evidência MySQL: `BackupRestoreDrillIntegrationTest` (58 tabelas idênticas por `CHECKSUM TABLE`). **Objetos privados não ensaiados** (storage `memory` no MVP) — `docs/progress/P20-fase1.md`.
-- [x] `P18-07` Testar congelamento concorrente com novas participações; invariantes devem se manter. Congelamento idempotente e participação tardia bloqueada após `LOCKED`.
+- [ ] `P18-06` **Parcial:** backup/restauração MySQL verificados por `BackupRestoreDrillIntegrationTest`; objetos privados ainda não ensaiados — `docs/progress/P20-fase1.md`.
+- [ ] `P18-07` **Parcial:** `ConcurrentFreezeIntegrationTest` exercita participação e congelamento nas duas ordens; a espera limitada não comprova que a operação concorrente chegou ao bloqueio antes da liberação. Ver `docs/progress/P18.md`.
 - [x] `P18-08` Registrar limites medidos e roadmap de tuning sem alterar invariantes para melhorar números. `docs/progress/P18.md` (gargalo do lock de campanha).
 
 **Aceite:** relatórios reais com comandos, dados e evidência de integridade/recuperação.
