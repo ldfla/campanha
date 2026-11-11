@@ -178,6 +178,65 @@ class SupportControllerIntegrationTest {
     }
 
     @Test
+    void concurrentReopeningsWithSameRevisionHaveOneWinner() throws Exception {
+        var owner = users.save(new User("Pessoa", "Concorrente", "+55119999007301"));
+        var agent = users.save(new User("Agente", "Concorrente", "+55119999007302"));
+        var org = organizations.save(new Organization("Organização concorrente", "ASSOCIATION"));
+        memberships.save(new Membership(org, agent, UserRole.SUPPORT));
+        var entry = new SupportRequest(owner.getId(), "Dúvida", "Mensagem");
+        entry.assignOrganization(org.getId());
+        var saved = requests.save(entry);
+        service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.IN_PROGRESS);
+        service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.CLOSED);
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var futures = new ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 2; i++) futures.add(executor.submit(() -> {
+                ready.countDown();
+                if (!start.await(10, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("timeout");
+                try {
+                    service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.IN_PROGRESS, 2L);
+                    return true;
+                } catch (la.meleva.fundraiser.shared.ErrorCode.BusinessException ex) {
+                    assertThat(ex.errorCode()).isEqualTo(la.meleva.fundraiser.shared.ErrorCode.SUPPORT_STATUS_TRANSITION_CONFLICT);
+                    return false;
+                }
+            }));
+            assertThat(ready.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            var results = new ArrayList<Boolean>();
+            for (var future : futures) results.add(future.get(20, java.util.concurrent.TimeUnit.SECONDS));
+            assertThat(results).containsExactlyInAnyOrder(true, false);
+        }
+        assertThat(requests.findById(saved.getId()).orElseThrow().getStatusRevision()).isEqualTo(3);
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(3);
+    }
+
+    @Test
+    void reopeningRollsBackStatusRevisionFlagAndAuditTogether() {
+        var owner = users.save(new User("Pessoa", "Reversão", "+55119999007303"));
+        var agent = users.save(new User("Agente", "Reversão", "+55119999007304"));
+        var org = organizations.save(new Organization("Organização reversão", "ASSOCIATION"));
+        memberships.save(new Membership(org, agent, UserRole.SUPPORT));
+        var entry = new SupportRequest(owner.getId(), "Dúvida", "Mensagem");
+        entry.assignOrganization(org.getId());
+        var saved = requests.save(entry);
+        service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.IN_PROGRESS);
+        service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.CLOSED);
+        assertThatThrownBy(() -> new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+                .executeWithoutResult(tx -> {
+                    service.transition(agent.getId(), saved.getPublicId(), SupportRequest.SupportStatus.IN_PROGRESS, 2L);
+                    throw new IllegalStateException("falha sintética");
+                })).isInstanceOf(IllegalStateException.class).hasMessage("falha sintética");
+        var row = jdbc.queryForMap("SELECT status,status_revision,has_reopened FROM support_requests WHERE id=?", saved.getId());
+        assertThat(row.get("status")).isEqualTo("CLOSED");
+        assertThat(((Number) row.get("status_revision")).longValue()).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT has_reopened FROM support_requests WHERE id=?", Boolean.class, saved.getId())).isFalse();
+        assertThat(audits.findByEntityTypeAndEntityIdOrderByCreatedAt("support_request", saved.getId())).hasSize(2);
+    }
+
+    @Test
     void onlyOrganizationSupportCanAdvanceCloseAndReopenTicketWithAudit() throws Exception {
         var requester = users.save(new User("Pessoa", "Solicitante", "+55119999007121"));
         var agent = users.save(new User("Agente", "Destino", "+55119999007122"));
